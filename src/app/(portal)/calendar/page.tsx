@@ -34,8 +34,8 @@ const content = {
     description: 'Upcoming events, holidays, and important dates for the school year.',
     allDay: 'All Day',
     noEventsList: 'No events found.',
-    subscribeButton: 'Subscribe to the School Calendar',
-    subscribeDescription: '(Events auto-update in your calendar app)',
+    subscribeButton: 'Download Calendar Events',
+    subscribeDescription: '(Adds events to your calendar app)',
     attachments: 'Attachments',
     filterLabel: "Only show events for my children",
     detailsButton: "View Details",
@@ -52,8 +52,8 @@ const content = {
     description: 'Digwyddiadau, gwyliau, a dyddiadau pwysig ar gyfer y flwyddyn ysgol.',
     allDay: 'Trwy\'r Dydd',
     noEventsList: 'Ni chanfuwyd unrhyw ddigwyddiadau.',
-    subscribeButton: 'Tanysgrifiwch i Galendr yr Ysgol',
-    subscribeDescription: '(Mae digwyddiadau\'n diweddaru\'n awtomatig yn eich ap calendr)',
+    subscribeButton: 'Lawrlwytho Digwyddiadau Calendr',
+    subscribeDescription: '(Yn ychwanegu digwyddiadau i\'ch ap calendr)',
     attachments: 'Atodiadau',
     filterLabel: "Dangos digwyddiadau ar gyfer fy mhlant yn unig",
     detailsButton: "Gweld Manylion",
@@ -196,6 +196,7 @@ export default function CalendarPage() {
                 <CalendarPlus className="mr-2 h-4 w-4" />
                 {t.subscribeButton}
               </Button>
+              <p className="text-xs text-muted-foreground mt-1">{t.subscribeDescription}</p>
           </div>
         </div>
 
