@@ -36,16 +36,14 @@ import { parentChildren as mockChildren } from '@/lib/mockData';
 import { LanguageToggle } from '../layout';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { cy } from 'date-fns/locale';
-import { DateRange } from 'react-day-picker';
+import { Switch } from '@/components/ui/switch';
 
 const absenceFormSchema = (t: any) => z.object({
   childId: z.string({
     required_error: t.childId.required_error,
   }),
-  absenceDate: z.object({
-      from: z.date({ required_error: t.absenceDate.required_error_from }),
-      to: z.date().optional(),
-  }),
+  startDate: z.date({ required_error: t.absenceDate.required_error_from }),
+  endDate: z.date().optional(),
   reason: z.string().min(10, {
     message: t.reason.message,
   }),
@@ -62,8 +60,10 @@ const content = {
       description: "For security, you can only select children linked to your account.",
       childLabel: "Child's Name",
       childPlaceholder: "Select your child",
-      dateLabel: "Date(s) of Absence",
-      datePlaceholder: "Pick a date or date range",
+      startDateLabel: "Start Date of Absence",
+      endDateLabel: "End Date of Absence",
+      datePlaceholder: "Pick a date",
+      multiDayLabel: "This absence is for more than one day",
       reasonLabel: "Reason for Absence",
       reasonPlaceholder: "e.g., Unwell with a cold.",
       documentLabel: "Upload a Document (Optional)",
@@ -92,8 +92,10 @@ const content = {
       description: "Er diogelwch, dim ond plant sy'n gysylltiedig â'ch cyfrif y gallwch eu dewis.",
       childLabel: "Enw'r Plentyn",
       childPlaceholder: "Dewiswch eich plentyn",
-      dateLabel: "Dyddiad(au) yr Absenoldeb",
-      datePlaceholder: "Dewiswch ddyddiad neu amrediad dyddiadau",
+      startDateLabel: "Dyddiad Dechrau'r Absenoldeb",
+      endDateLabel: "Dyddiad Gorffen yr Absenoldeb",
+      datePlaceholder: "Dewiswch ddyddiad",
+      multiDayLabel: "Mae'r absenoldeb hwn am fwy nag un diwrnod",
       reasonLabel: "Rheswm dros Absenoldeb",
       reasonPlaceholder: "e.e., Yn sâl gydag annwyd.",
       documentLabel: "Uwchlwytho Dogfen (Dewisol)",
@@ -121,6 +123,7 @@ export default function AbsencePage() {
   const { language } = useLanguage();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isMultiDay, setIsMultiDay] = useState(false);
   const t = content[language];
   const locale = language === 'cy' ? cy : undefined;
 
@@ -128,23 +131,18 @@ export default function AbsencePage() {
     resolver: zodResolver(absenceFormSchema(t.formSchema)),
     defaultValues: {
         reason: "",
-        absenceDate: {
-            from: undefined,
-            to: undefined,
-        }
     }
   });
 
   async function onSubmit(values: z.infer<ReturnType<typeof absenceFormSchema>>) {
     setIsLoading(true);
     
-    // In a real app, you'd get the logged-in parent's info
     const parentInfo = { name: "Jane Doe", email: "parent@example.com" };
     const childName = mockChildren.find(c => c.id === values.childId)?.name || 'Unknown Child';
 
-    let dateString = format(values.absenceDate.from, 'PPP', { locale });
-    if (values.absenceDate.to) {
-        dateString += ` - ${format(values.absenceDate.to, 'PPP', { locale })}`;
+    let dateString = format(values.startDate, 'PPP', { locale });
+    if (values.endDate && isMultiDay) {
+        dateString += ` - ${format(values.endDate, 'PPP', { locale })}`;
     }
 
     const messageBody = `
@@ -172,6 +170,7 @@ Submitted by: ${parentInfo.name} (${parentInfo.email})
         });
         
         form.reset();
+        setIsMultiDay(false);
 
     } catch (error) {
         console.error("Failed to submit absence report:", error);
@@ -233,55 +232,88 @@ Submitted by: ${parentInfo.name} (${parentInfo.email})
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="absenceDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>{t.form.dateLabel}</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            id="date"
-                            variant={'outline'}
-                            className={cn(
-                              'w-full justify-start text-left font-normal',
-                              !field.value.from && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value?.from ? (
-                              field.value.to ? (
-                                <>
-                                  {format(field.value.from, 'LLL dd, y')} -{' '}
-                                  {format(field.value.to, 'LLL dd, y')}
-                                </>
-                              ) : (
-                                format(field.value.from, 'LLL dd, y')
-                              )
-                            ) : (
-                              <span>{t.form.datePlaceholder}</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          initialFocus
-                          mode="range"
-                          defaultMonth={field.value?.from}
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          numberOfMonths={2}
-                          locale={locale}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-4">
+                 <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>{t.form.startDateLabel}</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={'outline'}
+                                className={cn(
+                                  'w-full justify-start text-left font-normal',
+                                  !field.value && 'text-muted-foreground'
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? format(field.value, 'PPP') : <span>{t.form.datePlaceholder}</span>}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date < new Date("1900-01-01")}
+                              initialFocus
+                              locale={locale}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="multi-day-switch" checked={isMultiDay} onCheckedChange={setIsMultiDay} />
+                    <Label htmlFor="multi-day-switch">{t.form.multiDayLabel}</Label>
+                  </div>
+                  
+                  {isMultiDay && (
+                     <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>{t.form.endDateLabel}</FormLabel>
+                            <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant={'outline'}
+                                    className={cn(
+                                    'w-full justify-start text-left font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? format(field.value, 'PPP') : <span>{t.form.datePlaceholder}</span>}
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => form.getValues('startDate') ? date < form.getValues('startDate') : date < new Date("1900-01-01")}
+                                initialFocus
+                                locale={locale}
+                                />
+                            </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                  )}
+              </div>
 
               <FormField
                 control={form.control}
