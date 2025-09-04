@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { calendarEvents, CalendarEvent } from '@/lib/mockCalendar';
 import { format } from 'date-fns';
-import { createICalFeed } from '@/lib/ical';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -34,8 +33,8 @@ const content = {
     description: 'Upcoming events, holidays, and important dates for the school year.',
     allDay: 'All Day',
     noEventsList: 'No events found.',
-    subscribeButton: 'Download Calendar Events',
-    subscribeDescription: '(Adds events to your calendar app)',
+    subscribeButton: 'Subscribe to Calendar',
+    subscribeDescription: '(Events auto-update in your calendar app)',
     attachments: 'Attachments',
     filterLabel: "Only show events for my children",
     detailsButton: "View Details",
@@ -52,8 +51,8 @@ const content = {
     description: 'Digwyddiadau, gwyliau, a dyddiadau pwysig ar gyfer y flwyddyn ysgol.',
     allDay: 'Trwy\'r Dydd',
     noEventsList: 'Ni chanfuwyd unrhyw ddigwyddiadau.',
-    subscribeButton: 'Lawrlwytho Digwyddiadau Calendr',
-    subscribeDescription: '(Yn ychwanegu digwyddiadau i\'ch ap calendr)',
+    subscribeButton: 'Tanysgrifio i\'r Calendr',
+    subscribeDescription: '(Mae digwyddiadau\'n diweddaru\'n awtomatig yn eich ap calendr)',
     attachments: 'Atodiadau',
     filterLabel: "Dangos digwyddiadau ar gyfer fy mhlant yn unig",
     detailsButton: "Gweld Manylion",
@@ -80,19 +79,6 @@ export default function CalendarPage() {
   const { language } = useLanguage();
   const t = content[language];
   const [isFiltered, setIsFiltered] = useState(false);
-
-  const handleDownloadICalFeed = () => {
-    const icalData = createICalFeed(calendarEvents);
-    if (icalData) {
-      const blob = new Blob([icalData], { type: 'text/calendar;charset=utf-8' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'MaesYMorfa_School_Calendar.ics';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
   
   const filteredEvents = useMemo(() => {
     if (!isFiltered) {
@@ -192,9 +178,11 @@ export default function CalendarPage() {
             <Switch id="filter-switch" checked={isFiltered} onCheckedChange={setIsFiltered} />
           </div>
           <div className="text-right">
-              <Button onClick={handleDownloadICalFeed} size="sm">
-                <CalendarPlus className="mr-2 h-4 w-4" />
-                {t.subscribeButton}
+              <Button asChild size="sm">
+                <a href="/api/calendar">
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  {t.subscribeButton}
+                </a>
               </Button>
               <p className="text-xs text-muted-foreground mt-1">{t.subscribeDescription}</p>
           </div>
