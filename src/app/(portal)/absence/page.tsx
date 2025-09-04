@@ -29,20 +29,22 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CalendarIcon, Loader2, Upload } from 'lucide-react';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/db';
 import { parentChildren as mockChildren } from '@/lib/mockData';
 import { LanguageToggle } from '../layout';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { cy } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
 
 const absenceFormSchema = (t: any) => z.object({
   childId: z.string({
     required_error: t.childId.required_error,
   }),
-  absenceDate: z.date({
-    required_error: t.absenceDate.required_error,
+  absenceDate: z.object({
+      from: z.date({ required_error: t.absenceDate.required_error_from }),
+      to: z.date().optional(),
   }),
   reason: z.string().min(10, {
     message: t.reason.message,
@@ -60,15 +62,13 @@ const content = {
       description: "For security, you can only select children linked to your account.",
       childLabel: "Child's Name",
       childPlaceholder: "Select your child",
-      dateLabel: "Date of Absence",
-      datePlaceholder: "Pick a date",
+      dateLabel: "Date(s) of Absence",
+      datePlaceholder: "Pick a date or date range",
       reasonLabel: "Reason for Absence",
       reasonPlaceholder: "e.g., Unwell with a cold.",
       documentLabel: "Upload a Document (Optional)",
       documentDescription: "e.g., a doctor's note or appointment confirmation.",
       submitButton: "Submit Report",
-      todayButton: "Today",
-      yesterdayButton: "Yesterday",
     },
     success: {
         title: "Absence Reported Successfully",
@@ -80,7 +80,7 @@ const content = {
     },
     formSchema: {
         childId: { required_error: 'Please select a child.' },
-        absenceDate: { required_error: 'A date of absence is required.' },
+        absenceDate: { required_error_from: 'Please select a start date for the absence.' },
         reason: { message: 'Please provide a brief reason for the absence (at least 10 characters).' }
     }
   },
@@ -92,15 +92,13 @@ const content = {
       description: "Er diogelwch, dim ond plant sy'n gysylltiedig â'ch cyfrif y gallwch eu dewis.",
       childLabel: "Enw'r Plentyn",
       childPlaceholder: "Dewiswch eich plentyn",
-      dateLabel: "Dyddiad yr Absenoldeb",
-      datePlaceholder: "Dewiswch ddyddiad",
+      dateLabel: "Dyddiad(au) yr Absenoldeb",
+      datePlaceholder: "Dewiswch ddyddiad neu amrediad dyddiadau",
       reasonLabel: "Rheswm dros Absenoldeb",
       reasonPlaceholder: "e.e., Yn sâl gydag annwyd.",
       documentLabel: "Uwchlwytho Dogfen (Dewisol)",
       documentDescription: "e.e., nodyn meddyg neu gadarnhad apwyntiad.",
       submitButton: "Cyflwyno'r Adroddiad",
-      todayButton: "Heno",
-      yesterdayButton: "Ddoe",
     },
     success: {
         title: "Absenoldeb Wedi'i Riportio'n Llwyddiannus",
@@ -112,7 +110,7 @@ const content = {
     },
     formSchema: {
         childId: { required_error: 'Dewiswch blentyn.' },
-        absenceDate: { required_error: 'Mae angen dyddiad absenoldeb.' },
+        absenceDate: { required_error_from: 'Dewiswch ddyddiad dechrau ar gyfer yr absenoldeb.' },
         reason: { message: 'Rhowch reswm byr dros yr absenoldeb (o leiaf 10 nod).' }
     }
   }
@@ -130,6 +128,10 @@ export default function AbsencePage() {
     resolver: zodResolver(absenceFormSchema(t.formSchema)),
     defaultValues: {
         reason: "",
+        absenceDate: {
+            from: undefined,
+            to: undefined,
+        }
     }
   });
 
@@ -140,9 +142,14 @@ export default function AbsencePage() {
     const parentInfo = { name: "Jane Doe", email: "parent@example.com" };
     const childName = mockChildren.find(c => c.id === values.childId)?.name || 'Unknown Child';
 
+    let dateString = format(values.absenceDate.from, 'PPP', { locale });
+    if (values.absenceDate.to) {
+        dateString += ` - ${format(values.absenceDate.to, 'PPP', { locale })}`;
+    }
+
     const messageBody = `
 Child: ${childName}
-Date of Absence: ${format(values.absenceDate, 'PPP', { locale })}
+Date of Absence: ${dateString}
 Reason: ${values.reason}
 ---
 Submitted by: ${parentInfo.name} (${parentInfo.email})
@@ -232,49 +239,41 @@ Submitted by: ${parentInfo.name} (${parentInfo.email})
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>{t.form.dateLabel}</FormLabel>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => form.setValue('absenceDate', new Date())}
-                        >
-                            {t.form.todayButton}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => form.setValue('absenceDate', subDays(new Date(), 1))}
-                        >
-                            {t.form.yesterdayButton}
-                        </Button>
-                    </div>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
+                            id="date"
                             variant={'outline'}
                             className={cn(
-                              'w-full md:w-[240px] pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
+                              'w-full justify-start text-left font-normal',
+                              !field.value.from && 'text-muted-foreground'
                             )}
                           >
-                            {field.value ? (
-                              format(field.value, 'PPP', { locale })
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value?.from ? (
+                              field.value.to ? (
+                                <>
+                                  {format(field.value.from, 'LLL dd, y')} -{' '}
+                                  {format(field.value.to, 'LLL dd, y')}
+                                </>
+                              ) : (
+                                format(field.value.from, 'LLL dd, y')
+                              )
                             ) : (
                               <span>{t.form.datePlaceholder}</span>
                             )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
-                          mode="single"
+                          initialFocus
+                          mode="range"
+                          defaultMonth={field.value?.from}
                           selected={field.value}
                           onSelect={field.onChange}
-                          initialFocus
+                          numberOfMonths={2}
                           locale={locale}
                         />
                       </PopoverContent>
