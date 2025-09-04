@@ -37,6 +37,7 @@ import { LanguageToggle } from '../layout';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { cy } from 'date-fns/locale';
 import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const absenceFormSchema = (t: any) => z.object({
   childId: z.string({
