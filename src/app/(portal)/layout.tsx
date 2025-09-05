@@ -79,7 +79,7 @@ const content = {
       dashboard: 'Dangosfwrdd',
       inbox: 'Mewnflwch',
       calendar: 'Calendr',
-      gallery: 'Oriel Ffotograffau',
+      gallery: 'Oriel',
       absence: 'Riportio Absenoldeb',
       account: 'Fy Nghyfrif'
     },
@@ -112,7 +112,7 @@ const BottomNav = () => {
                     return (
                         <Link href={item.href} key={item.href} className={cn("flex flex-col items-center justify-center gap-1 text-xs transition-colors w-full h-full", isActive ? "text-primary" : "text-muted-foreground hover:text-primary")}>
                            <Icon className="h-6 w-6" />
-                           <span>{item.label}</span>
+                           <span className="truncate">{item.label}</span>
                         </Link>
                     )
                 })}
@@ -255,7 +255,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-2 flex flex-col gap-2">
-             <SidebarMenuButton variant="outline" onClick={handleLogout} tooltip={{ children: t.account.logout, side: 'right' }}>
+            <SidebarMenuButton variant="outline" onClick={handleLogout} tooltip={{ children: t.account.logout, side: 'right' }}>
                 <LogOut />
                 <span>{t.account.logout}</span>
             </SidebarMenuButton>
