@@ -213,7 +213,6 @@ export default function ParentInboxPage() {
                     <h1 className="text-3xl font-bold font-headline">{t.title}</h1>
                     <p className="text-muted-foreground">{t.description}</p>
                 </div>
-                <LanguageToggle />
             </div>
 
             {Object.keys(threads).length === 0 ? (

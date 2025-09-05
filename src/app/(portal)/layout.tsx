@@ -268,7 +268,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 <LanguageToggle />
             </div>
              <div className="flex lg:hidden justify-between items-center mb-4">
-                <SidebarTrigger />
+                <div className="hidden">
+                    <SidebarTrigger />
+                </div>
                 <LanguageToggle />
             </div>
             {children}
@@ -276,9 +278,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           {isMobile && (
               <>
                 <BottomNav />
-                <Button asChild className="fixed bottom-20 right-4 z-50 h-16 w-16 rounded-full shadow-lg" size="icon">
-                    <Link href="/absence" aria-label="Report Absence">
-                        <Plus className="h-8 w-8" />
+                <Button asChild className="fixed bottom-20 right-4 z-50 h-14 rounded-full shadow-lg gap-2 px-4">
+                    <Link href="/absence" aria-label={t.menu.absence}>
+                        <ClipboardCheck className="h-6 w-6" />
+                        <span className="font-bold">{t.menu.absence}</span>
                     </Link>
                 </Button>
               </>
