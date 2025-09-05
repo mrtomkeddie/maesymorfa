@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -184,12 +183,12 @@ function TeacherDashboardContent() {
                             <div className="space-y-2">
                                 {myClass.map(child => (
                                     <div key={child.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-md">
-                                        <p className="font-medium">{child.name}</p>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <Button variant="outline" size="sm" onClick={() => handleViewChild(child)}>
+                                        <p className="font-medium flex-grow">{child.name}</p>
+                                        <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
+                                            <Button variant="outline" size="sm" onClick={() => handleViewChild(child)} className="flex-1 sm:flex-none">
                                                 <Info className="mr-2 h-4 w-4" /> {t.viewDetails}
                                             </Button>
-                                            <Button variant="default" size="sm" asChild>
+                                            <Button variant="default" size="sm" asChild className="flex-1 sm:flex-none">
                                                 <Link href={{ pathname: '/teacher/notify', query: { childId: child.id, childName: child.name } }}>
                                                     <MessageSquare className="mr-2 h-4 w-4" /> {t.notifyParent}
                                                 </Link>
@@ -378,3 +377,5 @@ export default function TeacherDashboard() {
         </div>
     );
 }
+
+    
