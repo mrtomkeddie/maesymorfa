@@ -28,6 +28,8 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Separator } from '@/components/ui/separator';
 
 const AnnouncementForm = dynamic(() => import('@/components/admin/AnnouncementForm').then(mod => mod.AnnouncementForm), {
   loading: () => <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin"/></div>,
@@ -45,6 +47,7 @@ export default function AnnouncementsAdminPage() {
   const [itemToDelete, setItemToDelete] = useState<Announcement | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const isMobile = useIsMobile();
 
   const { toast } = useToast();
 
@@ -139,6 +142,110 @@ export default function AnnouncementsAdminPage() {
     return date && !isNaN(new Date(date).getTime());
   }
 
+  const DesktopView = () => (
+    <div className="overflow-x-auto">
+        <Table>
+            <TableHeader>
+            <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+            </TableHeader>
+            <TableBody>
+            {filteredAnnouncements.length > 0 ? (
+                filteredAnnouncements.map((item) => {
+                const itemDate = item.type === 'news' ? item.date : item.start;
+                return (
+                <TableRow key={`${item.type}-${item.id}`}>
+                    <TableCell className="font-medium">{item.title_en}</TableCell>
+                    <TableCell>
+                    <Badge variant="outline" className="gap-2">
+                        {item.type === 'news' ? <Megaphone className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
+                        <span className="capitalize">{item.type}</span>
+                    </Badge>
+                    </TableCell>
+                    <TableCell>{isValidDate(itemDate) ? format(new Date(itemDate), 'dd MMM yyyy') : 'Invalid Date'}</TableCell>
+                    <TableCell>
+                    {item.isUrgent && <Badge variant="destructive">Urgent</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => openDeleteAlert(item)} className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    </TableCell>
+                </TableRow>
+                )})
+            ) : (
+                <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                    No announcements found.
+                </TableCell>
+                </TableRow>
+            )}
+            </TableBody>
+        </Table>
+    </div>
+  );
+
+  const MobileView = () => (
+     <div className="space-y-4">
+      {filteredAnnouncements.length > 0 ? (
+        filteredAnnouncements.map((item) => {
+          const itemDate = item.type === 'news' ? item.date : item.start;
+          return (
+            <Card key={`${item.type}-${item.id}`}>
+              <CardContent className="p-4 space-y-3">
+                <p className="font-semibold">{item.title_en}</p>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <Badge variant="outline" className="gap-2">
+                        {item.type === 'news' ? <Megaphone className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
+                        <span className="capitalize">{item.type}</span>
+                    </Badge>
+                    <span>{isValidDate(itemDate) ? format(new Date(itemDate), 'dd MMM yyyy') : 'Invalid Date'}</span>
+                </div>
+                 {item.isUrgent && <Badge variant="destructive">Urgent</Badge>}
+                <Separator />
+                <div className="flex items-center justify-end gap-2">
+                     <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(item)}>
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>No announcements found.</p>
+        </div>
+      )}
+    </div>
+  );
+
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={(isOpen) => {
         setIsDialogOpen(isOpen);
@@ -195,68 +302,7 @@ export default function AnnouncementsAdminPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAnnouncements.length > 0 ? (
-                      filteredAnnouncements.map((item) => {
-                        const itemDate = item.type === 'news' ? item.date : item.start;
-                        return (
-                        <TableRow key={`${item.type}-${item.id}`}>
-                          <TableCell className="font-medium">{item.title_en}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="gap-2">
-                                {item.type === 'news' ? <Megaphone className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
-                                <span className="capitalize">{item.type}</span>
-                            </Badge>
-                          </TableCell>
-                           <TableCell>{isValidDate(itemDate) ? format(new Date(itemDate), 'dd MMM yyyy') : 'Invalid Date'}</TableCell>
-                           <TableCell>
-                            {item.isUrgent && <Badge variant="destructive">Urgent</Badge>}
-                           </TableCell>
-                          <TableCell className="text-right">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleEdit(item)}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => openDeleteAlert(item)} className="text-destructive focus:text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      )})
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                          No announcements found.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                isMobile ? <MobileView /> : <DesktopView />
             )}
           </CardContent>
         </Card>
