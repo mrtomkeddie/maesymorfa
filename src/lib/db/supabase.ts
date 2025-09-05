@@ -498,6 +498,13 @@ export const getParents = async (): Promise<ParentWithId[]> => {
     return data.map(fromSupabaseParent);
 };
 
+export const getParentById = async (id: string): Promise<ParentWithId | null> => {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.from('parents').select('*').eq('id', id).single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? fromSupabaseParent(data) : null;
+};
+
 export const addParent = async (parentData: Parent): Promise<string> => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase.from('parents').insert([toSupabaseParent(parentData)]).select('id').single();

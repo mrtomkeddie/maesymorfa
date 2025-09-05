@@ -162,6 +162,10 @@ export const getPaginatedDocuments = async (limitNum = 20, lastDoc?: any): Promi
 
 // === PARENTS ===
 export const getParents = async (): Promise<ParentWithId[]> => Promise.resolve(allMockParents);
+export const getParentById = async (id: string): Promise<ParentWithId | null> => {
+    const parent = allMockParents.find(p => p.id === id);
+    return Promise.resolve(parent || null);
+};
 export const addParent = async (parentData: Parent): Promise<string> => {
     console.log("Mock addParent", parentData);
     return `mock_parent_${Date.now()}`;
