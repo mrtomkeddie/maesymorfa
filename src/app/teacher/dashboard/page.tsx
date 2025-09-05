@@ -8,6 +8,12 @@ import type { ChildWithId, StaffMemberWithId, InboxMessageWithId, ParentNotifica
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Users, FileText, User, Info, MessageSquare, Award, Calendar } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -176,28 +182,36 @@ function TeacherDashboardContent() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> {t.classList} ({myClass.length})</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                {myClass.map(child => (
-                                    <div key={child.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-md">
-                                        <p className="font-medium flex-grow">{child.name}</p>
-                                        <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
-                                            <Button variant="outline" size="sm" onClick={() => handleViewChild(child)} className="flex-1 sm:flex-none">
-                                                <Info className="mr-2 h-4 w-4" /> {t.viewDetails}
-                                            </Button>
-                                            <Button variant="default" size="sm" asChild className="flex-1 sm:flex-none">
-                                                <Link href={{ pathname: '/teacher/notify', query: { childId: child.id, childName: child.name } }}>
-                                                    <MessageSquare className="mr-2 h-4 w-4" /> {t.notifyParent}
-                                                </Link>
-                                            </Button>
+                        <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+                            <AccordionItem value="item-1" className="border-b-0">
+                                <AccordionTrigger className="px-6 hover:no-underline">
+                                    <CardHeader className="p-0 text-left">
+                                        <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> {t.classList} ({myClass.length})</CardTitle>
+                                    </CardHeader>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <CardContent className="pt-0">
+                                        <div className="space-y-2">
+                                            {myClass.map(child => (
+                                                <div key={child.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-md">
+                                                    <p className="font-medium flex-grow">{child.name}</p>
+                                                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto sm:shrink-0">
+                                                        <Button variant="outline" size="sm" onClick={() => handleViewChild(child)} className="flex-1 sm:flex-none justify-center">
+                                                            <Info className="mr-2 h-4 w-4" /> {t.viewDetails}
+                                                        </Button>
+                                                        <Button variant="default" size="sm" asChild className="flex-1 sm:flex-none justify-center">
+                                                            <Link href={{ pathname: '/teacher/notify', query: { childId: child.id, childName: child.name } }}>
+                                                                <MessageSquare className="mr-2 h-4 w-4" /> {t.notifyParent}
+                                                            </Link>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
+                                    </CardContent>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     </Card>
                      <Card>
                         <CardHeader>
@@ -377,5 +391,3 @@ export default function TeacherDashboard() {
         </div>
     );
 }
-
-    
