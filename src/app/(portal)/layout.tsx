@@ -114,7 +114,7 @@ const BottomNav = () => {
         { href: '/account', label: t.menu.account, icon: User },
     ];
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background lg:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background/95 backdrop-blur-sm lg:hidden">
             <div className="mx-auto flex h-full max-w-md items-center justify-around px-safe pb-safe-bottom">
                 {menuItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
@@ -283,7 +283,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-           <main className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
+           <main className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 min-h-screen">
             <div className="mx-auto max-w-7xl">
               <div className="hidden lg:flex justify-end mb-4">
                   <LanguageToggle />
