@@ -263,16 +263,18 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </Sidebar>
         <SidebarInset>
            <main className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
-            <div className="hidden lg:flex justify-end mb-4">
-                <LanguageToggle />
+            <div className="mx-auto max-w-7xl">
+              <div className="hidden lg:flex justify-end mb-4">
+                  <LanguageToggle />
+              </div>
+              <div className="flex lg:hidden justify-between items-center mb-4">
+                  <div className="lg:hidden">
+                      {!isMobile && <SidebarTrigger />}
+                  </div>
+                  <LanguageToggle />
+              </div>
+              {children}
             </div>
-             <div className="flex lg:hidden justify-between items-center mb-4">
-                <div className="lg:hidden">
-                    {!isMobile && <SidebarTrigger />}
-                </div>
-                <LanguageToggle />
-            </div>
-            {children}
           </main>
           {isMobile && (
               <>
