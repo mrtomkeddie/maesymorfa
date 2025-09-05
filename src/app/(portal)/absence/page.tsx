@@ -33,7 +33,6 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/db';
 import { parentChildren as mockChildren } from '@/lib/mockData';
-import { LanguageToggle } from '../layout';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { cy } from 'date-fns/locale';
 import { Switch } from '@/components/ui/switch';
@@ -195,7 +194,6 @@ Submitted by: ${parentInfo.name} (${parentInfo.email})
              {t.description}
           </p>
         </div>
-        <LanguageToggle />
       </div>
 
       <Card className="max-w-2xl mx-auto">
