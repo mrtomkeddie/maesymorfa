@@ -129,6 +129,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const t = content[language];
   const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const isMobile = useIsMobile();
+  const showFab = isMobile && pathname !== '/absence';
 
 
   useEffect(() => {
@@ -268,7 +269,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 <LanguageToggle />
             </div>
              <div className="flex lg:hidden justify-between items-center mb-4">
-                <div className="hidden">
+                <div className="lg:hidden">
                     <SidebarTrigger />
                 </div>
                 <LanguageToggle />
@@ -278,12 +279,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           {isMobile && (
               <>
                 <BottomNav />
-                <Button asChild className="fixed bottom-20 right-4 z-50 h-14 rounded-full shadow-lg gap-2 px-4">
-                    <Link href="/absence" aria-label={t.menu.absence}>
-                        <ClipboardCheck className="h-6 w-6" />
-                        <span className="font-bold">{t.menu.absence}</span>
-                    </Link>
-                </Button>
+                 {showFab && (
+                    <Button asChild className="fixed bottom-20 right-4 z-50 h-14 rounded-full shadow-lg gap-2 px-4">
+                        <Link href="/absence" aria-label={t.menu.absence}>
+                            <ClipboardCheck className="h-6 w-6" />
+                            <span className="font-bold">{t.menu.absence}</span>
+                        </Link>
+                    </Button>
+                 )}
               </>
           )}
         </SidebarInset>
