@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { AlertTriangle, BookOpen, Link as LinkIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const content = {
     en: {
@@ -180,31 +181,23 @@ function TeacherDashboardContent() {
                             <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> {t.classList} ({myClass.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>{t.nameHeader}</TableHead>
-                                        <TableHead className="text-right">{t.actionsHeader}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {myClass.map(child => (
-                                        <TableRow key={child.id}>
-                                            <TableCell className="font-medium">{child.name}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="sm" onClick={() => handleViewChild(child)}>
-                                                    <Info className="mr-2 h-4 w-4" /> {t.viewDetails}
-                                                </Button>
-                                                <Button variant="default" size="sm" asChild className="ml-2">
-                                                    <Link href={{ pathname: '/teacher/notify', query: { childId: child.id, childName: child.name } }}>
-                                                        <MessageSquare className="mr-2 h-4 w-4" /> {t.notifyParent}
-                                                    </Link>
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <div className="space-y-2">
+                                {myClass.map(child => (
+                                    <div key={child.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-md">
+                                        <p className="font-medium">{child.name}</p>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <Button variant="outline" size="sm" onClick={() => handleViewChild(child)}>
+                                                <Info className="mr-2 h-4 w-4" /> {t.viewDetails}
+                                            </Button>
+                                            <Button variant="default" size="sm" asChild>
+                                                <Link href={{ pathname: '/teacher/notify', query: { childId: child.id, childName: child.name } }}>
+                                                    <MessageSquare className="mr-2 h-4 w-4" /> {t.notifyParent}
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
                      <Card>
