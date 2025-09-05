@@ -26,6 +26,7 @@ import {
   Mail,
   Home,
   Plus,
+  User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -65,6 +66,7 @@ const content = {
       calendar: 'Calendar',
       gallery: 'Photo Gallery',
       absence: 'Report Absence',
+      account: 'Account'
     },
     account: {
       title: 'My Account',
@@ -80,6 +82,7 @@ const content = {
       calendar: 'Calendr',
       gallery: 'Oriel Ffotograffau',
       absence: 'Riportio Absenoldeb',
+      account: 'Fy Nghyfrif'
     },
     account: {
       title: 'Fy Nghyfrif',
@@ -99,6 +102,7 @@ const BottomNav = () => {
         { href: '/inbox', label: t.menu.inbox, icon: Mail },
         { href: '/calendar', label: t.menu.calendar, icon: Calendar },
         { href: '/gallery', label: t.menu.gallery, icon: Camera },
+        { href: '/account', label: t.menu.account, icon: User },
     ];
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm lg:hidden">
@@ -129,7 +133,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const t = content[language];
   const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const isMobile = useIsMobile();
-  const showFab = isMobile && pathname !== '/absence';
+  const showFab = isMobile && !['/absence', '/account'].includes(pathname);
 
 
   useEffect(() => {
@@ -204,6 +208,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     { href: '/calendar', label: t.menu.calendar, icon: Calendar },
     { href: '/gallery', label: t.menu.gallery, icon: Camera },
     { href: '/absence', label: t.menu.absence, icon: ClipboardCheck },
+    { href: '/account', label: t.menu.account, icon: User },
   ];
   
   if (isLoading || !session) {
@@ -247,16 +252,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-2 flex flex-col gap-2">
-             <div className="flex w-full items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center rounded-md">
-                <Avatar className="size-8">
-                    <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="person avatar" />
-                    <AvatarFallback>JD</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden flex-grow text-left">
-                    <span className="font-semibold">{session.user?.email || 'parent@example.com'}</span>
-                    <span className="text-muted-foreground">{t.account.role}</span>
-                </div>
-            </div>
             <SidebarMenuButton variant="outline" onClick={handleLogout} tooltip={{ children: t.account.logout, side: 'right' }}>
                 <LogOut />
                 <span>{t.account.logout}</span>
