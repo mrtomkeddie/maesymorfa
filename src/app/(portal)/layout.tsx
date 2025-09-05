@@ -25,7 +25,6 @@ import {
   Camera,
   Mail,
   Home,
-  Plus,
   User,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -221,7 +220,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   
   return (
       <SidebarProvider>
-        <Sidebar variant="sidebar" collapsible="icon">
+        <Sidebar variant="inset" collapsible="icon">
           <SidebarHeader className="border-b p-4">
             <Link href="/dashboard" className="flex items-center gap-2">
               <Image src="/icon.png" alt="School logo" width={28} height={28} className="w-7 h-7" />
