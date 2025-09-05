@@ -187,27 +187,29 @@ function DashboardContent() {
                 <CardHeader>
                     <CardTitle>{t.children}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="grid gap-6">
                     {parentChildren.map(child => (
                         <div key={child.id} className="flex items-center gap-4 rounded-lg border p-4">
-                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <h3 className="font-bold text-lg">{child.name}</h3>
+                            <Avatar className="h-16 w-16 text-lg">
+                                <AvatarImage src={`https://placehold.co/128x128.png`} data-ai-hint="child portrait" />
+                                <AvatarFallback>{child.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                <div className="sm:col-span-2">
+                                    <h3 className="font-bold text-xl">{child.name}</h3>
                                     <p className="text-sm text-muted-foreground">{child.yearGroup}</p>
                                 </div>
-                                <div className="space-y-2">
-                                     <div className="flex items-center gap-2 text-sm">
-                                        <Percent className="h-4 w-4 text-primary" />
-                                        <span>{t.attendance}: <strong>{child.attendance}</strong></span>
-                                     </div>
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <UserCheck className="h-4 w-4 text-primary" />
-                                        <span>{t.teacher}: <strong>{child.teacher}</strong></span>
-                                     </div>
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <Trophy className="h-4 w-4 text-primary" />
-                                        <span>{t.awards}: <strong>{awardCounts[child.id] ?? t.loading}</strong></span>
-                                     </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Percent className="h-4 w-4 text-primary" />
+                                    <span>{t.attendance}: <strong>{child.attendance}</strong></span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <UserCheck className="h-4 w-4 text-primary" />
+                                    <span>{t.teacher}: <strong>{child.teacher}</strong></span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Trophy className="h-4 w-4 text-primary" />
+                                    <span>{t.awards}: <strong>{awardCounts[child.id] ?? t.loading}</strong></span>
                                 </div>
                             </div>
                         </div>
@@ -219,27 +221,13 @@ function DashboardContent() {
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t.actions}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button asChild className="w-full justify-start py-6 text-base">
-                <Link href="/absence"><ClipboardCheck className="mr-3 h-5 w-5" /> {t.reportAbsence}</Link>
-              </Button>
-               <Button variant="secondary" className="w-full justify-start py-6 text-base">
-                <Utensils className="mr-3 h-5 w-5" /> {t.viewMenu}
-              </Button>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Utensils className="h-5 w-5 text-primary" />
                     <span>{t.lunch}</span>
                 </CardTitle>
                 <CardDescription>{t.lunchDesc}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               {isLoadingMenu ? (
                 <div className="space-y-4">
                   <Skeleton className="h-8 w-3/4" />
@@ -275,7 +263,7 @@ function DashboardContent() {
                     {isMobile ? (
                         <Drawer>
                             <DrawerTrigger asChild>
-                                <Button variant="secondary" className="w-full justify-start">
+                                <Button variant="secondary" className="w-full justify-start py-6">
                                     <Utensils className="mr-2 h-4 w-4" /> {t.viewMenu}
                                 </Button>
                             </DrawerTrigger>
@@ -290,7 +278,7 @@ function DashboardContent() {
                     ) : (
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="secondary" className="w-full justify-start">
+                                <Button variant="secondary" className="w-full justify-start py-6">
                                     <Utensils className="mr-2 h-4 w-4" /> {t.viewMenu}
                                 </Button>
                             </DialogTrigger>
