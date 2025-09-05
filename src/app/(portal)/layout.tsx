@@ -110,7 +110,7 @@ const BottomNav = () => {
                     const isActive = pathname.startsWith(item.href);
                     const Icon = item.icon;
                     return (
-                        <Link href={item.href} key={item.href} legacyBehavior passHref>
+                        <Link href={item.href} key={item.href} passHref legacyBehavior>
                           <a className={cn("flex flex-col items-center justify-center gap-1 text-xs transition-colors w-16 h-full pt-3 pb-2", isActive ? "text-primary" : "text-muted-foreground hover:text-primary")}>
                             <Icon className="h-6 w-6" />
                             <span className="truncate">{item.label}</span>
@@ -282,9 +282,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <>
                 <BottomNav />
                  {showFab && (
-                    <Button asChild className="fixed bottom-28 right-4 z-50 h-14 w-14 rounded-full shadow-lg gap-2 px-4">
+                    <Button asChild className="fixed bottom-28 right-4 z-50 h-14 rounded-full shadow-lg gap-2 px-4">
                         <Link href="/absence" aria-label={t.menu.absence}>
                             <ClipboardCheck className="h-6 w-6" />
+                            <span className="font-semibold">{t.menu.absence}</span>
                         </Link>
                     </Button>
                  )}
