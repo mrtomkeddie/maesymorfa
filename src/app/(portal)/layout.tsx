@@ -94,6 +94,7 @@ const content = {
 
 const BottomNav = () => {
     const pathname = usePathname();
+    const router = useRouter();
     const { language } = useLanguage();
     const t = content[language];
      const menuItems = [
@@ -113,6 +114,10 @@ const BottomNav = () => {
                         <Link
                           href={item.href}
                           key={item.href}
+                          onClick={(e) => {
+                              e.preventDefault();
+                              router.push(item.href);
+                          }}
                           className={cn(
                             "flex flex-col items-center justify-center gap-1 text-xs transition-colors w-16 h-full pt-3 pb-2",
                             isActive ? "text-primary" : "text-muted-foreground hover:text-primary"
@@ -287,7 +292,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <>
                 <BottomNav />
                  {showFab && (
-                    <Button asChild className="fixed bottom-28 right-4 z-50 h-14 rounded-full shadow-lg gap-2 px-4">
+                    <Button asChild className="fixed bottom-28 right-4 z-50 h-auto rounded-full shadow-lg gap-2 px-4 py-3">
                         <Link href="/absence" aria-label={t.menu.absence}>
                             <ClipboardCheck className="h-6 w-6" />
                             <span className="font-semibold">{t.menu.absence}</span>
