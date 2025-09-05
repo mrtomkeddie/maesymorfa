@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '../(public)/LanguageProvider';
 import Image from 'next/image';
@@ -42,16 +42,25 @@ import { cn } from '@/lib/utils';
 
 export const LanguageToggle = () => {
     const { language, setLanguage } = useLanguage();
+    const [isPending, startTransition] = useTransition();
+
     const content = {
         en: { lang1: 'Cymraeg', lang2: 'English' },
         cy: { lang1: 'Cymraeg', lang2: 'English' }
     };
     const t = content[language];
+    
+    const handleLanguageChange = (newLang: 'en' | 'cy') => {
+        startTransition(() => {
+            setLanguage(newLang);
+        });
+    };
+
     return (
         <div className="flex items-center gap-1 border rounded-full p-1 text-sm bg-background">
-            <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs portal-lang-toggle ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('cy')}>{t.lang1}</Button>
+            <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs portal-lang-toggle ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => handleLanguageChange('cy')} disabled={isPending}>{t.lang1}</Button>
             <div className="w-px h-4 bg-border"></div>
-            <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs portal-lang-toggle ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
+            <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs portal-lang-toggle ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => handleLanguageChange('en')} disabled={isPending}>{t.lang2}</Button>
         </div>
     )
 }
