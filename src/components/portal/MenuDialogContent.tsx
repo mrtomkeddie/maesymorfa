@@ -51,5 +51,3 @@ export default function MenuDialogContent({ weeklyMenu, isLoadingMenu, t, days }
         </>
     );
 }
-
-    

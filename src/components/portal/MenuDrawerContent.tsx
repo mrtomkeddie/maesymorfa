@@ -21,7 +21,7 @@ export default function MenuDrawerContent({ weeklyMenu, isLoadingMenu, t, days }
                 <DrawerTitle>{t.menuTitle}</DrawerTitle>
                 <DrawerDescription>{t.menuDesc}</DrawerDescription>
             </DrawerHeader>
-            <div className="px-4">
+            <div className="px-4 pb-4">
                 {isLoadingMenu ? (
                     <div className="flex justify-center items-center h-48">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -35,9 +35,9 @@ export default function MenuDrawerContent({ weeklyMenu, isLoadingMenu, t, days }
                                         <CardTitle className="capitalize">{day}</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <p><strong>{t.lunchMain}:</strong> {weeklyMenu?.[day]?.main || t.notAvailable}</p>
-                                        <p><strong>{t.lunchAlt}:</strong> {weeklyMenu?.[day]?.alt || t.notAvailable}</p>
-                                        <p><strong>{t.lunchDessert}:</strong> {weeklyMenu?.[day]?.dessert || t.notAvailable}</p>
+                                        <p><strong>{t.mainCourse}:</strong> {weeklyMenu?.[day]?.main || t.notAvailable}</p>
+                                        <p><strong>{t.vegAlt}:</strong> {weeklyMenu?.[day]?.alt || t.notAvailable}</p>
+                                        <p><strong>{t.dessertCourse}:</strong> {weeklyMenu?.[day]?.dessert || t.notAvailable}</p>
                                     </CardContent>
                                 </Card>
                             ))}
@@ -48,5 +48,3 @@ export default function MenuDrawerContent({ weeklyMenu, isLoadingMenu, t, days }
         </>
     );
 }
-
-    
