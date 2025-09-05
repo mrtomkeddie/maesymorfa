@@ -179,8 +179,31 @@ function TeacherDashboardContent() {
 
     return (
         <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+                <div className="w-full lg:order-last lg:w-1/3">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> {t.upcomingAbsences}</CardTitle>
+                             <CardDescription>{t.upcomingAbsencesDesc}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           {absences.length > 0 ? (
+                            <div className="space-y-3">
+                               {absences.map(absence => (
+                                   <div key={absence.id} className="p-3 rounded-md border text-sm">
+                                       <p className="font-semibold">{absence.subject.replace('Absence Report for ', '')}</p>
+                                       <p className="text-muted-foreground">{t.date}: {format(new Date(absence.body.split('Date of Absence: ')[1]?.split('\n')[0]), 'dd MMM yyyy')}</p>
+                                       <p className="text-muted-foreground mt-1">{t.reason}: {absence.body.split('Reason: ')[1]?.split('\n---')[0]}</p>
+                                   </div>
+                               ))}
+                            </div>
+                           ) : (
+                               <p className="text-sm text-muted-foreground text-center py-4">{t.noAbsences}</p>
+                           )}
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="w-full lg:w-2/3 space-y-6">
                     <Card>
                         <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
                             <AccordionItem value="item-1" className="border-b-0">
@@ -247,29 +270,6 @@ function TeacherDashboardContent() {
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>
-                    </Card>
-                </div>
-                <div>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> {t.upcomingAbsences}</CardTitle>
-                             <CardDescription>{t.upcomingAbsencesDesc}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                           {absences.length > 0 ? (
-                            <div className="space-y-3">
-                               {absences.map(absence => (
-                                   <div key={absence.id} className="p-3 rounded-md border text-sm">
-                                       <p className="font-semibold">{absence.subject.replace('Absence Report for ', '')}</p>
-                                       <p className="text-muted-foreground">{t.date}: {format(new Date(absence.body.split('Date of Absence: ')[1]?.split('\n')[0]), 'dd MMM yyyy')}</p>
-                                       <p className="text-muted-foreground mt-1">{t.reason}: {absence.body.split('Reason: ')[1]?.split('\n---')[0]}</p>
-                                   </div>
-                               ))}
-                            </div>
-                           ) : (
-                               <p className="text-sm text-muted-foreground text-center py-4">{t.noAbsences}</p>
-                           )}
-                        </CardContent>
                     </Card>
                 </div>
             </div>
