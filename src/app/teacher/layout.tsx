@@ -75,6 +75,7 @@ const BottomNav = () => {
      const menuItems = [
         { href: '/teacher/dashboard', label: t.menu.dashboard, icon: Home },
         { href: '/teacher/outbox', label: t.menu.outbox, icon: Send },
+        { href: '/teacher/values-award', label: t.menu.values, icon: Award },
     ];
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background/95 backdrop-blur-sm lg:hidden">
@@ -115,8 +116,6 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const t = content[language];
   const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const isMobile = useIsMobile();
-  const showFab = isMobile && !['/teacher/values-award'].includes(pathname);
-
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -264,14 +263,6 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
             {isMobile && (
                 <>
                   <BottomNav />
-                   {showFab && (
-                      <Button asChild className="fixed bottom-28 right-4 z-50 h-auto rounded-full shadow-lg gap-2 px-4 py-3">
-                          <Link href="/teacher/values-award" aria-label={t.menu.values}>
-                              <Award className="h-6 w-6" />
-                              <span className="font-semibold">{t.menu.values}</span>
-                          </Link>
-                      </Button>
-                   )}
                 </>
             )}
            </div>
