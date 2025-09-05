@@ -189,27 +189,31 @@ function DashboardContent() {
                 </CardHeader>
                 <CardContent className="grid gap-6">
                     {parentChildren.map(child => (
-                        <div key={child.id} className="flex items-center gap-4 rounded-lg border p-4">
-                            <Avatar className="h-16 w-16 text-lg">
-                                <AvatarImage src={`https://placehold.co/128x128.png`} data-ai-hint="child portrait" />
-                                <AvatarFallback>{child.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                <div className="sm:col-span-2">
+                        <div key={child.id} className="border rounded-xl p-6 space-y-4 bg-background shadow-sm">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-12 w-12 text-lg">
+                                    <AvatarImage src={`https://placehold.co/128x128.png`} data-ai-hint="child portrait" />
+                                    <AvatarFallback>{child.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
                                     <h3 className="font-bold text-xl">{child.name}</h3>
                                     <p className="text-sm text-muted-foreground">{child.yearGroup}</p>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Percent className="h-4 w-4 text-primary" />
-                                    <span>{t.attendance}: <strong>{child.attendance}</strong></span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-green-100/60 dark:bg-green-900/30 p-4 rounded-lg text-center">
+                                    <div className="text-3xl font-bold text-green-700 dark:text-green-400">{child.attendance}</div>
+                                    <div className="text-sm text-green-600 dark:text-green-500">{t.attendance}</div>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <UserCheck className="h-4 w-4 text-primary" />
-                                    <span>{t.teacher}: <strong>{child.teacher}</strong></span>
+                                <div className="bg-blue-100/60 dark:bg-blue-900/30 p-4 rounded-lg text-center">
+                                    <div className="text-3xl font-bold text-blue-700 dark:text-blue-400">{awardCounts[child.id] ?? <Loader2 className="h-6 w-6 mx-auto animate-spin" />}</div>
+                                    <div className="text-sm text-blue-600 dark:text-blue-500">{t.awards}</div>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Trophy className="h-4 w-4 text-primary" />
-                                    <span>{t.awards}: <strong>{awardCounts[child.id] ?? t.loading}</strong></span>
+                            </div>
+                            <div className="pt-2 text-sm space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{t.teacher}:</span>
+                                    <span className="font-medium">{child.teacher}</span>
                                 </div>
                             </div>
                         </div>
