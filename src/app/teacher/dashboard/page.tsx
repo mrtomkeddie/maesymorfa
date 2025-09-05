@@ -214,31 +214,39 @@ function TeacherDashboardContent() {
                         </Accordion>
                     </Card>
                      <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> {t.awardSummaryTitle}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>{t.nameHeader}</TableHead>
-                                        <TableHead className="text-right">{t.awardCountHeader}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {myClass.map(child => (
-                                        <TableRow key={child.id}>
-                                            <TableCell className="font-medium">{child.name}</TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="sm" onClick={() => handleViewAwards(child)} disabled={(awardCounts[child.id] || 0) === 0}>
-                                                    {awardCounts[child.id] || 0}
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
+                        <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+                            <AccordionItem value="item-1" className="border-b-0">
+                                <AccordionTrigger className="px-6 hover:no-underline">
+                                    <CardHeader className="p-0 text-left">
+                                         <CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" /> {t.awardSummaryTitle}</CardTitle>
+                                    </CardHeader>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <CardContent className="pt-0">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>{t.nameHeader}</TableHead>
+                                                    <TableHead className="text-right">{t.awardCountHeader}</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {myClass.map(child => (
+                                                    <TableRow key={child.id}>
+                                                        <TableCell className="font-medium">{child.name}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button variant="outline" size="sm" onClick={() => handleViewAwards(child)} disabled={(awardCounts[child.id] || 0) === 0}>
+                                                                {awardCounts[child.id] || 0}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     </Card>
                 </div>
                 <div>
