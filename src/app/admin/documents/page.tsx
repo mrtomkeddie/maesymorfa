@@ -28,6 +28,8 @@ import { QueryDocumentSnapshot } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import dynamic from 'next/dynamic';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Separator } from '@/components/ui/separator';
 
 const DynamicDocumentForm = dynamic(() => import('@/components/admin/DocumentForm').then(mod => mod.DocumentForm), {
   loading: () => <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin"/></div>,
@@ -42,6 +44,7 @@ export default function DocumentsAdminPage() {
   const [documentToDelete, setDocumentToDelete] = useState<DocumentWithId | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const isMobile = useIsMobile();
 
   const { toast } = useToast();
 
@@ -112,6 +115,100 @@ export default function DocumentsAdminPage() {
       }
   };
 
+  const DesktopView = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Title</TableHead>
+          <TableHead>Category</TableHead>
+          <TableHead>File</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {filteredDocuments.length > 0 ? (
+          filteredDocuments.map((doc) => (
+            <TableRow key={doc.id}>
+              <TableCell className="font-medium">{doc.title}</TableCell>
+              <TableCell><Badge variant="outline">{doc.category}</Badge></TableCell>
+                <TableCell>
+                <Button variant="link" asChild className="p-0 h-auto">
+                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm">
+                        <LinkIcon className="h-4 w-4" /> View File
+                    </a>
+                </Button>
+                </TableCell>
+              <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleEdit(doc)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => openDeleteAlert(doc)} className="text-destructive focus:text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={4} className="h-24 text-center">
+              No documents found.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  const MobileView = () => (
+    <div className="space-y-4">
+      {filteredDocuments.length > 0 ? (
+        filteredDocuments.map((doc) => (
+          <Card key={doc.id}>
+            <CardContent className="p-4 space-y-3">
+              <p className="font-semibold">{doc.title}</p>
+              <Badge variant="outline">{doc.category}</Badge>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <Button variant="link" asChild className="p-0 h-auto">
+                  <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm">
+                      <LinkIcon className="h-4 w-4" /> View File
+                  </a>
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(doc)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(doc)}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+         <div className="text-center py-8 text-muted-foreground">
+            <p>No documents found.</p>
+        </div>
+      )}
+    </div>
+  );
+
+
   return (
      <Dialog open={isDialogOpen} onOpenChange={(isOpen) => {
         setIsDialogOpen(isOpen);
@@ -166,63 +263,7 @@ export default function DocumentsAdminPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
-              <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>File</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredDocuments.length > 0 ? (
-                      filteredDocuments.map((doc) => (
-                        <TableRow key={doc.id}>
-                          <TableCell className="font-medium">{doc.title}</TableCell>
-                          <TableCell><Badge variant="outline">{doc.category}</Badge></TableCell>
-                           <TableCell>
-                            <Button variant="link" asChild className="p-0 h-auto">
-                                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm">
-                                    <LinkIcon className="h-4 w-4" /> View File
-                                </a>
-                            </Button>
-                           </TableCell>
-                          <TableCell className="text-right">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleEdit(doc)}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => openDeleteAlert(doc)} className="text-destructive focus:text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                          No documents found.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </>
+                isMobile ? <MobileView /> : <DesktopView />
             )}
           </CardContent>
         </Card>

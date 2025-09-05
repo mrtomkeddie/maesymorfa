@@ -15,6 +15,8 @@ import { format } from 'date-fns';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Separator } from '@/components/ui/separator';
 
 const content = {
     en: {
@@ -79,6 +81,7 @@ export default function UsersAdminPage() {
     const [currentUser, setCurrentUser] = useState<Session['user'] | null>(null);
     const { toast } = useToast();
     const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const isMobile = useIsMobile();
 
 
     useEffect(() => {
@@ -129,6 +132,108 @@ export default function UsersAdminPage() {
             toast(t.toast.error);
         }
     };
+    
+    const DesktopView = () => (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>{t.tableHeaders.email}</TableHead>
+                    <TableHead>{t.tableHeaders.role}</TableHead>
+                    <TableHead>{t.tableHeaders.registered}</TableHead>
+                    <TableHead className="text-right">{t.tableHeaders.actions}</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {users.length > 0 ? (
+                    users.map((user) => (
+                        <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.email}</TableCell>
+                            <TableCell>
+                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                    {user.role === 'admin' ? <Shield className="mr-2 h-3 w-3"/> : <User className="mr-2 h-3 w-3" />}
+                                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>{format(new Date(user.created_at), 'dd MMM yyyy')}</TableCell>
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={user.id === currentUser?.id}>
+                                            <span className="sr-only">Open menu</span>
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>{t.actions.label}</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={() => handleRoleChange(user.id, 'admin')}
+                                            disabled={user.role === 'admin'}
+                                        >
+                                            {t.actions.makeAdmin}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() => handleRoleChange(user.id, 'parent')}
+                                            disabled={user.role === 'parent'}
+                                        >
+                                            {t.actions.makeParent}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                            {t.noUsers}
+                        </TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    );
+
+    const MobileView = () => (
+        <div className="space-y-4">
+            {users.length > 0 ? (
+                users.map((user) => (
+                    <Card key={user.id}>
+                        <CardContent className="p-4 space-y-3">
+                            <p className="font-semibold">{user.email}</p>
+                            <div className="text-sm text-muted-foreground">
+                                <p>Registered: {format(new Date(user.created_at), 'dd MMM yyyy')}</p>
+                            </div>
+                            <Separator />
+                            <div className="flex items-center justify-between">
+                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                    {user.role === 'admin' ? <Shield className="mr-2 h-3 w-3"/> : <User className="mr-2 h-3 w-3" />}
+                                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </Badge>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm" disabled={user.id === currentUser?.id}>
+                                            <MoreHorizontal className="mr-2 h-4 w-4" /> Actions
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>{t.actions.label}</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'admin')} disabled={user.role === 'admin'}>{t.actions.makeAdmin}</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'parent')} disabled={user.role === 'parent'}>{t.actions.makeParent}</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))
+            ) : (
+                 <div className="text-center py-8 text-muted-foreground">
+                    <p>{t.noUsers}</p>
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <div className="space-y-6">
@@ -148,64 +253,7 @@ export default function UsersAdminPage() {
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>{t.tableHeaders.email}</TableHead>
-                                    <TableHead>{t.tableHeaders.role}</TableHead>
-                                    <TableHead>{t.tableHeaders.registered}</TableHead>
-                                    <TableHead className="text-right">{t.tableHeaders.actions}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {users.length > 0 ? (
-                                    users.map((user) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell className="font-medium">{user.email}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                                                    {user.role === 'admin' ? <Shield className="mr-2 h-3 w-3"/> : <User className="mr-2 h-3 w-3" />}
-                                                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>{format(new Date(user.created_at), 'dd MMM yyyy')}</TableCell>
-                                            <TableCell className="text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={user.id === currentUser?.id}>
-                                                            <span className="sr-only">Open menu</span>
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>{t.actions.label}</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleRoleChange(user.id, 'admin')}
-                                                            disabled={user.role === 'admin'}
-                                                        >
-                                                            {t.actions.makeAdmin}
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleRoleChange(user.id, 'parent')}
-                                                            disabled={user.role === 'parent'}
-                                                        >
-                                                            {t.actions.makeParent}
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">
-                                            {t.noUsers}
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                        isMobile ? <MobileView /> : <DesktopView />
                     )}
                 </CardContent>
             </Card>

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -28,6 +27,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import dynamic from 'next/dynamic';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Separator } from '@/components/ui/separator';
 
 const DynamicParentForm = dynamic(() => import('@/components/admin/ParentForm').then(mod => mod.ParentForm), {
   loading: () => <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin"/></div>,
@@ -44,6 +45,7 @@ export default function ParentsAdminPage() {
   const [isViewParentDialogOpen, setIsViewParentDialogOpen] = useState(false);
   const [parentToView, setParentToView] = useState<ParentWithId | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const isMobile = useIsMobile();
 
   const { toast } = useToast();
 
@@ -119,6 +121,99 @@ export default function ParentsAdminPage() {
     );
   }, [parents, searchQuery]);
 
+  const DesktopView = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Linked Children</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {filteredParents.length > 0 ? (
+          filteredParents.map((parent) => (
+            <TableRow key={parent.id}>
+              <TableCell className="font-medium">{parent.name}</TableCell>
+              <TableCell>{parent.email}</TableCell>
+                <TableCell>
+                {getLinkedChildrenNames(parent.id)}
+                </TableCell>
+              <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleViewParent(parent)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(parent)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => openDeleteAlert(parent)} className="text-destructive focus:text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={4} className="h-24 text-center">
+              No parents found.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  const MobileView = () => (
+    <div className="space-y-4">
+      {filteredParents.length > 0 ? (
+        filteredParents.map((parent) => (
+          <Card key={parent.id}>
+            <CardContent className="p-4 space-y-3">
+              <p className="font-semibold">{parent.name}</p>
+              <p className="text-sm text-muted-foreground">{parent.email}</p>
+              <div className="text-sm">
+                <span className="font-medium">Children: </span>
+                <span className="text-muted-foreground">{getLinkedChildrenNames(parent.id)}</span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleViewParent(parent)}>
+                  <Eye className="mr-2 h-4 w-4" /> View
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleEdit(parent)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(parent)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>No parents found.</p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={(isOpen) => {
         setIsDialogOpen(isOpen);
@@ -162,63 +257,7 @@ export default function ParentsAdminPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Linked Children</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredParents.length > 0 ? (
-                      filteredParents.map((parent) => (
-                        <TableRow key={parent.id}>
-                          <TableCell className="font-medium">{parent.name}</TableCell>
-                          <TableCell>{parent.email}</TableCell>
-                           <TableCell>
-                            {getLinkedChildrenNames(parent.id)}
-                           </TableCell>
-                          <TableCell className="text-right">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => handleViewParent(parent)}>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        View
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleEdit(parent)}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => openDeleteAlert(parent)} className="text-destructive focus:text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                          No parents found.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                isMobile ? <MobileView /> : <DesktopView />
             )}
           </CardContent>
         </Card>
