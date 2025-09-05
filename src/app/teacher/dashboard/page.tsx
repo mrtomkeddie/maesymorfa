@@ -196,10 +196,10 @@ function TeacherDashboardContent() {
                                                 <div key={child.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border rounded-md">
                                                     <p className="font-medium flex-grow">{child.name}</p>
                                                     <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto sm:shrink-0">
-                                                        <Button variant="outline" size="sm" onClick={() => handleViewChild(child)} className="flex-1 sm:flex-none justify-center">
+                                                        <Button variant="outline" size="sm" onClick={() => handleViewChild(child)} className="w-full justify-center">
                                                             <Info className="mr-2 h-4 w-4" /> {t.viewDetails}
                                                         </Button>
-                                                        <Button variant="default" size="sm" asChild className="flex-1 sm:flex-none justify-center">
+                                                        <Button variant="default" size="sm" asChild className="w-full justify-center">
                                                             <Link href={{ pathname: '/teacher/notify', query: { childId: child.id, childName: child.name } }}>
                                                                 <MessageSquare className="mr-2 h-4 w-4" /> {t.notifyParent}
                                                             </Link>
