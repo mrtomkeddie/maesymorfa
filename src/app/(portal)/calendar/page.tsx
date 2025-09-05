@@ -96,52 +96,51 @@ export default function CalendarPage() {
     const newsSlug = event.title_en.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
 
     return (
-        <div className="relative rounded-lg border p-4 transition-all hover:shadow-md bg-card">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
-            <div className="mb-2 sm:mb-0">
-            <div className="text-center font-bold text-primary">
-                <div className="text-3xl">{format(new Date(event.start), 'dd')}</div>
-                <div className="text-sm uppercase">{format(new Date(event.start), 'MMM')}</div>
-            </div>
-            </div>
-            <div className="flex-grow">
-            <h3 className="font-bold text-lg">{event[language === 'en' ? 'title_en' : 'title_cy']}</h3>
-            <div className="text-sm text-muted-foreground mb-2">
-                {event.allDay ? t.allDay : `${format(new Date(event.start), 'p')} ${event.end ? `- ${format(new Date(event.end), 'p')}` : ''}`}
-            </div>
-            <p className="text-sm mb-3">
-                {event[language === 'en' ? 'description_en' : 'description_cy']}
-            </p>
-            <div className="flex flex-wrap gap-2">
-                {event.tags.map(tag => (
-                <Badge key={tag} className={cn('font-normal', tagColors[tag])}>{t.tags[tag]}</Badge>
-                ))}
-            </div>
-            
-            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                {event.attachments.length > 0 && (
-                    <div className="mt-3">
-                    <h4 className="text-sm font-semibold mb-1 flex items-center gap-1"><Paperclip className="h-4 w-4" /> {t.attachments}</h4>
-                    <div className="flex flex-col items-start gap-1">
-                        {event.attachments.map(att => (
-                        <Button key={att.name} variant="link" size="sm" asChild className="p-0 h-auto">
-                            <a href={att.url} download>{att.name}</a>
-                        </Button>
-                        ))}
+        <Card className="transition-all hover:shadow-md">
+            <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex-grow space-y-2">
+                         <h3 className="font-bold text-lg">{event[language === 'en' ? 'title_en' : 'title_cy']}</h3>
+                         <div className="text-sm text-muted-foreground">
+                            {event.allDay ? t.allDay : `${format(new Date(event.start), 'p')} ${event.end ? `- ${format(new Date(event.end), 'p')}` : ''}`}
+                        </div>
+                        <p className="text-sm">
+                            {event[language === 'en' ? 'description_en' : 'description_cy']}
+                        </p>
+                         <div className="flex flex-wrap gap-2">
+                            {event.tags.map(tag => (
+                            <Badge key={tag} className={cn('font-normal', tagColors[tag])}>{t.tags[tag]}</Badge>
+                            ))}
+                        </div>
+                        <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            {event.attachments.length > 0 && (
+                                <div>
+                                <h4 className="text-sm font-semibold mb-1 flex items-center gap-1"><Paperclip className="h-4 w-4" /> {t.attachments}</h4>
+                                <div className="flex flex-col items-start gap-1">
+                                    {event.attachments.map(att => (
+                                    <Button key={att.name} variant="link" size="sm" asChild className="p-0 h-auto">
+                                        <a href={att.url} download>{att.name}</a>
+                                    </Button>
+                                    ))}
+                                </div>
+                                </div>
+                            )}
+                            {event.linkedNewsPostId && (
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link href={`/news/${newsSlug}`}>
+                                        {t.detailsButton} <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
                     </div>
+                    <div className="text-center font-bold text-primary shrink-0">
+                        <div className="text-4xl">{format(new Date(event.start), 'dd')}</div>
+                        <div className="text-sm uppercase">{format(new Date(event.start), 'MMM')}</div>
                     </div>
-                )}
-                {event.linkedNewsPostId && (
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href={`/news/${newsSlug}`}>
-                            {t.detailsButton} <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
-                )}
-            </div>
-            </div>
-        </div>
-        </div>
+                </div>
+            </CardContent>
+        </Card>
     );
   }
 
