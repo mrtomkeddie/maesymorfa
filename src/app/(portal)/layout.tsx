@@ -104,8 +104,8 @@ const BottomNav = () => {
         { href: '/account', label: t.menu.account, icon: User },
     ];
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm lg:hidden">
-            <nav className="flex items-center justify-around h-16">
+        <div className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background lg:hidden">
+            <nav className="flex h-full items-center justify-around px-safe">
                 {menuItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     const Icon = item.icon;
@@ -255,7 +255,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-2 flex flex-col gap-2">
-            <SidebarMenuButton variant="outline" onClick={handleLogout} tooltip={{ children: t.account.logout, side: 'right' }}>
+             <SidebarMenuButton variant="outline" onClick={handleLogout} tooltip={{ children: t.account.logout, side: 'right' }}>
                 <LogOut />
                 <span>{t.account.logout}</span>
             </SidebarMenuButton>

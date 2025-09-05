@@ -92,6 +92,11 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      padding: {
+        'safe': 'env(safe-area-inset-right) env(safe-area-inset-left)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      }
     },
   },
   plugins: [require('tailwindcss-animate')],
