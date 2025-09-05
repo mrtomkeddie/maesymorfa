@@ -128,7 +128,7 @@ const BottomNav = () => {
                               router.push(item.href);
                           }}
                           className={cn(
-                            "flex flex-col items-center justify-center gap-1 text-xs transition-colors w-16 h-full pt-3 pb-2",
+                            "flex flex-col items-center justify-start gap-1 text-xs transition-colors w-16 h-full pt-3 pb-2",
                             isActive ? "text-primary" : "text-muted-foreground hover:text-primary"
                           )}
                         >
@@ -283,33 +283,35 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-           <main className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 min-h-screen">
-            <div className="mx-auto max-w-7xl">
-              <div className="hidden lg:flex justify-end mb-4">
-                  <LanguageToggle />
+          <div className="relative min-h-screen">
+            <main className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
+              <div className="mx-auto max-w-7xl">
+                <div className="hidden lg:flex justify-end mb-4">
+                    <LanguageToggle />
+                </div>
+                <div className="flex lg:hidden justify-between items-center mb-4">
+                    <div className="lg:hidden">
+                        {!isMobile && <SidebarTrigger />}
+                    </div>
+                    <LanguageToggle />
+                </div>
+                {children}
               </div>
-              <div className="flex lg:hidden justify-between items-center mb-4">
-                  <div className="lg:hidden">
-                      {!isMobile && <SidebarTrigger />}
-                  </div>
-                  <LanguageToggle />
-              </div>
-              {children}
-            </div>
-          </main>
-          {isMobile && (
-              <>
-                <BottomNav />
-                 {showFab && (
-                    <Button asChild className="fixed bottom-28 right-4 z-50 h-auto rounded-full shadow-lg gap-2 px-4 py-3">
-                        <Link href="/absence" aria-label={t.menu.absence}>
-                            <ClipboardCheck className="h-6 w-6" />
-                            <span className="font-semibold">{t.menu.absence}</span>
-                        </Link>
-                    </Button>
-                 )}
-              </>
-          )}
+            </main>
+            {isMobile && (
+                <>
+                  <BottomNav />
+                   {showFab && (
+                      <Button asChild className="fixed bottom-28 right-4 z-50 h-auto rounded-full shadow-lg gap-2 px-4 py-3">
+                          <Link href="/absence" aria-label={t.menu.absence}>
+                              <ClipboardCheck className="h-6 w-6" />
+                              <span className="font-semibold">{t.menu.absence}</span>
+                          </Link>
+                      </Button>
+                   )}
+                </>
+            )}
+           </div>
         </SidebarInset>
       </SidebarProvider>
   );
