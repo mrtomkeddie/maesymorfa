@@ -110,11 +110,16 @@ const BottomNav = () => {
                     const isActive = pathname.startsWith(item.href);
                     const Icon = item.icon;
                     return (
-                        <Link href={item.href} key={item.href} passHref legacyBehavior>
-                          <a className={cn("flex flex-col items-center justify-center gap-1 text-xs transition-colors w-16 h-full pt-3 pb-2", isActive ? "text-primary" : "text-muted-foreground hover:text-primary")}>
+                        <Link
+                          href={item.href}
+                          key={item.href}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1 text-xs transition-colors w-16 h-full pt-3 pb-2",
+                            isActive ? "text-primary" : "text-muted-foreground hover:text-primary"
+                          )}
+                        >
                             <Icon className="h-6 w-6" />
                             <span className="truncate">{item.label}</span>
-                          </a>
                         </Link>
                     )
                 })}
