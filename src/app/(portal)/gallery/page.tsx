@@ -10,7 +10,6 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from "@/components/ui/button";
 import { parentChildrenYearGroups } from '@/lib/mockData';
-import { LanguageToggle } from "../layout";
 import { useLanguage } from "@/app/(public)/LanguageProvider";
 
 const content = {
@@ -78,7 +77,6 @@ export default function GalleryPage() {
           <h1 className="text-3xl font-bold font-headline">{t.title}</h1>
           <p className="text-muted-foreground">{t.description}</p>
         </div>
-        <LanguageToggle />
       </div>
       
       {allParentYearGroups.length > 1 && (

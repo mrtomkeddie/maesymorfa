@@ -270,7 +270,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </div>
              <div className="flex lg:hidden justify-between items-center mb-4">
                 <div className="lg:hidden">
-                    <SidebarTrigger />
+                    {!isMobile && <SidebarTrigger />}
                 </div>
                 <LanguageToggle />
             </div>

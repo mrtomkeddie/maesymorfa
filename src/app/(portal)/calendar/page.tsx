@@ -25,7 +25,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { parentChildrenYearGroups } from '@/lib/mockData';
-import { LanguageToggle } from '../layout';
 
 const content = {
   en: {
@@ -166,7 +165,6 @@ export default function CalendarPage() {
           <h1 className="text-3xl font-bold font-headline">{t.title}</h1>
           <p className="text-muted-foreground">{t.description}</p>
         </div>
-        <LanguageToggle />
       </div>
       
        <div className="flex items-center justify-between space-x-2 rounded-md border p-3 bg-muted/50">
