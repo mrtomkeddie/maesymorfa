@@ -159,17 +159,6 @@ function DashboardContent() {
 
   return (
     <>
-       <Card className="lg:hidden mb-6">
-        <CardHeader>
-            <CardTitle>{t.actions}</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <Button asChild className="w-full justify-start">
-            <Link href="/absence"><ClipboardCheck className="mr-2 h-4 w-4" /> {t.reportAbsence}</Link>
-            </Button>
-        </CardContent>
-        </Card>
-      
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
         
         <div className="lg:col-span-2 space-y-6">
@@ -228,13 +217,16 @@ function DashboardContent() {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-          <Card className="hidden lg:block">
+          <Card>
             <CardHeader>
               <CardTitle>{t.actions}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full justify-start">
-                <Link href="/absence"><ClipboardCheck className="mr-2 h-4 w-4" /> {t.reportAbsence}</Link>
+            <CardContent className="space-y-3">
+              <Button asChild className="w-full justify-start py-6 text-base">
+                <Link href="/absence"><ClipboardCheck className="mr-3 h-5 w-5" /> {t.reportAbsence}</Link>
+              </Button>
+               <Button variant="secondary" className="w-full justify-start py-6 text-base">
+                <Utensils className="mr-3 h-5 w-5" /> {t.viewMenu}
               </Button>
             </CardContent>
           </Card>
@@ -287,7 +279,7 @@ function DashboardContent() {
                                     <Utensils className="mr-2 h-4 w-4" /> {t.viewMenu}
                                 </Button>
                             </DrawerTrigger>
-                            <DrawerContent>
+                             <DrawerContent>
                                <DrawerHeader className="text-left">
                                     <DrawerTitle>{t.menuTitle}</DrawerTitle>
                                     <DrawerDescription>{t.menuDesc}</DrawerDescription>
@@ -374,7 +366,9 @@ export default function DashboardPage() {
                     <h1 className="text-3xl font-bold font-headline">{t.welcome}</h1>
                     <p className="text-muted-foreground">{t.description}</p>
                 </div>
-                <LanguageToggle />
+                 <div className="hidden lg:block">
+                     <LanguageToggle />
+                 </div>
             </div>
             <Suspense fallback={<DashboardSkeleton />}>
                 <DashboardContent />

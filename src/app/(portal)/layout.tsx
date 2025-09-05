@@ -24,6 +24,8 @@ import {
   Loader2,
   Camera,
   Mail,
+  Home,
+  Plus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -35,6 +37,8 @@ import { Button } from '@/components/ui/button';
 import { supabase, getUserRole } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { db } from '@/lib/db';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 export const LanguageToggle = () => {
     const { language, setLanguage } = useLanguage();
@@ -86,6 +90,35 @@ const content = {
 };
 
 
+const BottomNav = () => {
+    const pathname = usePathname();
+    const { language } = useLanguage();
+    const t = content[language];
+     const menuItems = [
+        { href: '/dashboard', label: t.menu.dashboard, icon: Home },
+        { href: '/inbox', label: t.menu.inbox, icon: Mail },
+        { href: '/calendar', label: t.menu.calendar, icon: Calendar },
+        { href: '/gallery', label: t.menu.gallery, icon: Camera },
+    ];
+    return (
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm lg:hidden">
+            <nav className="flex items-center justify-around h-16">
+                {menuItems.map((item) => {
+                    const isActive = pathname.startsWith(item.href);
+                    const Icon = item.icon;
+                    return (
+                        <Link href={item.href} key={item.href} className={cn("flex flex-col items-center justify-center gap-1 text-xs transition-colors w-full h-full", isActive ? "text-primary" : "text-muted-foreground hover:text-primary")}>
+                           <Icon className="h-6 w-6" />
+                           <span>{item.label}</span>
+                        </Link>
+                    )
+                })}
+            </nav>
+        </div>
+    )
+}
+
+
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -95,6 +128,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const { language } = useLanguage();
   const t = content[language];
   const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isMobile = useIsMobile();
 
 
   useEffect(() => {
@@ -229,12 +263,26 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-           <main className="p-4 md:p-6 lg:p-8">
-            <div className="lg:hidden mb-4">
+           <main className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
+            <div className="hidden lg:flex justify-end mb-4">
+                <LanguageToggle />
+            </div>
+             <div className="flex lg:hidden justify-between items-center mb-4">
                 <SidebarTrigger />
+                <LanguageToggle />
             </div>
             {children}
           </main>
+          {isMobile && (
+              <>
+                <BottomNav />
+                <Button asChild className="fixed bottom-20 right-4 z-50 h-16 w-16 rounded-full shadow-lg" size="icon">
+                    <Link href="/absence" aria-label="Report Absence">
+                        <Plus className="h-8 w-8" />
+                    </Link>
+                </Button>
+              </>
+          )}
         </SidebarInset>
       </SidebarProvider>
   );
