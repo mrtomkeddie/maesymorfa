@@ -192,7 +192,6 @@ function DashboardContent() {
                         <div key={child.id} className="border rounded-xl p-6 space-y-4 bg-background shadow-sm">
                             <div className="flex items-center gap-4">
                                 <Avatar className="h-12 w-12 text-lg">
-                                    <AvatarImage src={`https://placehold.co/128x128.png`} data-ai-hint="child portrait" />
                                     <AvatarFallback>{child.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
