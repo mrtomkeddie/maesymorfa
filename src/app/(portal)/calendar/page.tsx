@@ -91,6 +91,17 @@ export default function CalendarPage() {
     });
   }, [isFiltered]);
 
+  const groupedEvents = useMemo(() => {
+    return filteredEvents.reduce((acc, event) => {
+        const eventDate = format(new Date(event.start), 'yyyy-MM-dd');
+        if (!acc[eventDate]) {
+            acc[eventDate] = [];
+        }
+        acc[eventDate].push(event);
+        return acc;
+    }, {} as Record<string, CalendarEvent[]>);
+  }, [filteredEvents]);
+
 
   const EventItem = ({ event }: { event: CalendarEvent }) => {
     const newsSlug = event.title_en.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
@@ -134,7 +145,7 @@ export default function CalendarPage() {
                             )}
                         </div>
                     </div>
-                    <div className="text-center font-bold text-primary shrink-0">
+                    <div className="hidden md:block text-center font-bold text-primary shrink-0">
                         <div className="text-4xl">{format(new Date(event.start), 'dd')}</div>
                         <div className="text-sm uppercase">{format(new Date(event.start), 'MMM')}</div>
                     </div>
@@ -144,11 +155,24 @@ export default function CalendarPage() {
     );
   }
 
-
   const ListView = () => (
     <div className="space-y-4">
-        {filteredEvents.length > 0 ? (
-            filteredEvents.map(event => <EventItem key={event.id} event={event} />)
+        {Object.entries(groupedEvents).length > 0 ? (
+            Object.entries(groupedEvents).map(([date, eventsOnDay]) => (
+                <div key={date} className="relative pl-8 md:pl-0">
+                    {/* Timeline decoration */}
+                    <div className="absolute left-0 top-0 h-full w-px bg-border md:hidden" />
+                    <div className="absolute left-[-5px] top-1.5 h-3 w-3 rounded-full bg-primary md:hidden" />
+                    
+                    <div className="mb-4 md:hidden">
+                        <h2 className="font-bold text-lg text-primary">{format(new Date(date), "EEEE, dd MMM")}</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        {eventsOnDay.map(event => <EventItem key={event.id} event={event} />)}
+                    </div>
+                </div>
+            ))
         ) : (
             <Card className="text-center p-8">
                 <p className="text-muted-foreground">{t.noEventsList}</p>
