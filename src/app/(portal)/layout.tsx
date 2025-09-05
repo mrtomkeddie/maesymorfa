@@ -104,17 +104,17 @@ const BottomNav = () => {
         { href: '/account', label: t.menu.account, icon: User },
     ];
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 h-20 border-t bg-background lg:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background lg:hidden">
             <div className="mx-auto flex h-full max-w-md items-center justify-around px-safe pb-safe-bottom">
                 {menuItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     const Icon = item.icon;
                     return (
-                        <Link href={item.href} key={item.href} passHref>
-                          <div className={cn("flex flex-col items-center justify-center gap-1 text-xs transition-colors w-16 h-full pt-2", isActive ? "text-primary" : "text-muted-foreground hover:text-primary")}>
+                        <Link href={item.href} key={item.href} legacyBehavior passHref>
+                          <a className={cn("flex flex-col items-center justify-center gap-1 text-xs transition-colors w-16 h-full pt-3 pb-2", isActive ? "text-primary" : "text-muted-foreground hover:text-primary")}>
                             <Icon className="h-6 w-6" />
                             <span className="truncate">{item.label}</span>
-                          </div>
+                          </a>
                         </Link>
                     )
                 })}
@@ -282,7 +282,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <>
                 <BottomNav />
                  {showFab && (
-                    <Button asChild className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-lg gap-2 px-4">
+                    <Button asChild className="fixed bottom-28 right-4 z-50 h-14 w-14 rounded-full shadow-lg gap-2 px-4">
                         <Link href="/absence" aria-label={t.menu.absence}>
                             <ClipboardCheck className="h-6 w-6" />
                         </Link>
