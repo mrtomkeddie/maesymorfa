@@ -188,12 +188,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     if (isSupabaseConfigured) {
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            console.error('Error logging out:', error);
+            return;
+        }
     }
     // For both Supabase and mock, clear local storage and redirect
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userRole');
-    router.push('/login');
+    router.push('/admin/login');
     router.refresh();
   };
 

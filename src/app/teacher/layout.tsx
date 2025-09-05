@@ -124,11 +124,15 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   const handleLogout = async () => {
     if (isSupabaseConfigured) {
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            console.error('Error logging out:', error);
+            return;
+        }
     }
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userRole');
-    router.push('/login');
+    router.push('/teacher/login');
     router.refresh();
   };
 
