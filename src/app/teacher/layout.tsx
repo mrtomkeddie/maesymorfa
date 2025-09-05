@@ -152,8 +152,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   
   return (
       <SidebarProvider>
-        <Sidebar variant="sidebar" collapsible="icon">
-          <SidebarHeader className="border-b p-4">
+        <Sidebar variant="inset" collapsible="icon">
+          <SidebarHeader className="border-b p-4 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
             <Link href="/teacher/dashboard" className="flex items-center gap-2">
               <Image src="/icon.png" alt="School logo" width={28} height={28} className="w-7 h-7" />
               <span className="text-lg font-extrabold tracking-tighter text-foreground group-data-[collapsible=icon]:hidden">
