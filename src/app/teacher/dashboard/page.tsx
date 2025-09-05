@@ -346,21 +346,32 @@ export default function TeacherDashboard() {
     const [teacherName, setTeacherName] = useState('');
     const { language } = useLanguage();
     const t = content[language];
+    const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
     useEffect(() => {
         const fetchTeacherName = async () => {
-             const { data: { session } } = await supabase.auth.getSession();
-             if (session) {
-                const teacherData = await db.getTeacherAndClass(session.user.id);
-                if (teacherData) {
-                    setTeacherName(teacherData.teacher.name);
+             if (isSupabaseConfigured) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    const teacherData = await db.getTeacherAndClass(session.user.id);
+                    if (teacherData) {
+                        setTeacherName(teacherData.teacher.name);
+                    }
+                } else {
+                    setTeacherName('Teacher');
                 }
              } else {
-                 setTeacherName('Teacher');
+                 // Mock behavior
+                 const teacherData = await db.getTeacherAndClass('mock-teacher-id-1');
+                 if (teacherData) {
+                     setTeacherName(teacherData.teacher.name);
+                 } else {
+                    setTeacherName('Teacher');
+                 }
              }
         }
         fetchTeacherName();
-    }, []);
+    }, [isSupabaseConfigured]);
 
     return (
         <div className="space-y-6">
@@ -374,4 +385,3 @@ export default function TeacherDashboard() {
         </div>
     );
 }
-
