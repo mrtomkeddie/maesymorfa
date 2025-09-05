@@ -104,8 +104,8 @@ const BottomNav = () => {
         { href: '/account', label: t.menu.account, icon: User },
     ];
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 h-auto border-t bg-background lg:hidden">
-            <nav className="flex h-16 items-center justify-around px-safe pb-safe-bottom pt-2">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background lg:hidden">
+            <div className="flex h-full items-center justify-around px-safe pb-safe-bottom pt-2">
                 {menuItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     const Icon = item.icon;
@@ -116,8 +116,8 @@ const BottomNav = () => {
                         </Link>
                     )
                 })}
-            </nav>
-        </div>
+            </div>
+        </nav>
     )
 }
 
