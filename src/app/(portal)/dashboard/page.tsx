@@ -354,9 +354,6 @@ export default function DashboardPage() {
                     <h1 className="text-3xl font-bold font-headline">{t.welcome}</h1>
                     <p className="text-muted-foreground">{t.description}</p>
                 </div>
-                 <div className="hidden lg:block">
-                     <LanguageToggle />
-                 </div>
             </div>
             <Suspense fallback={<DashboardSkeleton />}>
                 <DashboardContent />
