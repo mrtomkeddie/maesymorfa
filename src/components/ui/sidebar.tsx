@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -631,21 +632,31 @@ const SidebarMenuBadge = React.forwardRef<
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
   const { state } = useSidebar();
+  const isCollapsed = state === 'collapsed';
+
+  if (isCollapsed) {
+    return (
+      <div
+        ref={ref}
+        data-sidebar="menu-badge"
+        className={cn("absolute right-1 top-1 h-2 w-2 rounded-full bg-primary", className)}
+        {...props}
+      />
+    )
+  }
+
   return (
     <div
       ref={ref}
       data-sidebar="menu-badge"
       className={cn(
-        "ml-auto h-5 min-w-5 flex items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-sidebar-foreground select-none pointer-events-none",
-        "group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:right-1 group-data-[collapsible=icon]:top-1 group-data-[collapsible=icon]:bg-destructive group-data-[collapsible=icon]:text-destructive-foreground group-data-[collapsible=icon]:p-0.5",
+        "ml-auto h-5 min-w-5 flex items-center justify-center rounded-md px-1.5 text-xs font-medium tabular-nums text-primary-foreground select-none pointer-events-none bg-primary",
         "peer-data-[active=true]/menu-button:bg-background peer-data-[active=true]/menu-button:text-foreground",
         "peer-data-[active=true][variant=destructive]/menu-button:bg-destructive-foreground peer-data-[active=true][variant=destructive]/menu-button:text-destructive",
         className
       )}
       {...props}
-    >
-       {state === 'expanded' && props.children}
-    </div>
+    />
   )
 })
 SidebarMenuBadge.displayName = "SidebarMenuBadge"
