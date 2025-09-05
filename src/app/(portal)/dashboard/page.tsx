@@ -20,7 +20,7 @@ import type { DailyMenu, WeeklyMenu, ParentNotificationWithId } from '@/lib/type
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { LanguageToggle } from '../layout';
-import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerTrigger, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatDistanceToNow } from 'date-fns';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
@@ -288,6 +288,10 @@ function DashboardContent() {
                                 </Button>
                             </DrawerTrigger>
                             <DrawerContent>
+                               <DrawerHeader className="text-left">
+                                    <DrawerTitle>{t.menuTitle}</DrawerTitle>
+                                    <DrawerDescription>{t.menuDesc}</DrawerDescription>
+                                </DrawerHeader>
                                 <MenuDrawerContent weeklyMenu={weeklyMenu} isLoadingMenu={isLoadingMenu} t={t} days={days} />
                             </DrawerContent>
                         </Drawer>
