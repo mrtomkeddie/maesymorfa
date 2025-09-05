@@ -187,7 +187,7 @@ function DashboardContent() {
                 <CardHeader>
                     <CardTitle>{t.children}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-6">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {parentChildren.map(child => (
                         <div key={child.id} className="border rounded-xl p-6 space-y-4 bg-background shadow-sm">
                             <div className="flex items-center gap-4">
@@ -199,20 +199,22 @@ function DashboardContent() {
                                     <p className="text-sm text-muted-foreground">{child.yearGroup}</p>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-green-100/60 dark:bg-green-900/30 p-4 rounded-lg text-center">
-                                    <div className="text-3xl font-bold text-green-700 dark:text-green-400">{child.attendance}</div>
-                                    <div className="text-sm text-green-600 dark:text-green-500">{t.attendance}</div>
+                            
+                            <div className="space-y-3 pt-2">
+                                <div className="flex items-center gap-3 text-sm">
+                                    <Percent className="h-5 w-5 text-primary" />
+                                    <span className="text-muted-foreground">{t.attendance}:</span>
+                                    <span className="font-bold">{child.attendance}</span>
                                 </div>
-                                <div className="bg-blue-100/60 dark:bg-blue-900/30 p-4 rounded-lg text-center">
-                                    <div className="text-3xl font-bold text-blue-700 dark:text-blue-400">{awardCounts[child.id] ?? <Loader2 className="h-6 w-6 mx-auto animate-spin" />}</div>
-                                    <div className="text-sm text-blue-600 dark:text-blue-500">{t.awards}</div>
-                                </div>
-                            </div>
-                            <div className="pt-2 text-sm space-y-2">
-                                <div className="flex justify-between">
+                                <div className="flex items-center gap-3 text-sm">
+                                    <UserCheck className="h-5 w-5 text-primary" />
                                     <span className="text-muted-foreground">{t.teacher}:</span>
-                                    <span className="font-medium">{child.teacher}</span>
+                                    <span className="font-bold">{child.teacher}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm">
+                                    <Trophy className="h-5 w-5 text-primary" />
+                                    <span className="text-muted-foreground">{t.awards}:</span>
+                                    <span className="font-bold">{awardCounts[child.id] ?? <Loader2 className="h-4 w-4 animate-spin" />}</span>
                                 </div>
                             </div>
                         </div>
