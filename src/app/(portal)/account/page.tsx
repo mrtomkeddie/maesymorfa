@@ -81,7 +81,7 @@ const content = {
             email_message: 'Rhowch gyfeiriad e-bost dilys.',
         },
         toast: {
-            success: { title: "Proffil wedi'i Ddiweddaru", description: "Mae eich manylion wedi'u cadw'n llwyddiannus." },
+            success: { title: "Proffil wedi'i Ddiweddaru", description: "Mae eich manylion wedi'u gadw'n llwyddiannus." },
             error: { title: "Methwyd Diweddaru", description: "Ni ellid cadw eich manylion. Rhowch gynnig arall arni." },
         }
     }
