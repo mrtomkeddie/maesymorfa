@@ -3,12 +3,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, User, Save } from "lucide-react";
+import { LogOut, User, Save, Upload } from "lucide-react";
 import { useLanguage } from "@/app/(public)/LanguageProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Session } from "@supabase/supabase-js";
 import { Skeleton } from "@/components/ui/skeleton";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,12 +28,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { uploadFile } from "@/lib/firebase/storage";
 
 
 const profileFormSchema = (t: any) => z.object({
   name: z.string().min(2, { message: t.form.name_message }),
   email: z.string().email({ message: t.form.email_message }),
   phone: z.string().optional(),
+  avatar: z.any().optional(),
 });
 
 const content = {
@@ -50,6 +52,7 @@ const content = {
             nameLabel: "Full Name",
             emailLabel: "Email Address",
             phoneLabel: "Phone Number (Optional)",
+            avatarLabel: "Profile Picture",
             saveButton: "Save Changes",
             name_message: 'Name must be at least 2 characters.',
             email_message: 'Please enter a valid email address.',
@@ -72,6 +75,7 @@ const content = {
             nameLabel: "Enw Llawn",
             emailLabel: "Cyfeiriad E-bost",
             phoneLabel: "Rhif Ffôn (Dewisol)",
+            avatarLabel: "Llun Proffil",
             saveButton: "Cadw Newidiadau",
             name_message: 'Rhaid i\'r enw fod o leiaf 2 nod.',
             email_message: 'Rhowch gyfeiriad e-bost dilys.',
@@ -93,7 +97,9 @@ export default function AccountPage() {
     const [parent, setParent] = useState<ParentWithId | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
     const userEmail = session?.user?.email || 'parent@example.com';
     const userName = parent?.name || userEmail.split('@')[0] || 'Parent';
     const userInitials = userName.charAt(0).toUpperCase();
@@ -140,20 +146,33 @@ export default function AccountPage() {
     async function onSubmit(values: z.infer<ReturnType<typeof profileFormSchema>>) {
         if (!parent) return;
         setIsSaving(true);
+        setUploadProgress(null);
         try {
+            let avatarUrl = parent.avatarUrl;
+            if (values.avatar && values.avatar instanceof File) {
+                 setUploadProgress(0);
+                 avatarUrl = await uploadFile(values.avatar, `avatars/${parent.id}`, (progress) => {
+                    setUploadProgress(progress);
+                 });
+                 setUploadProgress(100);
+            }
+
             const updateData: Partial<Parent> = {
                 name: values.name,
                 email: values.email,
                 phone: values.phone,
+                avatarUrl: avatarUrl,
             };
             await db.updateParent(parent.id, updateData);
             toast(t.toast.success);
             setParent(prev => prev ? { ...prev, ...updateData } : null);
+            form.setValue('avatar', null); // Reset file input
         } catch (error) {
             console.error("Failed to update profile", error);
             toast(t.toast.error);
         } finally {
             setIsSaving(false);
+            setTimeout(() => setUploadProgress(null), 2000);
         }
     }
 
@@ -181,7 +200,7 @@ export default function AccountPage() {
             <Card className="max-w-2xl mx-auto">
                  <CardHeader className="items-center text-center">
                     <Avatar className="h-24 w-24 text-4xl mb-4">
-                        <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="person avatar" />
+                        <AvatarImage src={parent?.avatarUrl} data-ai-hint="person avatar" />
                         <AvatarFallback>{userInitials}</AvatarFallback>
                     </Avatar>
                      {isLoading ? (
@@ -202,7 +221,7 @@ export default function AccountPage() {
                                 <FormItem>
                                     <FormLabel>{t.form.nameLabel}</FormLabel>
                                     <FormControl>
-                                    <Input {...field} disabled={isLoading} />
+                                    <Input {...field} disabled={isLoading || isSaving} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -215,7 +234,7 @@ export default function AccountPage() {
                                 <FormItem>
                                     <FormLabel>{t.form.emailLabel}</FormLabel>
                                     <FormControl>
-                                    <Input type="email" {...field} disabled={isLoading} />
+                                    <Input type="email" {...field} disabled={isLoading || isSaving} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -228,7 +247,31 @@ export default function AccountPage() {
                                 <FormItem>
                                     <FormLabel>{t.form.phoneLabel}</FormLabel>
                                     <FormControl>
-                                    <Input type="tel" {...field} disabled={isLoading} />
+                                    <Input type="tel" {...field} disabled={isLoading || isSaving} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="avatar"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t.form.avatarLabel}</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Input 
+                                                type="file" 
+                                                accept="image/png, image/jpeg, image/webp" 
+                                                className="pl-12" 
+                                                onChange={(e) => field.onChange(e.target.files && e.target.files[0])}
+                                                disabled={isLoading || isSaving}
+                                            />
+                                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                                <Upload className="h-5 w-5 text-muted-foreground" />
+                                            </div>
+                                        </div>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -257,4 +300,3 @@ export default function AccountPage() {
         </div>
     );
 }
-

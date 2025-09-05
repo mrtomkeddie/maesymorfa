@@ -25,6 +25,7 @@ export type Parent = {
     name: string;
     email: string;
     phone?: string;
+    avatarUrl?: string;
 }
 
 export type ParentWithId = Parent & { id: string };
