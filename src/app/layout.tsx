@@ -1,5 +1,5 @@
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
@@ -17,12 +17,17 @@ const ptSans = PT_Sans({
 export const metadata: Metadata = {
   title: 'Ysgol Maes Y Morfa',
   description: 'Public website and parent portal for Maes Y Morfa school.',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   icons: {
     icon: '/icon.png',
     apple: '/mobile-icon.png',
   }
 };
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
 
 export default function RootLayout({
   children,
