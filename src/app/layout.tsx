@@ -15,7 +15,7 @@ const ptSans = PT_Sans({
 
 
 export const metadata: Metadata = {
-  title: 'Parent Portal | Maes Y Morfa School',
+  title: 'Maes Y Morfa',
   description: 'Public website and parent portal for Maes Y Morfa school.',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 };
