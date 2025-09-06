@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
        <head>
-        <link rel="icon" href="/school-icon.png?v=2" sizes="any" />
+        <link rel="icon" href="/icon.png?v=3" sizes="any" />
         <link rel="apple-touch-icon" href="/mobile-icon.png" />
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased", ptSans.variable)} suppressHydrationWarning={true}>
