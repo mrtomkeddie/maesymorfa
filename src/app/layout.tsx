@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   title: 'Parent Portal | Maes Y Morfa School',
   description: 'Public website and parent portal for Maes Y Morfa school.',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/mobile-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -27,10 +31,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/icon.png" sizes="any" />
-        <link rel="apple-touch-icon" href="/mobile-icon.png" />
-      </head>
       <body className={cn("min-h-screen bg-background font-body antialiased", ptSans.variable)} suppressHydrationWarning={true}>
         <LanguageProvider>
           {children}
