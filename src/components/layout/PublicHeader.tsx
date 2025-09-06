@@ -52,6 +52,7 @@ export function PublicHeader() {
   const navLinks = t.nav;
   const [isParent, setIsParent] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -76,7 +77,7 @@ export function PublicHeader() {
                <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
            </div>
 
-          <Sheet>
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" className="px-2 lg:px-4">
                 <Menu className="h-5 w-5 lg:hidden" />
@@ -89,7 +90,7 @@ export function PublicHeader() {
             <SheetContent side="right" className="w-[22rem] bg-background p-0 text-foreground" closeIcon={false}>
               <div className="flex h-full flex-col">
                 <div className="flex h-20 items-center justify-between border-b border-border/40 px-6">
-                    <Link href="/" className="flex items-center gap-3">
+                    <Link href="/" className="flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
                         <Image src="/logo-header.png" alt="Maes Y Morfa logo" width={1640} height={403} className="h-14 w-auto max-h-14" />
                     </Link>
                     <SheetClose asChild>
@@ -105,44 +106,38 @@ export function PublicHeader() {
                         {navLinks.map((link, index) => {
                             const Icon = link.icon;
                             return (
-                                <SheetClose asChild key={link.href}>
-                                    <Link 
-                                      href={link.href} 
-                                      className="flex items-center gap-4 border-b p-4 text-lg font-medium text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground"
-                                    >
-                                        <Icon className="h-6 w-6 text-primary" />
-                                        <span>{link.label}</span>
-                                    </Link>
-                                </SheetClose>
+                                <Link 
+                                  key={link.href} 
+                                  href={link.href} 
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                  className="flex items-center gap-4 border-b p-4 text-lg font-medium text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground"
+                                >
+                                    <Icon className="h-6 w-6 text-primary" />
+                                    <span>{link.label}</span>
+                                </Link>
                             )
                         })}
                    </nav>
                  </div>
                  <div className="space-y-3 border-t border-border/40 p-4">
-                     <SheetClose asChild>
-                        <Button asChild size="lg" className="w-full text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-                           <Link href={t.kidsCorner.href}>
-                                <t.kidsCorner.icon className="mr-2 h-5 w-5" />
-                                {t.kidsCorner.label}
-                           </Link>
-                        </Button>
-                    </SheetClose>
-                     <SheetClose asChild>
-                         {isClient && isParent ? (
-                             <Button asChild size="lg" className="w-full">
-                                <Link href="/dashboard"> <LayoutDashboard className="mr-2 h-5 w-5" /> {t.dashboard}</Link>
-                             </Button>
-                         ) : (
-                             <Button asChild size="lg" className="w-full">
-                                <Link href="/login">{t.portal}</Link>
-                             </Button>
-                         )}
-                     </SheetClose>
-                    <SheetClose asChild>
-                        <Button asChild size="lg" variant="outline" className="w-full">
-                            <Link href="/staff/login">{t.staffLogin}</Link>
-                        </Button>
-                    </SheetClose>
+                    <Button asChild size="lg" className="w-full text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                       <Link href={t.kidsCorner.href} onClick={() => setIsMobileMenuOpen(false)}>
+                            <t.kidsCorner.icon className="mr-2 h-5 w-5" />
+                            {t.kidsCorner.label}
+                       </Link>
+                    </Button>
+                     {isClient && isParent ? (
+                         <Button asChild size="lg" className="w-full">
+                            <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}> <LayoutDashboard className="mr-2 h-5 w-5" /> {t.dashboard}</Link>
+                         </Button>
+                     ) : (
+                         <Button asChild size="lg" className="w-full">
+                            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>{t.portal}</Link>
+                         </Button>
+                     )}
+                    <Button asChild size="lg" variant="outline" className="w-full">
+                        <Link href="/staff/login" onClick={() => setIsMobileMenuOpen(false)}>{t.staffLogin}</Link>
+                    </Button>
                  </div>
               </div>
             </SheetContent>
