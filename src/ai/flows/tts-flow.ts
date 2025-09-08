@@ -4,8 +4,6 @@
  * @fileOverview A Text-to-Speech (TTS) flow using Genkit.
  *
  * - textToSpeech - A function that converts a string of text into speech audio.
- * - TextToSpeechInput - The input type for the textToSpeech function.
- * - TextToSpeechOutput - The return type for the textToSpeech function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -43,9 +41,11 @@ const textToSpeechFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            customVoice: {
-                languageCode: input.language,
-            }
+            prebuiltVoiceConfig: {
+              // Select voice based on language. These are example voices.
+              // A full list is available in the Google Cloud TTS documentation.
+              voiceName: input.language === 'cy-GB' ? 'cy-GB-Wavenet-B' : 'en-GB-Standard-A',
+            },
           },
         },
       },
