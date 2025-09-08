@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Paperclip, Bot, Apple } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -69,14 +68,46 @@ export default function RecyclingSort() {
 
     const currentItem = gameItems[currentItemIndex];
     const isGameOver = currentItemIndex >= gameItems.length;
+    
+    const playSound = (type: 'correct' | 'incorrect') => {
+        if (typeof window === 'undefined') return;
+
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (!audioContext) return;
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        if (type === 'correct') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.1);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
+        } else {
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.1);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
+        }
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+    };
 
     const handleDrop = (binType: BinType) => {
         if (!currentItem) return;
         if (currentItem.type === binType) {
             setScore(s => s + 1);
             setFeedback('correct');
+            playSound('correct');
         } else {
             setFeedback('incorrect');
+            playSound('incorrect');
         }
         
         setTimeout(() => {
@@ -104,7 +135,6 @@ export default function RecyclingSort() {
             <div className="flex justify-around w-full items-center">
                 <p className="text-xl font-bold">Score: {score}</p>
                 <div className="w-48 h-48 relative flex items-center justify-center">
-                <AnimatePresence>
                     {!isGameOver && currentItem ? (
                         <div
                             key={currentItemIndex}
@@ -120,16 +150,11 @@ export default function RecyclingSort() {
                             <p className="mt-2 font-semibold">{currentItem.name}</p>
                         </div>
                     ) : (
-                         <motion.div
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="text-center"
-                        >
+                         <div className="text-center">
                             <h3 className="text-2xl font-bold text-primary">Da iawn! Well done!</h3>
                             <p className="text-muted-foreground">You scored {score} out of {items.length}.</p>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
                 </div>
                  <Button onClick={restartGame} variant="outline">Restart Game</Button>
             </div>
