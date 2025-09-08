@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, VolumeX } from 'lucide-react';
-import { textToSpeech } from '@/ai/flows/tts-flow';
 
 const wordPairs = [
   { en: 'Dog', cy: 'Ci' },
@@ -42,21 +41,53 @@ export default function WelshWordMatch() {
   const [moves, setMoves] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  
-  const speak = useCallback(async (text: string, lang: 'en-GB' | 'cy-GB') => {
-    if (isMuted) return;
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
 
-    try {
-      const response = await textToSpeech({ text, language: lang });
-      if (audioRef.current) {
-        audioRef.current.src = response.audioDataUri;
-        audioRef.current.play();
-      }
-    } catch (error) {
-      console.error("Failed to generate speech:", error);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        synthRef.current = window.speechSynthesis;
+        const loadVoices = () => {
+            const availableVoices = synthRef.current?.getVoices() || [];
+            if (availableVoices.length > 0) {
+                setVoices(availableVoices);
+            }
+        };
+        loadVoices();
+        if (synthRef.current?.onvoiceschanged !== undefined) {
+            synthRef.current.onvoiceschanged = loadVoices;
+        }
     }
-  }, [isMuted]);
+  }, []);
+
+  const speak = useCallback((text: string, lang: 'en-GB' | 'cy-GB') => {
+    if (isMuted || !synthRef.current) return;
+
+    synthRef.current.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+
+    let voiceToUse;
+    if (lang === 'cy-GB') {
+        // Prioritize specific, high-quality Welsh voices if available
+        voiceToUse = voices.find(v => v.name === 'Google Cymraeg') || voices.find(v => v.lang === 'cy-GB');
+    } else {
+        // Prioritize specific, high-quality UK English voices
+        voiceToUse = voices.find(v => v.name === 'Google UK English Female') || voices.find(v => v.lang === 'en-GB');
+    }
+
+    if (voiceToUse) {
+        utterance.voice = voiceToUse;
+    }
+    
+    utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error);
+    };
+
+    synthRef.current.speak(utterance);
+  }, [isMuted, voices]);
+
 
   const createGameBoard = useCallback(() => {
     const gameCards: GameCard[] = [];
@@ -68,9 +99,8 @@ export default function WelshWordMatch() {
     setFlippedIndices([]);
     setMatchedPairIds([]);
     setMoves(0);
-    if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+    if(synthRef.current) {
+        synthRef.current.cancel();
     }
   }, []);
   
@@ -78,9 +108,6 @@ export default function WelshWordMatch() {
     createGameBoard();
   }, [createGameBoard]);
 
-  useEffect(() => {
-    audioRef.current = new Audio();
-  }, []);
 
   const handleCardClick = (index: number) => {
     if (isChecking || flippedIndices.includes(index) || matchedPairIds.includes(cards[index].pairId)) {
