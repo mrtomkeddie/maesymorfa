@@ -1,12 +1,11 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX } from 'lucide-react';
 
 const wordPairs = [
   { en: 'Dog', cy: 'Ci' },
@@ -23,7 +22,7 @@ type GameCard = {
   id: number;
   pairId: number;
   word: string;
-  language: 'en-GB' | 'cy-GB';
+  language: 'en' | 'cy';
 };
 
 const shuffleArray = (array: any[]) => {
@@ -40,68 +39,17 @@ export default function WelshWordMatch() {
   const [matchedPairIds, setMatchedPairIds] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const synthRef = useRef<SpeechSynthesis | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        synthRef.current = window.speechSynthesis;
-        const loadVoices = () => {
-            const availableVoices = synthRef.current?.getVoices() || [];
-            if (availableVoices.length > 0) {
-                setVoices(availableVoices);
-            }
-        };
-        loadVoices();
-        if (synthRef.current?.onvoiceschanged !== undefined) {
-            synthRef.current.onvoiceschanged = loadVoices;
-        }
-    }
-  }, []);
-
-  const speak = useCallback((text: string, lang: 'en-GB' | 'cy-GB') => {
-    if (isMuted || !synthRef.current) return;
-
-    synthRef.current.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-
-    let voiceToUse;
-    if (lang === 'cy-GB') {
-        // Prioritize specific, high-quality Welsh voices if available
-        voiceToUse = voices.find(v => v.name === 'Google Cymraeg') || voices.find(v => v.lang === 'cy-GB');
-    } else {
-        // Prioritize specific, high-quality UK English voices
-        voiceToUse = voices.find(v => v.name === 'Google UK English Female') || voices.find(v => v.lang === 'en-GB');
-    }
-
-    if (voiceToUse) {
-        utterance.voice = voiceToUse;
-    }
-    
-    utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event.error);
-    };
-
-    synthRef.current.speak(utterance);
-  }, [isMuted, voices]);
-
-
+  
   const createGameBoard = useCallback(() => {
     const gameCards: GameCard[] = [];
     wordPairs.forEach((pair, index) => {
-      gameCards.push({ id: index * 2, pairId: index, word: pair.en, language: 'en-GB' });
-      gameCards.push({ id: index * 2 + 1, pairId: index, word: pair.cy, language: 'cy-GB' });
+      gameCards.push({ id: index * 2, pairId: index, word: pair.en, language: 'en' });
+      gameCards.push({ id: index * 2 + 1, pairId: index, word: pair.cy, language: 'cy' });
     });
     setCards(shuffleArray(gameCards));
     setFlippedIndices([]);
     setMatchedPairIds([]);
     setMoves(0);
-    if(synthRef.current) {
-        synthRef.current.cancel();
-    }
   }, []);
   
   useEffect(() => {
@@ -113,11 +61,8 @@ export default function WelshWordMatch() {
     if (isChecking || flippedIndices.includes(index) || matchedPairIds.includes(cards[index].pairId)) {
       return;
     }
-
     const newFlippedIndices = [...flippedIndices, index];
     setFlippedIndices(newFlippedIndices);
-    const card = cards[index];
-    speak(card.word, card.language);
   };
 
   useEffect(() => {
@@ -196,9 +141,6 @@ export default function WelshWordMatch() {
         )}
         </AnimatePresence>
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => setIsMuted(!isMuted)} aria-label={isMuted ? "Unmute" : "Mute"}>
-              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </Button>
             <p className="font-semibold text-lg">Moves: {moves}</p>
             <Button onClick={createGameBoard}>Play Again</Button>
         </div>

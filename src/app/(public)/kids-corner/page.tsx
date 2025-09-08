@@ -6,6 +6,7 @@ import { Gamepad2, Recycle, Languages } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import WelshWordMatch from '@/components/games/WelshWordMatch';
+import RecyclingSort from '@/components/games/RecyclingSort';
 
 const content = {
   en: {
@@ -117,9 +118,7 @@ export default function KidsCornerPage() {
                                 <h3 className="font-bold text-lg mb-2">{tRecycling.howToPlay}</h3>
                                 <p className="text-muted-foreground">{tRecycling.instructions}</p>
                             </div>
-                            <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
-                                <p className="text-muted-foreground">{t.comingSoon}</p>
-                            </div>
+                            <RecyclingSort />
                         </CardContent>
                     </Card>
 
