@@ -1,11 +1,12 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2, VolumeX } from 'lucide-react';
 
 const wordPairs = [
   { en: 'Dog', cy: 'Ci' },
@@ -22,7 +23,7 @@ type GameCard = {
   id: number;
   pairId: number;
   word: string;
-  language: 'en' | 'cy';
+  language: 'en-GB' | 'cy-GB';
 };
 
 const shuffleArray = (array: any[]) => {
@@ -39,22 +40,36 @@ export default function WelshWordMatch() {
   const [matchedPairIds, setMatchedPairIds] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   
-  const createGameBoard = () => {
+  const speak = useCallback((text: string, lang: 'en-GB' | 'cy-GB') => {
+    if (isMuted || !window.speechSynthesis) return;
+    // Cancel any ongoing speech to prevent overlap
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  }, [isMuted]);
+
+  const createGameBoard = useCallback(() => {
     const gameCards: GameCard[] = [];
     wordPairs.forEach((pair, index) => {
-      gameCards.push({ id: index * 2, pairId: index, word: pair.en, language: 'en' });
-      gameCards.push({ id: index * 2 + 1, pairId: index, word: pair.cy, language: 'cy' });
+      gameCards.push({ id: index * 2, pairId: index, word: pair.en, language: 'en-GB' });
+      gameCards.push({ id: index * 2 + 1, pairId: index, word: pair.cy, language: 'cy-GB' });
     });
     setCards(shuffleArray(gameCards));
     setFlippedIndices([]);
     setMatchedPairIds([]);
     setMoves(0);
-  };
+    if(window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
+  }, []);
   
   useEffect(() => {
     createGameBoard();
-  }, []);
+  }, [createGameBoard]);
 
   const handleCardClick = (index: number) => {
     if (isChecking || flippedIndices.includes(index) || matchedPairIds.includes(cards[index].pairId)) {
@@ -63,6 +78,8 @@ export default function WelshWordMatch() {
 
     const newFlippedIndices = [...flippedIndices, index];
     setFlippedIndices(newFlippedIndices);
+    const card = cards[index];
+    speak(card.word, card.language);
   };
 
   useEffect(() => {
@@ -81,10 +98,10 @@ export default function WelshWordMatch() {
         setTimeout(() => {
           setFlippedIndices([]);
           setIsChecking(false);
-        }, 1000);
+        }, 1200);
       }
     }
-  }, [flippedIndices, cards, matchedPairIds]);
+  }, [flippedIndices, cards]);
   
   const allMatched = matchedPairIds.length === wordPairs.length;
 
@@ -141,7 +158,10 @@ export default function WelshWordMatch() {
         )}
         </AnimatePresence>
         <div className="flex items-center gap-4">
-            <p className="font-semibold">Moves: {moves}</p>
+            <Button variant="outline" size="icon" onClick={() => setIsMuted(!isMuted)} aria-label={isMuted ? "Unmute" : "Mute"}>
+              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+            </Button>
+            <p className="font-semibold text-lg">Moves: {moves}</p>
             <Button onClick={createGameBoard}>Play Again</Button>
         </div>
     </div>
