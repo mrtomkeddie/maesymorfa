@@ -17,12 +17,12 @@ const TextToSpeechInputSchema = z.object({
   text: z.string().describe("The text to be converted to speech."),
   language: z.enum(['en-GB', 'cy-GB']).describe("The language of the text."),
 });
-export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
+type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
 const TextToSpeechOutputSchema = z.object({
     audioDataUri: z.string().describe("The generated audio as a data URI."),
 });
-export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
+type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
 
 
 export async function textToSpeech(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
@@ -43,7 +43,9 @@ const textToSpeechFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            languageCode: input.language,
+            customVoice: {
+                languageCode: input.language,
+            }
           },
         },
       },
