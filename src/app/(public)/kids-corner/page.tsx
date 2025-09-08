@@ -5,6 +5,7 @@ import { useLanguage } from '../LanguageProvider';
 import { Gamepad2, Recycle, Languages } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
+import WelshWordMatch from '@/components/games/WelshWordMatch';
 
 const content = {
   en: {
@@ -102,9 +103,7 @@ export default function KidsCornerPage() {
                                 <h3 className="font-bold text-lg mb-2">{tWelsh.howToPlay}</h3>
                                 <p className="text-muted-foreground">{tWelsh.instructions}</p>
                             </div>
-                            <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
-                                <p className="text-muted-foreground">{t.comingSoon}</p>
-                            </div>
+                            <WelshWordMatch />
                         </CardContent>
                     </Card>
 
