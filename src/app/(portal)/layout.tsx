@@ -284,7 +284,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </Sidebar>
         <SidebarInset>
            <div className="flex flex-col min-h-screen">
-            <main className="flex-grow p-4 md:p-6 lg:p-8 pb-28 lg:pb-8">
+            <main className="flex-grow p-4 md:p-6 lg:p-8 pb-32 lg:pb-8">
               <div className="mx-auto max-w-7xl">
                 <div className="hidden lg:flex justify-end mb-4">
                     <LanguageToggle />
