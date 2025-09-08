@@ -68,13 +68,13 @@ export default function WelshWordMatch() {
   useEffect(() => {
     if (flippedIndices.length === 2) {
       setIsChecking(true);
-      setMoves(moves + 1);
+      setMoves(moves => moves + 1);
       const [firstIndex, secondIndex] = flippedIndices;
       const firstCard = cards[firstIndex];
       const secondCard = cards[secondIndex];
 
       if (firstCard.pairId === secondCard.pairId) {
-        setMatchedPairIds([...matchedPairIds, firstCard.pairId]);
+        setMatchedPairIds((prev) => [...prev, firstCard.pairId]);
         setFlippedIndices([]);
         setIsChecking(false);
       } else {
@@ -84,7 +84,7 @@ export default function WelshWordMatch() {
         }, 1000);
       }
     }
-  }, [flippedIndices, cards, matchedPairIds, moves]);
+  }, [flippedIndices, cards, matchedPairIds]);
   
   const allMatched = matchedPairIds.length === wordPairs.length;
 
