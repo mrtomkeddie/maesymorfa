@@ -21,16 +21,21 @@ import {
   Loader2,
   Send,
   Award,
+  Home,
+  User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { useLanguage } from '../(public)/LanguageProvider';
 import { supabase, getUserRole } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { LanguageToggle } from '../(portal)/layout';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const content = {
   en: {
@@ -62,6 +67,46 @@ const content = {
 };
 
 
+const BottomNav = () => {
+    const pathname = usePathname();
+    const router = useRouter();
+    const { language } = useLanguage();
+    const t = content[language];
+     const menuItems = [
+        { href: '/teacher/dashboard', label: t.menu.dashboard, icon: Home },
+        { href: '/teacher/outbox', label: t.menu.outbox, icon: Send },
+        { href: '/teacher/values-award', label: t.menu.values, icon: Award },
+    ];
+    return (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background/95 backdrop-blur-sm lg:hidden">
+            <div className="mx-auto flex h-full max-w-md items-center justify-around px-safe pb-safe-bottom">
+                {menuItems.map((item) => {
+                    const isActive = pathname.startsWith(item.href);
+                    const Icon = item.icon;
+                    return (
+                        <Link
+                          href={item.href}
+                          key={item.href}
+                          onClick={(e) => {
+                              e.preventDefault();
+                              router.push(item.href);
+                          }}
+                          className={cn(
+                            "flex flex-col items-center justify-start gap-1 text-xs transition-colors w-16 h-full pt-3 pb-2",
+                            isActive ? "text-primary" : "text-muted-foreground hover:text-primary"
+                          )}
+                        >
+                            <Icon className="h-6 w-6" />
+                            <span className="truncate">{item.label}</span>
+                        </Link>
+                    )
+                })}
+            </div>
+        </nav>
+    )
+}
+
+
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -70,7 +115,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const { language } = useLanguage();
   const t = content[language];
   const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -201,17 +246,26 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-          <main className="p-4 md:p-6 lg:p-8">
-             <div className="flex justify-between items-center mb-4">
-                 <div className="lg:hidden">
-                    <SidebarTrigger />
-                 </div>
-                <div className="ml-auto">
-                    <LanguageToggle />
+           <div className="flex flex-col min-h-screen">
+             <main className="flex-grow p-4 md:p-6 lg:p-8 pb-28 lg:pb-8">
+              <div className="mx-auto max-w-7xl">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="lg:hidden">
+                        {!isMobile && <SidebarTrigger />}
+                    </div>
+                    <div className="ml-auto">
+                        <LanguageToggle />
+                    </div>
                 </div>
-            </div>
-            {children}
-          </main>
+                {children}
+              </div>
+            </main>
+            {isMobile && (
+                <>
+                  <BottomNav />
+                </>
+            )}
+           </div>
         </SidebarInset>
       </SidebarProvider>
   );
