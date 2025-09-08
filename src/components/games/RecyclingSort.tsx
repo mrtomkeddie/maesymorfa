@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Paperclip, Bot, Apple } from 'lucide-react';
@@ -54,10 +54,18 @@ export default function RecyclingSort() {
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
     const [draggedItemBinType, setDraggedItemBinType] = useState<BinType | null>(null);
 
+    const createGame = useCallback(() => {
+        setGameItems(shuffleArray([...items]));
+        setCurrentItemIndex(0);
+        setScore(0);
+        setFeedback(null);
+        setDraggedItemBinType(null);
+    }, []);
+
     useEffect(() => {
         // Shuffle items only on the client-side to prevent hydration mismatch
-        setGameItems(shuffleArray([...items]));
-    }, []);
+        createGame();
+    }, [createGame]);
 
     const currentItem = gameItems[currentItemIndex];
     const isGameOver = currentItemIndex >= gameItems.length;
@@ -88,29 +96,21 @@ export default function RecyclingSort() {
     }
     
     const restartGame = () => {
-        setGameItems(shuffleArray([...items]));
-        setCurrentItemIndex(0);
-        setScore(0);
-        setFeedback(null);
+        createGame();
     };
 
     return (
         <div className="w-full p-4 bg-muted/50 rounded-lg flex flex-col items-center gap-8">
             <div className="flex justify-around w-full items-center">
                 <p className="text-xl font-bold">Score: {score}</p>
-                <div className="w-48 h-48 relative">
+                <div className="w-48 h-48 relative flex items-center justify-center">
                 <AnimatePresence>
                     {!isGameOver && currentItem ? (
-                        <motion.div
+                        <div
                             key={currentItemIndex}
-                            initial={{ scale: 0.5, y: -100, opacity: 0 }}
-                            animate={{ scale: 1, y: 0, opacity: 1 }}
-                            exit={{ scale: 0.5, y: 100, opacity: 0 }}
-                            drag
                             draggable="true"
-                            onDragStart={(e: any) => handleDragStart(e, currentItem)}
+                            onDragStart={(e) => handleDragStart(e, currentItem)}
                             onDragEnd={handleDragEnd}
-                            dragSnapToOrigin
                             className={cn("w-48 h-48 rounded-lg bg-card shadow-lg flex flex-col items-center justify-center cursor-grab active:cursor-grabbing",
                                 feedback === 'correct' && 'bg-green-200',
                                 feedback === 'incorrect' && 'bg-red-200'
@@ -118,7 +118,7 @@ export default function RecyclingSort() {
                         >
                             <span className="text-6xl">{currentItem.emoji}</span>
                             <p className="mt-2 font-semibold">{currentItem.name}</p>
-                        </motion.div>
+                        </div>
                     ) : (
                          <motion.div
                             initial={{ scale: 0.5, opacity: 0 }}
