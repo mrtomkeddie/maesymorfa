@@ -48,16 +48,22 @@ const Bin = ({ type, onDrop, children, isOver }: { type: BinType, onDrop: (item:
 };
 
 export default function RecyclingSort() {
-    const [gameItems, setGameItems] = useState(shuffleArray([...items]));
+    const [gameItems, setGameItems] = useState([...items]);
     const [currentItemIndex, setCurrentItemIndex] = useState(0);
     const [score, setScore] = useState(0);
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
     const [draggedItemBinType, setDraggedItemBinType] = useState<BinType | null>(null);
 
+    useEffect(() => {
+        // Shuffle items only on the client-side to prevent hydration mismatch
+        setGameItems(shuffleArray([...items]));
+    }, []);
+
     const currentItem = gameItems[currentItemIndex];
     const isGameOver = currentItemIndex >= gameItems.length;
 
     const handleDrop = (binType: BinType) => {
+        if (!currentItem) return;
         if (currentItem.type === binType) {
             setScore(s => s + 1);
             setFeedback('correct');
@@ -94,7 +100,7 @@ export default function RecyclingSort() {
                 <p className="text-xl font-bold">Score: {score}</p>
                 <div className="w-48 h-48 relative">
                 <AnimatePresence>
-                    {!isGameOver ? (
+                    {!isGameOver && currentItem ? (
                         <motion.div
                             key={currentItemIndex}
                             initial={{ scale: 0.5, y: -100, opacity: 0 }}
