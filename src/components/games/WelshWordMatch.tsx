@@ -1,12 +1,13 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, VolumeX } from 'lucide-react';
+import { textToSpeech } from '@/ai/flows/tts-flow';
 
 const wordPairs = [
   { en: 'Dog', cy: 'Ci' },
@@ -41,15 +42,20 @@ export default function WelshWordMatch() {
   const [moves, setMoves] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  const speak = useCallback((text: string, lang: 'en-GB' | 'cy-GB') => {
-    if (isMuted || !window.speechSynthesis) return;
-    // Cancel any ongoing speech to prevent overlap
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
+  const speak = useCallback(async (text: string, lang: 'en-GB' | 'cy-GB') => {
+    if (isMuted) return;
+
+    try {
+      const response = await textToSpeech({ text, language: lang });
+      if (audioRef.current) {
+        audioRef.current.src = response.audioDataUri;
+        audioRef.current.play();
+      }
+    } catch (error) {
+      console.error("Failed to generate speech:", error);
+    }
   }, [isMuted]);
 
   const createGameBoard = useCallback(() => {
@@ -62,14 +68,19 @@ export default function WelshWordMatch() {
     setFlippedIndices([]);
     setMatchedPairIds([]);
     setMoves(0);
-    if(window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
     }
   }, []);
   
   useEffect(() => {
     createGameBoard();
   }, [createGameBoard]);
+
+  useEffect(() => {
+    audioRef.current = new Audio();
+  }, []);
 
   const handleCardClick = (index: number) => {
     if (isChecking || flippedIndices.includes(index) || matchedPairIds.includes(cards[index].pairId)) {
