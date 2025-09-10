@@ -106,28 +106,6 @@ const BottomNav = () => {
     const router = useRouter();
     const { language } = useLanguage();
     const t = content[language];
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.visualViewport) {
-            const handleViewportChange = () => {
-                if (window.visualViewport) {
-                    const keyboardHeight = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
-                    setKeyboardHeight(keyboardHeight);
-                }
-            };
-            
-            window.visualViewport.addEventListener('resize', handleViewportChange);
-            window.visualViewport.addEventListener('scroll', handleViewportChange);
-
-            return () => {
-                 if (window.visualViewport) {
-                    window.visualViewport.removeEventListener('resize', handleViewportChange);
-                    window.visualViewport.removeEventListener('scroll', handleViewportChange);
-                 }
-            };
-        }
-    }, []);
 
      const menuItems = [
         { href: '/dashboard', label: t.menu.dashboard, icon: Home },
@@ -139,7 +117,6 @@ const BottomNav = () => {
     return (
         <nav 
             className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background/95 backdrop-blur-sm lg:hidden"
-            style={{ transform: `translateY(-${keyboardHeight}px)` }}
         >
             <div className="mx-auto flex h-full max-w-md items-center justify-around px-safe pb-[env(safe-area-inset-bottom)]">
                 {menuItems.map((item) => {
@@ -181,6 +158,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const isMobile = useIsMobile();
   const showFab = isMobile && !['/absence', '/account'].includes(pathname);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'virtualKeyboard' in navigator) {
+        (navigator as any).virtualKeyboard.overlaysContent = true;
+    }
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
