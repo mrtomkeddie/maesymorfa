@@ -115,7 +115,7 @@ const BottomNav = () => {
     ];
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background/95 backdrop-blur-sm lg:hidden">
-            <div className="mx-auto flex h-full max-w-md items-center justify-around px-safe pb-safe-bottom">
+            <div className="mx-auto flex h-full max-w-md items-center justify-around px-safe pb-[env(safe-area-inset-bottom)]">
                 {menuItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     const Icon = item.icon;
