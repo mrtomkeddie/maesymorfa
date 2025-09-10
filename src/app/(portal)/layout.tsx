@@ -106,7 +106,6 @@ const BottomNav = () => {
     const pathname = usePathname();
     const router = useRouter();
     const { language } = useLanguage();
-    const { keyboardHeight, isKeyboardOpen } = useKeyboardHeight();
     const t = content[language];
 
      const menuItems = [
@@ -118,8 +117,8 @@ const BottomNav = () => {
     ];
     return (
         <nav 
-            className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background/95 backdrop-blur-sm lg:hidden"
-            style={{ transform: `translateY(-${keyboardHeight}px)` }}
+            className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background/95 backdrop-blur-sm lg:hidden transition-transform duration-200"
+            style={{ transform: 'translateY(calc(var(--keyboard-height, 0px) * -1))' }}
         >
             <div className="mx-auto flex h-full max-w-md items-center justify-around px-safe pb-[env(safe-area-inset-bottom)]">
                 {menuItems.map((item) => {
@@ -160,6 +159,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const isMobile = useIsMobile();
   const showFab = isMobile && !['/absence', '/account'].includes(pathname);
+  useKeyboardHeight(); 
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'virtualKeyboard' in navigator) {
