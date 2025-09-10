@@ -39,6 +39,7 @@ import { Session } from '@supabase/supabase-js';
 import { db } from '@/lib/db';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 
 export const LanguageToggle = () => {
     const { language, setLanguage } = useLanguage();
@@ -105,6 +106,7 @@ const BottomNav = () => {
     const pathname = usePathname();
     const router = useRouter();
     const { language } = useLanguage();
+    const { keyboardHeight, isKeyboardOpen } = useKeyboardHeight();
     const t = content[language];
 
      const menuItems = [
@@ -117,6 +119,7 @@ const BottomNav = () => {
     return (
         <nav 
             className="fixed bottom-0 left-0 right-0 z-50 h-24 border-t bg-background/95 backdrop-blur-sm lg:hidden"
+            style={{ transform: `translateY(-${keyboardHeight}px)` }}
         >
             <div className="mx-auto flex h-full max-w-md items-center justify-around px-safe pb-[env(safe-area-inset-bottom)]">
                 {menuItems.map((item) => {
