@@ -175,12 +175,8 @@ export default function KidsCornerPage() {
                                         </div>
                                     </div>
                                     <div className="aspect-[900/400] w-full bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                                        <iframe 
-                                            src="/morfa-runner/index.html" 
-                                            className="w-full h-full border-0"
-                                            title="Morfa Runner Game"
-                                            allow="fullscreen"
-                                        ></iframe>
+                                        {/* Game content will be added here */}
+                                        <p className="text-muted-foreground">{t.comingSoon}</p>
                                     </div>
                                 </CardContent>
                             </Card>
