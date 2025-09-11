@@ -2,11 +2,13 @@
 'use client';
 
 import { useLanguage } from '../LanguageProvider';
-import { Gamepad2, Recycle, Languages } from 'lucide-react';
+import { Gamepad2, Recycle, Languages, MonitorPlay } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import WelshWordMatch from '@/components/games/WelshWordMatch';
 import RecyclingSort from '@/components/games/RecyclingSort';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useState, useEffect } from 'react';
 
 const content = {
   en: {
@@ -35,7 +37,11 @@ const content = {
         howToPlay: "How to Play",
         instructions: "Drag and drop the items into the correct recycling bin before they pile up. Be quick and help keep our school tidy!",
     },
-    comingSoon: "Game coming soon!"
+    comingSoon: "Game coming soon!",
+    desktopOnly: {
+        title: "Games are available on desktop",
+        description: "To play our fun games, please visit this page on a desktop or laptop computer."
+    }
   },
   cy: {
     title: "Cornel y Plant",
@@ -63,7 +69,11 @@ const content = {
         howToPlay: "Sut i Chwarae",
         instructions: "Llusgwch a gollwng yr eitemau i'r bin ailgylchu cywir cyn iddynt bentyrru. Byddwch yn gyflym a helpwch i gadw ein hysgol yn daclus!",
     },
-    comingSoon: "Gêm yn dod yn fuan!"
+    comingSoon: "Gêm yn dod yn fuan!",
+    desktopOnly: {
+        title: "Gemau ar gael ar gyfrifiadur pen desg",
+        description: "I chwarae ein gemau hwyliog, ewch i'r dudalen hon ar gyfrifiadur pen desg neu liniadur."
+    }
   }
 };
 
@@ -73,7 +83,17 @@ export default function KidsCornerPage() {
     const tRunner = t.gameRunner;
     const tWelsh = t.gameWelsh;
     const tRecycling = t.gameRecycling;
+    const isMobile = useIsMobile();
+    const [isClient, setIsClient] = useState(false);
 
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    if (!isClient) {
+        // Render nothing or a loading spinner on the server to avoid hydration mismatches
+        return null;
+    }
 
     return (
         <div className="bg-background">
@@ -93,69 +113,79 @@ export default function KidsCornerPage() {
                            {t.intro}
                         </p>
                     </div>
-
-                    {/* Welsh Word Match Game */}
-                    <Card className="bg-secondary/30">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3"><Languages className="h-6 w-6 text-primary" /> {tWelsh.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="mb-6">
-                                <h3 className="font-bold text-lg mb-2">{tWelsh.howToPlay}</h3>
-                                <p className="text-muted-foreground">{tWelsh.instructions}</p>
-                            </div>
-                            <WelshWordMatch />
-                        </CardContent>
-                    </Card>
-
-                    {/* Recycling Sort Game */}
-                    <Card className="bg-secondary/30">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3"><Recycle className="h-6 w-6 text-primary" /> {tRecycling.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="mb-6">
-                                <h3 className="font-bold text-lg mb-2">{tRecycling.howToPlay}</h3>
-                                <p className="text-muted-foreground">{tRecycling.instructions}</p>
-                            </div>
-                            <RecyclingSort />
-                        </CardContent>
-                    </Card>
-
-                    {/* Morfa Runner Game */}
-                    <Card className="bg-secondary/30">
-                        <CardHeader>
-                            <CardTitle>{tRunner.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-2 gap-8 mb-6">
-                                <div>
-                                    <h3 className="font-bold text-lg mb-2">{tRunner.howToPlay}</h3>
-                                    <p className="text-muted-foreground">{tRunner.instructions}</p>
-                                    <p className="text-muted-foreground mt-2"><strong>{tRunner.controls}</strong></p>
-                                </div>
-                                <div className="border-t md:border-t-0 md:border-l pl-0 md:pl-8 pt-6 md:pt-0">
-                                    <h3 className="font-bold text-lg mb-3">{tRunner.gameElements}</h3>
-                                    <div className="space-y-3">
-                                        {tRunner.elements.map(item => (
-                                            <div key={item.name} className="flex items-center gap-4">
-                                                <Image src={`/morfa-runner/images/${item.image}`} alt={item.name} width={40} height={40} className="object-contain" />
-                                                <span className="text-muted-foreground font-medium">{item.name}</span>
-                                            </div>
-                                        ))}
+                    
+                    {isMobile ? (
+                        <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
+                            <MonitorPlay className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h2 className="text-xl font-semibold">{t.desktopOnly.title}</h2>
+                            <p className="mt-2 text-muted-foreground">{t.desktopOnly.description}</p>
+                        </Card>
+                    ) : (
+                        <>
+                            {/* Welsh Word Match Game */}
+                            <Card className="bg-secondary/30">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-3"><Languages className="h-6 w-6 text-primary" /> {tWelsh.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="mb-6">
+                                        <h3 className="font-bold text-lg mb-2">{tWelsh.howToPlay}</h3>
+                                        <p className="text-muted-foreground">{tWelsh.instructions}</p>
                                     </div>
-                                </div>
-                            </div>
-                            <div className="aspect-[900/400] w-full bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                                <iframe 
-                                    src="/morfa-runner/index.html" 
-                                    className="w-full h-full border-0"
-                                    title="Morfa Runner Game"
-                                    allow="fullscreen"
-                                ></iframe>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                    <WelshWordMatch />
+                                </CardContent>
+                            </Card>
+
+                            {/* Recycling Sort Game */}
+                            <Card className="bg-secondary/30">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-3"><Recycle className="h-6 w-6 text-primary" /> {tRecycling.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="mb-6">
+                                        <h3 className="font-bold text-lg mb-2">{tRecycling.howToPlay}</h3>
+                                        <p className="text-muted-foreground">{tRecycling.instructions}</p>
+                                    </div>
+                                    <RecyclingSort />
+                                </CardContent>
+                            </Card>
+
+                            {/* Morfa Runner Game */}
+                            <Card className="bg-secondary/30">
+                                <CardHeader>
+                                    <CardTitle>{tRunner.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid md:grid-cols-2 gap-8 mb-6">
+                                        <div>
+                                            <h3 className="font-bold text-lg mb-2">{tRunner.howToPlay}</h3>
+                                            <p className="text-muted-foreground">{tRunner.instructions}</p>
+                                            <p className="text-muted-foreground mt-2"><strong>{tRunner.controls}</strong></p>
+                                        </div>
+                                        <div className="border-t md:border-t-0 md:border-l pl-0 md:pl-8 pt-6 md:pt-0">
+                                            <h3 className="font-bold text-lg mb-3">{tRunner.gameElements}</h3>
+                                            <div className="space-y-3">
+                                                {tRunner.elements.map(item => (
+                                                    <div key={item.name} className="flex items-center gap-4">
+                                                        <Image src={`/morfa-runner/images/${item.image}`} alt={item.name} width={40} height={40} className="object-contain" />
+                                                        <span className="text-muted-foreground font-medium">{item.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="aspect-[900/400] w-full bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                                        <iframe 
+                                            src="/morfa-runner/index.html" 
+                                            className="w-full h-full border-0"
+                                            title="Morfa Runner Game"
+                                            allow="fullscreen"
+                                        ></iframe>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
 
                 </div>
             </section>
