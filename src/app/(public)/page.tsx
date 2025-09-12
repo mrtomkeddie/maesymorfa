@@ -98,6 +98,7 @@ export default function HomePage() {
           src="https://i.postimg.cc/RFZsjTxj/Chat-GPT-Image-Jul-25-2025-08-43-22-AM.png"
           alt="A vibrant classroom with children learning"
           fill
+          priority={true}
           className="absolute inset-0 z-0 object-cover"
           data-ai-hint="vibrant classroom learning"
         />
