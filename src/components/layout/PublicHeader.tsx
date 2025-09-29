@@ -102,7 +102,12 @@ export function PublicHeader() {
                 </div>
                  <div className="flex-1 overflow-y-auto">
                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                    <nav className="flex flex-col p-4">
+                   <div className="sm:hidden flex items-center justify-center gap-1 border rounded-full p-1 text-sm bg-secondary m-4">
+                       <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('cy')}>{t.lang1}</Button>
+                       <div className="w-px h-4 bg-border"></div>
+                       <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
+                   </div>
+                    <nav className="flex flex-col p-4 pt-0">
                         {navLinks.map((link, index) => {
                             const Icon = link.icon;
                             return (
@@ -120,12 +125,6 @@ export function PublicHeader() {
                    </nav>
                  </div>
                  <div className="space-y-3 border-t border-border/40 p-4">
-                    <div className="sm:hidden flex items-center justify-center gap-1 border rounded-full p-1 text-sm bg-background">
-                       <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('cy')}>{t.lang1}</Button>
-                       <div className="w-px h-4 bg-border"></div>
-                       <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
-                   </div>
-
                     <Button asChild size="lg" className="w-full text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
                        <Link href={t.kidsCorner.href} onClick={() => setIsMobileMenuOpen(false)}>
                             <t.kidsCorner.icon className="mr-2 h-5 w-5" />
