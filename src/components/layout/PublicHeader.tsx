@@ -102,7 +102,7 @@ export function PublicHeader() {
                 </div>
                  <div className="flex-1 overflow-y-auto">
                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                   <div className="sm:hidden flex items-center justify-center gap-1 border rounded-full p-1 text-sm bg-secondary m-4">
+                   <div className="sm:hidden flex items-center justify-center gap-1 border rounded-full p-1 text-sm bg-background m-4">
                        <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('cy')}>{t.lang1}</Button>
                        <div className="w-px h-4 bg-border"></div>
                        <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
