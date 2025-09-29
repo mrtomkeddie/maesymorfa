@@ -6,7 +6,6 @@ import { Gamepad2, Recycle, Languages, MonitorPlay } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import WelshWordMatch from '@/components/games/WelshWordMatch';
-import RecyclingSort from '@/components/games/RecyclingSort';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState, useEffect } from 'react';
 
@@ -31,11 +30,6 @@ const content = {
         title: "Welsh Word Match",
         howToPlay: "How to Play",
         instructions: "Click on the cards to flip them over. Try to find the matching pairs of English and Welsh words. Test your memory and learn some new words!",
-    },
-    gameRecycling: {
-        title: "Recycling Sort",
-        howToPlay: "How to Play",
-        instructions: "Drag and drop the items into the correct recycling bin before they pile up. Be quick and help keep our school tidy!",
     },
     comingSoon: "Game coming soon!",
     desktopOnly: {
@@ -64,11 +58,6 @@ const content = {
         howToPlay: "Sut i Chwarae",
         instructions: "Cliciwch ar y cardiau i'w troi drosodd. Ceisiwch ddod o hyd i'r parau cyfatebol o eiriau Cymraeg a Saesneg. Profwch eich cof a dysgwch eiriau newydd!",
     },
-    gameRecycling: {
-        title: "Didoli Ailgylchu",
-        howToPlay: "Sut i Chwarae",
-        instructions: "Llusgwch a gollwng yr eitemau i'r bin ailgylchu cywir cyn iddynt bentyrru. Byddwch yn gyflym a helpwch i gadw ein hysgol yn daclus!",
-    },
     comingSoon: "Gêm yn dod yn fuan!",
     desktopOnly: {
         title: "Gemau ar gael ar gyfrifiadur pen desg",
@@ -82,7 +71,6 @@ export default function KidsCornerPage() {
     const t = content[language];
     const tRunner = t.gameRunner;
     const tWelsh = t.gameWelsh;
-    const tRecycling = t.gameRecycling;
     const isMobile = useIsMobile();
     const [isClient, setIsClient] = useState(false);
 
@@ -133,20 +121,6 @@ export default function KidsCornerPage() {
                                         <p className="text-muted-foreground">{tWelsh.instructions}</p>
                                     </div>
                                     <WelshWordMatch />
-                                </CardContent>
-                            </Card>
-
-                            {/* Recycling Sort Game */}
-                            <Card className="bg-secondary/30">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-3"><Recycle className="h-6 w-6 text-primary" /> {tRecycling.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="mb-6">
-                                        <h3 className="font-bold text-lg mb-2">{tRecycling.howToPlay}</h3>
-                                        <p className="text-muted-foreground">{tRecycling.instructions}</p>
-                                    </div>
-                                    <RecyclingSort />
                                 </CardContent>
                             </Card>
 
