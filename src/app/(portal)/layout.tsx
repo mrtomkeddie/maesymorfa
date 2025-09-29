@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -34,12 +33,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '../(public)/LanguageProvider';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { supabase, getUserRole } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
 import { db } from '@/lib/db';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { getAuth, onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
+import { app } from '@/lib/firebase/config';
+
 
 export const LanguageToggle = () => {
     const { language, setLanguage } = useLanguage();
@@ -151,12 +151,12 @@ const BottomNav = () => {
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const { language } = useLanguage();
   const t = content[language];
-  const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
   const isMobile = useIsMobile();
   const showFab = isMobile && !['/absence', '/account'].includes(pathname);
   useKeyboardHeight(); 
@@ -168,10 +168,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isFirebaseConfigured) {
         const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
         if (isAuthenticated) {
-            setSession({ user: { id: 'parent-1' } } as Session);
+            setUser({ uid: 'parent-1' } as FirebaseUser);
         } else {
              router.replace('/login');
         }
@@ -179,58 +179,34 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         return;
     }
     
-    const getSessionAndRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const role = await getUserRole(session.user.id);
-        if (role === 'parent') {
-          setSession(session);
-        } else {
-          // If logged in but not a parent, log out and redirect to parent login
-          await supabase.auth.signOut();
-          router.replace('/login');
-        }
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Here you would typically get a custom claim to verify the user is a 'parent'
+        setUser(user);
       } else {
         router.replace('/login');
       }
       setIsLoading(false);
-    };
+    });
 
-    getSessionAndRole();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          router.replace('/login');
-        } else if (session) {
-          getSessionAndRole();
-        }
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [router, isSupabaseConfigured]);
+    return () => unsubscribe();
+  }, [router, isFirebaseConfigured]);
   
   useEffect(() => {
-    if (session) {
-      const userId = session.user.id;
+    if (user) {
+      const userId = user.uid;
       db.getUnreadMessageCount(userId, 'parent').then(setUnreadCount);
-      // Optional: Set up a listener for real-time subscriptions if using Supabase subscriptions
+      // Optional: Set up a listener for real-time subscriptions if using Firestore subscriptions
     }
-  }, [session, pathname]);
+  }, [user, pathname]);
 
 
   const handleLogout = async () => {
-    if (isSupabaseConfigured) {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            console.error('Error logging out:', error);
-            return;
-        }
+    if (isFirebaseConfigured) {
+        const auth = getAuth(app);
+        await signOut(auth);
     }
-    // For both Supabase and mock, clear local storage and redirect
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userRole');
     router.push('/login');
@@ -246,7 +222,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     { href: '/account', label: t.menu.account, icon: User },
   ];
   
-  if (isLoading || !session) {
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

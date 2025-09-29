@@ -7,9 +7,7 @@ import { LogOut, User, Save, Upload } from "lucide-react";
 import { useLanguage } from "@/app/(public)/LanguageProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useState, useEffect, useRef } from "react";
-import { Session } from "@supabase/supabase-js";
 import { Skeleton } from "@/components/ui/skeleton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from 'react-hook-form';
@@ -29,6 +27,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { uploadFile } from "@/lib/firebase/storage";
+import { getAuth, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { app } from "@/lib/firebase/config";
 
 
 const profileFormSchema = (t: any) => z.object({
@@ -93,14 +93,14 @@ export default function AccountPage() {
     const t = content[language];
     const router = useRouter();
     const { toast } = useToast();
-    const [session, setSession] = useState<Session | null>(null);
+    const [user, setUser] = useState<FirebaseUser | null>(null);
     const [parent, setParent] = useState<ParentWithId | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-    const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     
-    const userEmail = session?.user?.email || 'parent@example.com';
+    const userEmail = user?.email || 'parent@example.com';
     const userName = parent?.name || userEmail.split('@')[0] || 'Parent';
     const userInitials = userName.charAt(0).toUpperCase();
 
@@ -110,22 +110,10 @@ export default function AccountPage() {
     });
 
     useEffect(() => {
-        const fetchUserData = async () => {
-            setIsLoading(true);
-            let currentSession: Session | null = null;
-            
-            if (isSupabaseConfigured) {
-                const { data: { session } } = await supabase.auth.getSession();
-                currentSession = session;
-            } else {
-                currentSession = { user: { id: 'parent-1', email: 'parent@example.com' } } as any;
-            }
-
-            setSession(currentSession);
-
-            if (currentSession?.user.id) {
+        const fetchUserData = async (currentUser: FirebaseUser) => {
+             if (currentUser?.uid) {
                 try {
-                    const parentData = await db.getParentById(currentSession.user.id);
+                    const parentData = await db.getParentById(currentUser.uid);
                     if (parentData) {
                         setParent(parentData);
                         form.reset({
@@ -138,10 +126,28 @@ export default function AccountPage() {
                      console.error("Failed to fetch parent profile", e);
                 }
             }
-            setIsLoading(false);
-        };
-        fetchUserData();
-    }, [isSupabaseConfigured, form]);
+             setIsLoading(false);
+        }
+
+        if (isFirebaseConfigured) {
+            const auth = getAuth(app);
+            const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                if (currentUser) {
+                    setUser(currentUser);
+                    fetchUserData(currentUser);
+                } else {
+                    setIsLoading(false);
+                }
+            });
+            return () => unsubscribe();
+        } else {
+             // Mock behavior
+            const mockUser = { uid: 'parent-1', email: 'parent@example.com' } as FirebaseUser;
+            setUser(mockUser);
+            fetchUserData(mockUser);
+        }
+
+    }, [isFirebaseConfigured, form]);
     
     async function onSubmit(values: z.infer<ReturnType<typeof profileFormSchema>>) {
         if (!parent) return;
@@ -177,8 +183,9 @@ export default function AccountPage() {
     }
 
     const handleLogout = async () => {
-        if (isSupabaseConfigured) {
-            await supabase.auth.signOut();
+        if (isFirebaseConfigured) {
+            const auth = getAuth(app);
+            await auth.signOut();
         }
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('userRole');

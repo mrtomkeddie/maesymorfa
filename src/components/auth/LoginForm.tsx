@@ -10,10 +10,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import Link from "next/link";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { app } from "@/lib/firebase/config";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -29,7 +30,7 @@ export function LoginForm({ userRole }: LoginFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const auth = getAuth(app);
 
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,21 +45,21 @@ export function LoginForm({ userRole }: LoginFormProps) {
     setIsLoading(true);
     setError(null);
     
-    if (isSupabaseConfigured) {
-        const { error } = await supabase.auth.signInWithPassword({
-            email: values.email,
-            password: values.password,
-        });
-
-        if (error) {
-            setError(error.message);
+    // Mock login for dev environment if Firebase isn't configured
+    if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userRole', userRole);
+    } else {
+        try {
+            await signInWithEmailAndPassword(auth, values.email, values.password);
+            // Real role check would happen here by getting user's custom claims
+             localStorage.setItem('isAuthenticated', 'true');
+             localStorage.setItem('userRole', userRole);
+        } catch (err: any) {
+            setError(err.message);
             setIsLoading(false);
             return;
         }
-    } else {
-        // Mock login for Firebase/dev environment
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userRole', userRole);
     }
 
 

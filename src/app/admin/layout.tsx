@@ -45,9 +45,9 @@ import Image from 'next/image';
 import { db } from '@/lib/db';
 import { useLanguage } from '../(public)/LanguageProvider';
 import { Button } from '@/components/ui/button';
-import { supabase, getUserRole } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
 import { LanguageToggle } from '../(portal)/layout';
+import { getAuth, onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
+import { app } from '@/lib/firebase/config';
 
 const content = {
   en: {
@@ -120,20 +120,20 @@ const content = {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const { language } = useLanguage();
   const t = content[language];
-  const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isFirebaseConfigured) {
         const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
         const userRole = localStorage.getItem('userRole');
         if (isAuthenticated && userRole === 'admin') {
-            setSession({ user: { id: `${userRole}-1` } } as Session);
+            setUser({ uid: 'admin-1' } as FirebaseUser);
         } else {
              if (pathname !== '/admin/login') {
                 router.replace('/admin/login');
@@ -143,58 +143,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
     }
     
-    const getSessionAndRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const role = await getUserRole(session.user.id);
-        if (role === 'admin') {
-          setSession(session);
-        } else {
-          // If logged in but not an admin, log out and redirect to admin login
-          await supabase.auth.signOut();
-          router.replace('/admin/login');
-        }
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Here you would typically get a custom claim to verify the user is an 'admin'
+        setUser(user);
       } else {
          if (pathname !== '/admin/login') {
             router.replace('/admin/login');
          }
       }
       setIsLoading(false);
-    };
+    });
 
-    getSessionAndRole();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        if (event === 'SIGNED_OUT') {
-          router.replace('/admin/login');
-        } else if (newSession) {
-           getSessionAndRole();
-        }
-      }
-    );
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, [router, pathname, isSupabaseConfigured]);
+    return () => unsubscribe();
+  }, [router, pathname, isFirebaseConfigured]);
 
   useEffect(() => {
-    if (session) {
-      const userId = session.user.id;
+    if (user) {
+      const userId = user.uid;
       db.getUnreadMessageCount(userId, 'admin').then(setUnreadCount);
     }
-  }, [session, pathname]); // Refetch on path change to update badge
+  }, [user, pathname]); // Refetch on path change to update badge
 
   const handleLogout = async () => {
-    if (isSupabaseConfigured) {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            console.error('Error logging out:', error);
-            return;
-        }
+    if (isFirebaseConfigured) {
+        const auth = getAuth(app);
+        await signOut(auth);
     }
-    // For both Supabase and mock, clear local storage and redirect
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userRole');
     router.push('/admin/login');
@@ -229,7 +205,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
   
-  if (isLoading || !session) {
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -334,7 +310,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <AvatarFallback>A</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden flex-grow text-left">
-                    <span className="font-semibold">{session.user?.email || 'Admin'}</span>
+                    <span className="font-semibold">{user?.email || 'Admin'}</span>
                     <span className="text-muted-foreground">{t.account.role}</span>
                 </div>
             </div>

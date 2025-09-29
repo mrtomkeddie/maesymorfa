@@ -13,10 +13,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
-import { supabase } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Separator } from '@/components/ui/separator';
+import { getAuth, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { app } from '@/lib/firebase/config';
+
 
 const content = {
     en: {
@@ -78,35 +79,28 @@ export default function UsersAdminPage() {
     const t = content[language];
     const [users, setUsers] = useState<UserWithRole[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState<Session['user'] | null>(null);
+    const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
     const { toast } = useToast();
-    const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     const isMobile = useIsMobile();
 
 
     useEffect(() => {
         const fetchUsersAndSession = async () => {
             setIsLoading(true);
-
-            if (!isSupabaseConfigured) {
-                // If Supabase isn't configured, we can't fetch real users.
-                // We'll use the mock data from the db provider.
-                try {
-                    const usersData = await db.getUsersWithRoles();
-                    setUsers(usersData);
-                } catch (error) {
-                     console.error("Failed to fetch mock users:", error);
-                } finally {
-                    setIsLoading(false);
-                }
-                return;
-            }
             
             try {
                 const usersData = await db.getUsersWithRoles();
                 setUsers(usersData);
-                const { data: { session } } = await supabase.auth.getSession();
-                setCurrentUser(session?.user ?? null);
+
+                if (isFirebaseConfigured) {
+                    const auth = getAuth(app);
+                    const unsubscribe = onAuthStateChanged(auth, (user) => {
+                        setCurrentUser(user);
+                    });
+                    return unsubscribe;
+                }
+                
             } catch (error) {
                 console.error("Failed to fetch users:", error);
                 toast({
@@ -120,7 +114,7 @@ export default function UsersAdminPage() {
         };
         fetchUsersAndSession();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isSupabaseConfigured]);
+    }, [isFirebaseConfigured]);
 
     const handleRoleChange = async (userId: string, newRole: UserRole) => {
         try {
@@ -158,7 +152,7 @@ export default function UsersAdminPage() {
                             <TableCell className="text-right">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={user.id === currentUser?.id}>
+                                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={user.id === currentUser?.uid}>
                                             <span className="sr-only">Open menu</span>
                                             <MoreHorizontal className="h-4 w-4" />
                                         </Button>
@@ -212,7 +206,7 @@ export default function UsersAdminPage() {
                                 </Badge>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm" disabled={user.id === currentUser?.id}>
+                                        <Button variant="ghost" size="sm" disabled={user.id === currentUser?.uid}>
                                             <MoreHorizontal className="mr-2 h-4 w-4" /> Actions
                                         </Button>
                                     </DropdownMenuTrigger>

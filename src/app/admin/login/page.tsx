@@ -7,26 +7,23 @@ import Link from "next/link";
 import Image from 'next/image';
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { supabase, getUserRole } from "@/lib/supabase";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { app } from "@/lib/firebase/config";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const auth = getAuth(app);
 
   useEffect(() => {
-    const checkSession = async () => {
-      if (!isSupabaseConfigured) return;
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const role = await getUserRole(session.user.id);
-        if (role === 'admin') {
-          router.push('/admin/dashboard');
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Here you would also check the user's role via custom claims
+            // For now, we assume if they have a session, they go to the admin dashboard.
+            router.push('/admin/dashboard');
         }
-      }
-    };
-    checkSession();
-  }, [router, isSupabaseConfigured]);
+    });
+    return () => unsubscribe();
+  }, [router, auth]);
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">

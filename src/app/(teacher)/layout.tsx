@@ -30,12 +30,12 @@ import { useEffect, useState, useTransition } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { useLanguage } from '../(public)/LanguageProvider';
-import { supabase, getUserRole } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
 import { LanguageToggle } from '../(portal)/layout';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { getAuth, onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
+import { app } from '@/lib/firebase/config';
 
 const content = {
   en: {
@@ -110,19 +110,19 @@ const BottomNav = () => {
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { language } = useLanguage();
   const t = content[language];
-  const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!isFirebaseConfigured) {
         const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
         const userRole = localStorage.getItem('userRole');
         if (isAuthenticated && userRole === 'teacher') {
-            setSession({ user: { id: `${userRole}-1` } } as Session);
+            setUser({ uid: 'teacher-1' } as FirebaseUser);
         } else {
              if (pathname !== '/teacher/login') {
                 router.replace('/teacher/login');
@@ -132,48 +132,26 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         return;
     }
     
-    const getSessionAndRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const role = await getUserRole(session.user.id);
-        if (role === 'teacher') {
-          setSession(session);
-        } else {
-          await supabase.auth.signOut();
-          router.replace('/teacher/login');
-        }
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+         // Here you would typically get a custom claim to verify the user is a 'teacher'
+        setUser(user);
       } else {
-         if (pathname !== '/teacher/login') {
+        if (pathname !== '/teacher/login') {
             router.replace('/teacher/login');
-         }
+        }
       }
       setIsLoading(false);
-    };
+    });
 
-    getSessionAndRole();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        if (event === 'SIGNED_OUT') {
-          router.replace('/teacher/login');
-        } else if (newSession) {
-           getSessionAndRole();
-        }
-      }
-    );
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, [router, pathname, isSupabaseConfigured]);
+    return () => unsubscribe();
+  }, [router, pathname, isFirebaseConfigured]);
 
   const handleLogout = async () => {
-    if (isSupabaseConfigured) {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            console.error('Error logging out:', error);
-            return;
-        }
+    if (isFirebaseConfigured) {
+        const auth = getAuth(app);
+        await signOut(auth);
     }
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userRole');
@@ -191,7 +169,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     return <>{children}</>;
   }
 
-  if (isLoading || !session) {
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -235,7 +213,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
                     <AvatarFallback>T</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden flex-grow text-left">
-                    <span className="font-semibold">{session.user?.email || 'Teacher'}</span>
+                    <span className="font-semibold">{user?.email || 'Teacher'}</span>
                     <span className="text-muted-foreground">{t.account.role}</span>
                 </div>
             </div>
