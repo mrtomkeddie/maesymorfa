@@ -69,4 +69,9 @@
     "tsx": "^4.16.2",
     "typescript": "^5"
   }
+  "overrides": {
+    "next": "$next",
+    "react": "$react",
+    "react-dom": "$react-dom"
+  }
 }
