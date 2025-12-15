@@ -155,14 +155,19 @@ async function handleInput(e) {
   // Ignore clicks on UI buttons
   if (e.target.closest('button')) return;
 
-  if (showingWelcome) {
+  // Handle input logic
+  const processStart = async () => {
     if (!musicInitialized) {
-      initMusic().then(() => {
-        startGame();
-      });
-    } else {
-      startGame();
+      // Try to start music but don't block forever
+      const musicStartPromise = initMusic();
+      const timeoutPromise = new Promise(resolve => setTimeout(resolve, 500));
+      await Promise.race([musicStartPromise, timeoutPromise]);
     }
+    startGame();
+  };
+
+  if (showingWelcome) {
+    processStart();
     return;
   }
 
@@ -187,8 +192,6 @@ async function handleInput(e) {
 
   if (showingHighScores) {
     showingHighScores = false;
-    showingHighScores = false;
-    // startButton.style.display = "none";
     // Go back to welcome screen logic or directly to game? 
     // Let's go to welcome screen (simulated start screen)
     showingWelcome = true;
@@ -197,10 +200,7 @@ async function handleInput(e) {
 
   // Handle "Tap to Start" screen (Idle state)
   if (!gameRunning && !showingHighScores && !enteringName && !showingWelcome) {
-    if (!musicInitialized) {
-      await initMusic();
-    }
-    startGame();
+    processStart();
     return;
   }
 
@@ -228,8 +228,9 @@ function performJump() {
 
 // Touch Input
 canvas.addEventListener("touchstart", handleInput, { passive: false });
-// Mouse Input (for jumping in game if they click canvas)
+// Mouse Input (fallback for desktop or if touch fails)
 canvas.addEventListener("mousedown", handleInput);
+canvas.addEventListener("click", handleInput);
 
 // Keyboard Input
 document.addEventListener("keydown", e => {
