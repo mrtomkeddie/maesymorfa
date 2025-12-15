@@ -35,8 +35,6 @@ export const documentCategories = [
   "Policy",
   "Term Dates",
   "Lunch Menu",
-  "Newsletter",
-  "Permission Slip",
   "Other"
 ];
 

@@ -41,9 +41,6 @@ const formSchema = z.object({
   body_en: z.string().optional(),
   date: z.date().optional(),
   isUrgent: z.boolean().default(false),
-  relevantTo: z.array(z.string()).refine(value => value.some(item => item), {
-      message: "You have to select at least one year group.",
-  }),
   attachment: z.any().optional(),
 });
 
@@ -66,7 +63,7 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
       body_en: (existingAnnouncement?.type === 'news' ? existingAnnouncement.body_en : existingAnnouncement?.description_en) || '',
       date: existingAnnouncement?.type === 'event' ? new Date(existingAnnouncement.start) : undefined,
       isUrgent: existingAnnouncement?.isUrgent || false,
-      relevantTo: existingAnnouncement?.relevantTo || ['All'],
+
       attachment: undefined,
     },
   });
@@ -82,64 +79,64 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
       if (fileToUpload) {
         setUploadProgress(0);
         attachmentUrl = await uploadFile(fileToUpload, 'attachments', (progress) => {
-            setUploadProgress(progress);
+          setUploadProgress(progress);
         });
         attachmentName = fileToUpload.name;
         setUploadProgress(100);
       }
-      
+
       const isCalendarEvent = !!values.date;
 
       if (isCalendarEvent) {
-          const eventPayload = {
-            title_en: values.title_en,
-            title_cy: values.title_en,
-            description_en: values.body_en,
-            description_cy: values.body_en,
-            start: values.date!.toISOString(),
-            allDay: true,
-            isUrgent: values.isUrgent,
-            showOnHomepage: values.relevantTo.includes('All'),
-            relevantTo: values.relevantTo,
-            attachmentUrl,
-            attachmentName,
-            tags: [],
-            published: true,
-          };
-          
-          if (existingAnnouncement && existingAnnouncement.type === 'event') {
-              await db.updateCalendarEvent(existingAnnouncement.id, eventPayload, false);
-          } else {
-              await db.addCalendarEvent(eventPayload, false);
-          }
+        const eventPayload = {
+          title_en: values.title_en,
+          title_cy: values.title_en,
+          description_en: values.body_en,
+          description_cy: values.body_en,
+          start: values.date!.toISOString(),
+          allDay: true,
+          isUrgent: values.isUrgent,
+          showOnHomepage: true,
+          relevantTo: ['All'],
+          attachmentUrl,
+          attachmentName,
+          tags: [],
+          published: true,
+        };
+
+        if (existingAnnouncement && existingAnnouncement.type === 'event') {
+          await db.updateCalendarEvent(existingAnnouncement.id, eventPayload, false);
+        } else {
+          await db.addCalendarEvent(eventPayload, false);
+        }
       }
 
       if (values.body_en || values.isUrgent) {
-           const newsPayload = {
-                title_en: values.title_en,
-                title_cy: values.title_en,
-                body_en: values.body_en || `Event: ${values.title_en} on ${format(values.date!, 'PPP')}`,
-                body_cy: values.body_en || `Digwyddiad: ${values.title_en} ar ${format(values.date!, 'PPP')}`,
-                isUrgent: values.isUrgent,
-                attachmentUrl,
-                attachmentName,
-                date: (values.date || new Date()).toISOString(),
-                slug: existingAnnouncement?.type === 'news' ? existingAnnouncement.slug : values.title_en.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
-                published: true,
-                category: values.isUrgent ? 'Urgent' as const : 'General' as const,
-                createdBy: 'admin@example.com',
-                lastEdited: new Date().toISOString(),
-           };
+        const newsPayload = {
+          title_en: values.title_en,
+          title_cy: values.title_en,
+          body_en: values.body_en || `Event: ${values.title_en} on ${format(values.date!, 'PPP')}`,
+          body_cy: values.body_en || `Digwyddiad: ${values.title_en} ar ${format(values.date!, 'PPP')}`,
+          isUrgent: values.isUrgent,
+          attachmentUrl,
+          attachmentName,
+          date: (values.date || new Date()).toISOString(),
+          slug: existingAnnouncement?.type === 'news' ? existingAnnouncement.slug : values.title_en.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
+          published: true,
+          category: values.isUrgent ? 'Urgent' as const : 'General' as const,
+          createdBy: 'admin@example.com',
+          lastEdited: new Date().toISOString(),
+        };
 
-            if (existingAnnouncement && existingAnnouncement.type === 'news') {
-                await db.updateNews(existingAnnouncement.id, newsPayload);
-            } else if (!existingAnnouncement || existingAnnouncement.type === 'event') {
-                await db.addNews(newsPayload);
-            }
+        if (existingAnnouncement && existingAnnouncement.type === 'news') {
+          await db.updateNews(existingAnnouncement.id, newsPayload);
+        } else if (!existingAnnouncement || existingAnnouncement.type === 'event') {
+          await db.addNews(newsPayload);
+        }
       }
 
       toast({ title: 'Success!', description: 'Announcement has been saved.' });
-      
+
       form.reset();
       onSuccess();
 
@@ -168,14 +165,14 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="date"
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Event Date (Optional)</FormLabel>
-               <FormDescription>
+              <FormDescription>
                 Adding a date will create a calendar entry for this announcement.
               </FormDescription>
               <Popover>
@@ -210,7 +207,7 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="body_en"
@@ -224,7 +221,7 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
                   {...field}
                 />
               </FormControl>
-               <FormDescription>
+              <FormDescription>
                 Adding a body will create a news post for this announcement.
               </FormDescription>
               <FormMessage />
@@ -232,98 +229,34 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
           )}
         />
 
-         <FormField
-          control={form.control}
-          name="relevantTo"
-          render={({ field }) => (
-            <FormItem>
-              <div className="mb-4">
-                <FormLabel className="text-base">Relevant To</FormLabel>
-                <FormDescription>
-                  Select which year groups this applies to.
-                </FormDescription>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {yearGroupOptions.map((item) => (
-                <FormField
-                  key={item}
-                  control={form.control}
-                  name="relevantTo"
-                  render={({ field }) => {
-                    return (
-                      <FormItem
-                        key={item}
-                        className="flex flex-row items-start space-x-3 space-y-0"
-                      >
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value?.includes(item)}
-                            onCheckedChange={(checked) => {
-                              const newValues = field.value ? [...field.value] : [];
-                              if (checked) {
-                                  if (item === 'All') {
-                                    return field.onChange(['All']);
-                                  }
-                                  // Add item, and remove 'All' if it exists
-                                  newValues.push(item);
-                                  const allIndex = newValues.indexOf('All');
-                                  if (allIndex > -1) {
-                                      newValues.splice(allIndex, 1);
-                                  }
-                                  return field.onChange(newValues);
-                              } else {
-                                  // Remove item
-                                  return field.onChange(
-                                    newValues?.filter(
-                                      (value) => value !== item
-                                    )
-                                  )
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          {item}
-                        </FormLabel>
-                      </FormItem>
-                    )
-                  }}
-                />
-              ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                    <FormLabel>Urgent Homepage Banner</FormLabel>
-                    <FormDescription>
-                        Marking this as urgent will create a news post and display it as a banner on the homepage.
-                    </FormDescription>
-                </div>
-                <FormField control={form.control} name="isUrgent" render={({ field }) => (
-                    <FormItem><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
-                )} />
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <FormLabel>Urgent Homepage Banner</FormLabel>
+              <FormDescription>
+                Marking this as urgent will create a news post and display it as a banner on the homepage.
+              </FormDescription>
             </div>
+            <FormField control={form.control} name="isUrgent" render={({ field }) => (
+              <FormItem><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>
+            )} />
+          </div>
         </div>
-        
-         <FormField
+
+        <FormField
           control={form.control}
           name="attachment"
           render={({ field: { onChange, ...rest } }) => (
             <FormItem>
               <FormLabel>Attachment (Optional)</FormLabel>
               <FormControl>
-                 <div className="relative">
-                    <Input 
-                        type="file" 
-                        accept="application/pdf,image/*" 
-                        onChange={(e) => onChange(e.target.files?.[0])}
-                        {...rest}
-                    />
+                <div className="relative">
+                  <Input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(e) => onChange(e.target.files?.[0])}
+                    {...rest}
+                  />
                 </div>
               </FormControl>
               {uploadProgress !== null && uploadProgress < 100 && (
