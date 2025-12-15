@@ -156,18 +156,15 @@ async function handleInput(e) {
   if (e.target.closest('button')) return;
 
   // Handle input logic
-  const processStart = async () => {
-    if (!musicInitialized) {
-      // Try to start music but don't block forever
-      const musicStartPromise = initMusic();
-      const timeoutPromise = new Promise(resolve => setTimeout(resolve, 500));
-      await Promise.race([musicStartPromise, timeoutPromise]);
-    }
-    startGame();
-  };
+  // Handle input logic
+  // Fire-and-forget audio start to ensure context is unlocked by user gesture
+  if (!musicInitialized) {
+    Tone.start().catch(e => console.log("Tone start failed", e));
+    initMusic(); // Start loading/setup async
+  }
 
   if (showingWelcome) {
-    processStart();
+    startGame();
     return;
   }
 
@@ -200,7 +197,7 @@ async function handleInput(e) {
 
   // Handle "Tap to Start" screen (Idle state)
   if (!gameRunning && !showingHighScores && !enteringName && !showingWelcome) {
-    processStart();
+    startGame();
     return;
   }
 
