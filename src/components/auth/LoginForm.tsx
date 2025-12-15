@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,8 +12,8 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import Link from "next/link";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { app } from "@/lib/firebase/config";
+// import { getAuth, signInWithEmailAndPassword } from "firebase/auth"; // REMOVED
+// import { app } from "@/lib/firebase/config"; // REMOVED
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -30,8 +29,7 @@ export function LoginForm({ userRole }: LoginFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const auth = getAuth(app);
-
+  // const auth = getAuth(app); // REMOVED
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,44 +42,31 @@ export function LoginForm({ userRole }: LoginFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setError(null);
-    
-    // Mock login for dev environment if Firebase isn't configured
-    if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userRole', userRole);
-    } else {
-        try {
-            await signInWithEmailAndPassword(auth, values.email, values.password);
-            // Real role check would happen here by getting user's custom claims
-             localStorage.setItem('isAuthenticated', 'true');
-             localStorage.setItem('userRole', userRole);
-        } catch (err: any) {
-            setError(err.message);
-            setIsLoading(false);
-            return;
-        }
-    }
 
+    // Always Mock Login for Development
+    await new Promise(resolve => setTimeout(resolve, 500)); // Fake delay
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userRole', userRole);
 
     toast({
-        title: "Login Successful",
-        description: "Welcome back!",
+      title: "Login Successful",
+      description: "Welcome back!",
     });
-    
+
     let destination = '/dashboard';
     if (userRole === 'admin') {
       destination = '/admin/dashboard';
     } else if (userRole === 'teacher') {
       destination = '/teacher/dashboard';
     }
-    
+
     router.push(destination);
     router.refresh();
   }
 
   return (
     <div className="space-y-6">
-       {error && (
+      {error && (
         <Alert variant="destructive">
           <AlertTitle>Login Failed</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -111,7 +96,7 @@ export function LoginForm({ userRole }: LoginFormProps) {
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} />
                 </FormControl>
-                 <FormMessage />
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -121,14 +106,14 @@ export function LoginForm({ userRole }: LoginFormProps) {
           </Button>
         </form>
       </Form>
-       <div className="text-center text-sm text-muted-foreground">
+      <div className="text-center text-sm text-muted-foreground">
         {userRole === 'parent' ? (
           <>
             <p>Don't have an account? <Link href="/signup" className="underline">Sign up</Link></p>
             <p>Forgot your password? <Link href="/signup" className="underline">Reset it</Link></p>
           </>
         ) : (
-             <p>Contact your system administrator for access.</p>
+          <p>Contact your system administrator for access.</p>
         )}
       </div>
     </div>

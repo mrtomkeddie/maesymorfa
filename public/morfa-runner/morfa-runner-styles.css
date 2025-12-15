@@ -1,10 +1,12 @@
 /* Added to ensure the game fits the iframe perfectly */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden; /* Prevents any scrollbars */
+  overflow: hidden;
+  /* Prevents any scrollbars */
 }
 
 .game-container {
@@ -39,7 +41,7 @@ canvas {
   display: none;
   color: white;
   font-weight: bold;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: background-color 0.2s;
   z-index: 10;
 }
@@ -51,10 +53,15 @@ canvas {
 #score {
   position: absolute;
   top: 10px;
-  left: 10px;
-  font-size: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 32px;
+  /* Increased from 20px */
+  font-family: 'VT323', monospace;
+  /* Match game font */
   color: white;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  text-shadow: 2px 2px 0px #000;
+  /* Retro shadow */
   font-weight: bold;
   z-index: 10;
 }
@@ -75,10 +82,10 @@ canvas {
 }
 
 #fullscreenButton:hover {
-    background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 #fullscreenButton svg {
-    width: 18px;
-    height: 18px;
+  width: 18px;
+  height: 18px;
 }

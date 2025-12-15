@@ -2,6 +2,7 @@
 
 'use client';
 
+import { FEATURES } from '@/lib/config/features';
 import {
   SidebarProvider,
   Sidebar,
@@ -57,9 +58,9 @@ const content = {
       inbox: 'Inbox',
     },
     groups: {
-        content: 'Content',
-        users: 'Users',
-        system: 'System',
+      content: 'Content',
+      users: 'Users',
+      system: 'System',
     },
     contentManagement: {
       announcements: 'Announcements',
@@ -77,9 +78,9 @@ const content = {
       site: 'Site Settings',
     },
     account: {
-        title: 'My Account',
-        role: 'Administrator',
-        logout: 'Logout'
+      title: 'My Account',
+      role: 'Administrator',
+      logout: 'Logout'
     }
   },
   cy: {
@@ -89,9 +90,9 @@ const content = {
       inbox: 'Mewnflwch',
     },
     groups: {
-        content: 'Cynnwys',
-        users: 'Defnyddwyr',
-        system: 'System',
+      content: 'Cynnwys',
+      users: 'Defnyddwyr',
+      system: 'System',
     },
     contentManagement: {
       announcements: 'Cyhoeddiadau',
@@ -108,10 +109,10 @@ const content = {
     settings: {
       site: 'Gosodiadau Gwefan',
     },
-     account: {
-        title: 'Fy Nghyfrif',
-        role: 'Gweinyddwr',
-        logout: 'Allgofnodi'
+    account: {
+      title: 'Fy Nghyfrif',
+      role: 'Gweinyddwr',
+      logout: 'Allgofnodi'
     }
   }
 };
@@ -129,35 +130,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
-        const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-        const userRole = localStorage.getItem('userRole');
-        if (isAuthenticated && userRole === 'admin') {
-            setUser({ uid: 'admin-1' } as FirebaseUser);
-        } else {
-             if (pathname !== '/admin/login') {
-                router.replace('/admin/login');
-             }
-        }
-        setIsLoading(false);
-        return;
-    }
-    
-    const auth = getAuth(app);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // Here you would typically get a custom claim to verify the user is an 'admin'
-        setUser(user);
-      } else {
-         if (pathname !== '/admin/login') {
-            router.replace('/admin/login');
-         }
-      }
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [router, pathname, isFirebaseConfigured]);
+    // DEV MODE: Auto-login
+    console.log('Dev Mode: Auto-logging in as Admin');
+    setUser({ uid: 'dev-admin', email: 'admin@dev.com' } as FirebaseUser);
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -168,12 +145,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     if (isFirebaseConfigured) {
-        const auth = getAuth(app);
-        await signOut(auth);
+      const auth = getAuth(app);
+      await signOut(auth);
     }
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userRole');
-    router.push('/admin/login');
+    router.push('/');
     router.refresh();
   };
 
@@ -185,17 +162,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const contentManagementItems = [
     { href: '/admin/announcements', label: t.contentManagement.announcements, icon: Megaphone },
     { href: '/admin/staff', label: t.contentManagement.staff, icon: Users },
-    { href: '/admin/gallery', label: t.contentManagement.gallery, icon: Camera },
+    ...(FEATURES.enablePhotoGallery ? [{ href: '/admin/gallery', label: t.contentManagement.gallery, icon: Camera }] : []),
     { href: '/admin/documents', label: t.contentManagement.documents, icon: FileText },
     { href: '/admin/menu', label: t.contentManagement.menu, icon: Utensils },
   ];
 
   const userManagementItems = [
-      { href: '/admin/parents', label: t.userManagement.parents, icon: Users2 },
-      { href: '/admin/children', label: t.userManagement.children, icon: BookUser },
-      { href: '/admin/users', label: t.userManagement.allUsers, icon: Users },
+    { href: '/admin/parents', label: t.userManagement.parents, icon: Users2 },
+    { href: '/admin/children', label: t.userManagement.children, icon: BookUser },
+    { href: '/admin/users', label: t.userManagement.allUsers, icon: Users },
   ];
-  
+
   const settingsItems = [
     { href: '/admin/settings', label: t.settings.site, icon: Settings },
     // { href: '/admin/help', label: 'Help', icon: HelpCircle },
@@ -204,7 +181,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname.startsWith('/admin/login')) {
     return <>{children}</>;
   }
-  
+
   if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -212,129 +189,133 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     );
   }
-  
+
   return (
-      <SidebarProvider>
-        <Sidebar variant="inset" collapsible="icon">
-          <SidebarHeader className="border-b p-4 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
-            <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <Image src="/icon.png" alt="School logo" width={28} height={28} className="w-7 h-7" />
-              <span className="text-lg font-extrabold tracking-tighter text-foreground group-data-[collapsible=icon]:hidden">
-                {t.title}
-              </span>
-            </Link>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu className="p-2">
-               {menuItems.map((item) => (
-                    <SidebarMenuItem key={item.href}>
+    <SidebarProvider>
+      <Sidebar variant="inset" collapsible="icon">
+        <SidebarHeader className="border-b p-4 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
+          <Link href="/admin/dashboard" className="flex items-center gap-2">
+            <Image src="/icon.png" alt="School logo" width={28} height={28} className="w-7 h-7" />
+            <span className="text-lg font-extrabold tracking-tighter text-foreground group-data-[collapsible=icon]:hidden">
+              {t.title}
+            </span>
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu className="p-2">
+            {menuItems.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href}
+                  tooltip={{ children: item.label }}
+                >
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.label}</span>
+                    {item.badge && item.badge > 0 ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>{t.groups.content}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                {contentManagementItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                        asChild
-                        isActive={pathname === item.href}
-                        tooltip={{ children: item.label }}
+                      asChild
+                      isActive={pathname.startsWith(item.href)}
+                      tooltip={{ children: item.label }}
                     >
-                        <Link href={item.href}>
-                            <item.icon />
-                            <span>{item.label}</span>
-                            {item.badge && item.badge > 0 ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
-                        </Link>
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
                     </SidebarMenuButton>
-                    </SidebarMenuItem>
+                  </SidebarMenuItem>
                 ))}
-              <SidebarSeparator />
-              <SidebarGroup>
-                <SidebarGroupLabel>{t.groups.content}</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    {contentManagementItems.map((item) => (
-                        <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={pathname.startsWith(item.href)}
-                            tooltip={{ children: item.label }}
-                        >
-                            <Link href={item.href}>
-                            <item.icon />
-                            <span>{item.label}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    ))}
-                </SidebarGroupContent>
-              </SidebarGroup>
-              <SidebarSeparator />
-               <SidebarGroup>
-                <SidebarGroupLabel>{t.groups.users}</SidebarGroupLabel>
-                 <SidebarGroupContent>
-                    {userManagementItems.map((item) => (
-                        <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={pathname.startsWith(item.href)}
-                            tooltip={{ children: item.label }}
-                        >
-                            <Link href={item.href}>
-                            <item.icon />
-                            <span>{item.label}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    ))}
-                 </SidebarGroupContent>
-               </SidebarGroup>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            {FEATURES.enableParentPortal && (
+              <>
                 <SidebarSeparator />
-                 <SidebarGroup>
-                    <SidebarGroupLabel>{t.groups.system}</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        {settingsItems.map((item) => (
-                            <SidebarMenuItem key={item.href}>
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={pathname.startsWith(item.href)}
-                                    tooltip={{ children: item.label }}
-                                >
-                                    <Link href={item.href}>
-                                    <item.icon />
-                                    <span>{item.label}</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
-                    </SidebarGroupContent>
+                <SidebarGroup>
+                  <SidebarGroupLabel>{t.groups.users}</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    {userManagementItems.map((item) => (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname.startsWith(item.href)}
+                          tooltip={{ children: item.label }}
+                        >
+                          <Link href={item.href}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarGroupContent>
                 </SidebarGroup>
-            </SidebarMenu>
-          </SidebarContent>
-          <SidebarFooter className="p-2 flex flex-col gap-2">
-            <div className="flex w-full items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center rounded-md">
-                <Avatar className="size-8">
-                    <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="person avatar" />
-                    <AvatarFallback>A</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden flex-grow text-left">
-                    <span className="font-semibold">{user?.email || 'Admin'}</span>
-                    <span className="text-muted-foreground">{t.account.role}</span>
-                </div>
+              </>
+            )}
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>{t.groups.system}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                {settingsItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname.startsWith(item.href)}
+                      tooltip={{ children: item.label }}
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter className="p-2 flex flex-col gap-2">
+          <div className="flex w-full items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center rounded-md">
+            <Avatar className="size-8">
+              <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="person avatar" />
+              <AvatarFallback>A</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden flex-grow text-left">
+              <span className="font-semibold">{user?.email || 'Admin'}</span>
+              <span className="text-muted-foreground">{t.account.role}</span>
             </div>
-             <SidebarMenuButton variant="outline" onClick={handleLogout} tooltip={{ children: t.account.logout, side: 'right' }}>
-                <LogOut />
-                <span>{t.account.logout}</span>
-            </SidebarMenuButton>
-          </SidebarFooter>
-        </Sidebar>
-        <SidebarInset>
-          <main className="p-4 md:p-6 lg:p-8">
-            <div className="mx-auto max-w-7xl">
-              <div className="flex justify-between items-center mb-4">
-                  <div className="lg:hidden">
-                      <SidebarTrigger />
-                  </div>
-                  <div className="ml-auto">
-                      <LanguageToggle />
-                  </div>
+          </div>
+          <SidebarMenuButton variant="outline" onClick={handleLogout} tooltip={{ children: t.account.logout, side: 'right' }}>
+            <LogOut />
+            <span>{t.account.logout}</span>
+          </SidebarMenuButton>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <main className="p-4 md:p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex justify-between items-center mb-4">
+              <div className="lg:hidden">
+                <SidebarTrigger />
               </div>
-              {children}
+              <div className="ml-auto">
+                <LanguageToggle />
+              </div>
             </div>
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
+            {children}
+          </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

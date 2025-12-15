@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -10,7 +8,8 @@ import type { ParentNotificationWithId, StaffMemberWithId, ChildWithId } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, formatDistanceToNow } from 'date-fns';
-import { supabase } from '@/lib/supabase';
+import { getAuth } from 'firebase/auth';
+import { app } from '@/lib/firebase/config';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -58,7 +57,7 @@ export default function TeacherOutboxPage() {
     const [myClass, setMyClass] = useState<ChildWithId[]>([]);
     const [childFilter, setChildFilter] = useState('all');
     const { toast } = useToast();
-    const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
 
     useEffect(() => {
@@ -66,15 +65,18 @@ export default function TeacherOutboxPage() {
             setIsLoading(true);
             try {
                 let userId = 'mock-teacher-id-1';
-                if (isSupabaseConfigured) {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (!session) throw new Error("Not authenticated");
-                    userId = session.user.id;
+
+                if (isFirebaseConfigured) {
+                    const auth = getAuth(app);
+                    const user = auth.currentUser;
+                    if (user) {
+                        userId = user.uid;
+                    }
                 }
 
                 const allNotifications = await db.getParentNotifications();
                 const teacherNotifications = allNotifications.filter(n => n.teacherId === userId);
-                setSentNotifications(teacherNotifications.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                setSentNotifications(teacherNotifications.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
 
                 const teacherData = await db.getTeacherAndClass(userId);
                 if (teacherData) {
@@ -94,7 +96,7 @@ export default function TeacherOutboxPage() {
             }
         };
         fetchSentNotifications();
-    }, [toast, isSupabaseConfigured]);
+    }, [toast, isFirebaseConfigured]);
 
     const filteredNotifications = useMemo(() => {
         if (childFilter === 'all') {
@@ -111,8 +113,8 @@ export default function TeacherOutboxPage() {
             </div>
         );
     }
-    
-    const notificationIcons = {
+
+    const notificationIcons: Record<string, React.ReactNode> = {
         'Achievement': <MessageSquare className="h-6 w-6 text-yellow-500" />,
         'Incident': <MessageSquare className="h-6 w-6 text-red-500" />,
         'General': <MessageSquare className="h-6 w-6 text-blue-500" />,
@@ -121,12 +123,12 @@ export default function TeacherOutboxPage() {
 
     return (
         <div className="space-y-6">
-             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">{t.title}</h1>
                     <p className="text-muted-foreground">{t.description}</p>
                 </div>
-                 <Button asChild>
+                <Button asChild>
                     <Link href="/teacher/dashboard">
                         <MessageSquare className="mr-2 h-4 w-4" /> {t.newButton}
                     </Link>
@@ -136,9 +138,9 @@ export default function TeacherOutboxPage() {
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                         <CardTitle>{t.sentItems}</CardTitle>
-                         <div className="w-full max-w-xs">
-                             <Select value={childFilter} onValueChange={setChildFilter}>
+                        <CardTitle>{t.sentItems}</CardTitle>
+                        <div className="w-full max-w-xs">
+                            <Select value={childFilter} onValueChange={setChildFilter}>
                                 <SelectTrigger>
                                     <SelectValue placeholder={t.filterPlaceholder} />
                                 </SelectTrigger>
@@ -149,10 +151,10 @@ export default function TeacherOutboxPage() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                         </div>
+                        </div>
                     </div>
                 </CardHeader>
-                 <CardContent>
+                <CardContent>
                     {filteredNotifications.length > 0 ? (
                         <div className="space-y-4">
                             {filteredNotifications.map(notif => (
@@ -164,7 +166,7 @@ export default function TeacherOutboxPage() {
                                                 <div className="flex justify-between items-start">
                                                     <div>
                                                         <p className="font-semibold">
-                                                        {t.toParentOf} <span className="text-primary">{notif.childName}</span>
+                                                            {t.toParentOf} <span className="text-primary">{notif.childName}</span>
                                                         </p>
                                                         <Badge variant="outline" className="mt-1">{notif.type}</Badge>
                                                     </div>
@@ -176,7 +178,7 @@ export default function TeacherOutboxPage() {
                                                         </span>
                                                     </p>
                                                 </div>
-                                                
+
                                                 <p className="text-sm text-muted-foreground mt-4 whitespace-pre-wrap">{notif.notes}</p>
                                                 {notif.treatmentGiven && (
                                                     <p className="text-sm text-muted-foreground mt-2"><strong>{t.treatment}</strong> {notif.treatmentGiven}</p>

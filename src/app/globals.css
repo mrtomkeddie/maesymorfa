@@ -39,7 +39,7 @@
     --sidebar-ring: 346.8 77.2% 49.8%;
     --keyboard-height: 0px;
   }
- 
+
   .dark {
     --background: 224 71.4% 4.1%;
     --foreground: 0 0% 98%;
@@ -76,21 +76,42 @@
     --sidebar-ring: 346.8 77.2% 49.8%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
 
 @layer components {
-    .portal-lang-toggle.bg-secondary {
-        @apply bg-primary/10 text-primary;
-    }
-    .portal-lang-toggle.hover\:bg-secondary\/80:hover {
-        @apply bg-primary/20;
-    }
+  .portal-lang-toggle.bg-secondary {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .portal-lang-toggle.hover\:bg-secondary\/80:hover {
+    @apply bg-primary/20;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 dark:bg-black/70 backdrop-blur-lg border border-white/20 dark:border-white/10 shadow-xl;
+  }
+
+  .glass-card {
+    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-pixel-pattern {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px);
+    background-size: 16px 16px;
+  }
 }

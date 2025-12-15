@@ -1,5 +1,5 @@
 
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc, writeBatch, where, getDoc, limit, startAfter, count, getCountFromServer } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc, writeBatch, where, getDoc, limit, startAfter, count, getCountFromServer } from "firebase/firestore";
 // This file is intended for a Firebase implementation, but for Studio's mock environment,
 // we will return mock data instead of making live calls.
 import { db as firestoreDb } from "../firebase/config";
@@ -28,10 +28,10 @@ export const getNews = async (): Promise<NewsPostWithId[]> => {
 
 export const addNews = async (newsData: Omit<NewsPost, 'id' | 'attachments' | 'slug'>): Promise<string> => {
     console.log("Mock addNews:", newsData);
-     if (newsData.isUrgent) {
+    if (newsData.isUrgent) {
         mockNewsStore.forEach(post => post.isUrgent = false);
     }
-    const newPost = { 
+    const newPost = {
         ...newsData,
         id: `mock_news_${Date.now()}`,
         slug: newsData.title_en.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
@@ -100,7 +100,7 @@ export const deleteCalendarEvent = async (id: string) => {
 };
 
 export const getPaginatedCalendarEvents = async (limitNum = 20, lastDoc?: any): Promise<{ data: CalendarEventWithId[], lastDoc?: any }> => {
-     console.log('Using mock getPaginatedCalendarEvents');
+    console.log('Using mock getPaginatedCalendarEvents');
     const allEvents = generateMockCalendarEvents();
     const page = lastDoc ? lastDoc.page + 1 : 0;
     const start = page * limitNum;
@@ -115,7 +115,7 @@ const { mockParents: allMockParents, mockChildren: allMockChildren } = generateM
 const mockStaff: StaffMemberWithId[] = [
     { id: '1', name: 'Jane Morgan', role: 'Headteacher', team: 'Leadership Team', email: 'jane.morgan@example.com', userId: 'mock-admin-id-1' },
     { id: '2', name: 'Alex Evans', role: 'Deputy Head', team: 'Leadership Team', email: 'alex.evans@example.com' },
-    { id: '3', name: 'David Williams', role: 'Teacher', team: 'Year 6', email: 'david.williams@example.com', userId: 'mock-teacher-id-1'},
+    { id: '3', name: 'David Williams', role: 'Teacher', team: 'Year 6', email: 'david.williams@example.com', userId: 'mock-teacher-id-1' },
 ];
 
 export const getStaff = async (): Promise<StaffMemberWithId[]> => {
@@ -199,7 +199,7 @@ export const promoteAllChildren = async (): Promise<void> => {
             child.yearGroup = yearGroups[currentYearIndex + 1];
         }
     });
-     console.log("Mock children promoted.");
+    console.log("Mock children promoted.");
 
     return Promise.resolve();
 };
@@ -237,36 +237,36 @@ export const updateWeeklyMenu = async (menu: WeeklyMenu) => console.log("Mock up
 
 // === INBOX ===
 let mockInbox: InboxMessageWithId[] = [
-    { 
-        id: '1', 
-        type: 'absence', 
-        subject: 'Absence Report for Charlie K.', 
-        body: 'Charlie is unwell today.', 
-        sender: { id: 'parent-1', name: 'Jane Doe', email: 'parent@example.com', type: 'parent' }, 
+    {
+        id: '1',
+        type: 'absence',
+        subject: 'Absence Report for Charlie K.',
+        body: 'Charlie is unwell today.',
+        sender: { id: 'parent-1', name: 'Jane Doe', email: 'parent@example.com', type: 'parent' },
         recipient: { id: 'admin-1', name: 'Admin', email: 'admin@example.com', type: 'admin' },
         isReadByAdmin: false,
         isReadByParent: true,
         createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
         threadId: 'thread-1',
     },
-    { 
-        id: 'reply-1', 
-        type: 'reply', 
-        subject: 'Re: Absence Report for Charlie K.', 
-        body: 'Thank you for letting us know. We hope Charlie feels better soon.', 
-        sender: { id: 'admin-1', name: 'Admin', email: 'admin@example.com', type: 'admin' }, 
+    {
+        id: 'reply-1',
+        type: 'reply',
+        subject: 'Re: Absence Report for Charlie K.',
+        body: 'Thank you for letting us know. We hope Charlie feels better soon.',
+        sender: { id: 'admin-1', name: 'Admin', email: 'admin@example.com', type: 'admin' },
         recipient: { id: 'parent-1', name: 'Jane Doe', email: 'parent@example.com', type: 'parent' },
         isReadByAdmin: true,
         isReadByParent: false,
         createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
         threadId: 'thread-1',
     },
-    { 
-        id: '2', 
-        type: 'contact', 
-        subject: 'Question about school trip', 
-        body: 'When is the payment due?', 
-        sender: { id: 'parent-2', name: 'John Smith', email: 'john@example.com', type: 'parent' }, 
+    {
+        id: '2',
+        type: 'contact',
+        subject: 'Question about school trip',
+        body: 'When is the payment due?',
+        sender: { id: 'parent-2', name: 'John Smith', email: 'john@example.com', type: 'parent' },
         recipient: { id: 'admin-1', name: 'Admin', email: 'admin@example.com', type: 'admin' },
         isReadByAdmin: true,
         isReadByParent: true,
@@ -290,7 +290,7 @@ export const getInboxMessagesForUser = async (userId: string): Promise<InboxMess
 }
 export const updateInboxMessage = async (id: string, data: Partial<InboxMessage>) => {
     console.log("Mock updateInboxMessage", id, data);
-     const index = mockInbox.findIndex(m => m.id === id);
+    const index = mockInbox.findIndex(m => m.id === id);
     if (index > -1) {
         mockInbox[index] = { ...mockInbox[index], ...data };
     }
@@ -309,25 +309,27 @@ export const getUnreadMessageCount = async (userId: string, userType: 'admin' | 
 
 // === NOTIFICATIONS ===
 let mockNotifications: ParentNotificationWithId[] = [
-     { id: 'notif-1', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Achievement', notes: 'Received a values certificate for kindness!', date: new Date(Date.now() - 86400000 * 1).toISOString(), isRead: false },
-     { id: 'notif-2', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Incident', notes: 'Bumped head in the playground.', treatmentGiven: 'Cold compress applied.', date: new Date(Date.now() - 86400000 * 3).toISOString(), isRead: true },
-     // Charlie K. (Year 2) has 3 awards
-     { id: 'notif-3', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Ms. Hughes', type: 'Values Award', notes: 'Values award for being helpful!', date: new Date(Date.now() - 86400000 * 7).toISOString(), isRead: true },
-     { id: 'notif-5', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Mr. Evans', type: 'Values Award', notes: 'Values award for great listening!', date: new Date(Date.now() - 86400000 * 14).toISOString(), isRead: true },
-     { id: 'notif-6', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Mr. Evans', type: 'Values Award', notes: 'Values award for excellent teamwork!', date: new Date(Date.now() - 86400000 * 21).toISOString(), isRead: true },
-     // Sophie K. (Year 5) has 2 awards
-     { id: 'notif-4', parentId: 'parent-1', childId: 'child_2', childName: 'Sophie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Ms. Hughes', type: 'Values Award', notes: 'Values award for great teamwork!', date: new Date(Date.now() - 86400000 * 8).toISOString(), isRead: true },
-     { id: 'notif-7', parentId: 'parent-1', childId: 'child_2', childName: 'Sophie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Ms. Hughes', type: 'Values Award', notes: 'Values award for trying her best!', date: new Date(Date.now() - 86400000 * 30).toISOString(), isRead: true },
-     // Year 6 students awards for Teacher Dashboard
-     { id: 'notif-8', parentId: 'mock_parent_8', childId: 'mock_child_8', childName: 'Elin Evans', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Values Award', notes: 'Award for being a kind friend.', date: new Date(Date.now() - 86400000 * 4).toISOString(), isRead: true },
-     { id: 'notif-9', parentId: 'mock_parent_16', childId: 'mock_child_16', childName: 'Ava Davis', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Values Award', notes: 'Award for excellent focus in class.', date: new Date(Date.now() - 86400000 * 5).toISOString(), isRead: true },
-     { id: 'notif-10', parentId: 'mock_parent_16', childId: 'mock_child_16', childName: 'Ava Davis', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Values Award', notes: 'Award for a brilliant science project.', date: new Date(Date.now() - 86400000 * 20).toISOString(), isRead: true },
-     { id: 'notif-11', parentId: 'mock_parent_20', childId: 'mock_child_24', childName: 'Mia Rodriguez', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Values Award', notes: 'Award for always trying her best.', date: new Date(Date.now() - 86400000 * 6).toISOString(), isRead: true },
+    { id: 'notif-1', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Achievement', notes: 'Received a values certificate for kindness!', date: new Date(Date.now() - 86400000 * 1).toISOString(), isRead: false },
+    { id: 'notif-2', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Incident', notes: 'Bumped head in the playground.', treatmentGiven: 'Cold compress applied.', date: new Date(Date.now() - 86400000 * 3).toISOString(), isRead: true },
+    // Charlie K. (Year 2) has 3 awards
+    { id: 'notif-3', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Ms. Hughes', type: 'Values Award', notes: 'Values award for being helpful!', date: new Date(Date.now() - 86400000 * 7).toISOString(), isRead: true },
+    { id: 'notif-5', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Mr. Evans', type: 'Values Award', notes: 'Values award for great listening!', date: new Date(Date.now() - 86400000 * 14).toISOString(), isRead: true },
+    { id: 'notif-6', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Mr. Evans', type: 'Values Award', notes: 'Values award for excellent teamwork!', date: new Date(Date.now() - 86400000 * 21).toISOString(), isRead: true },
+    { id: 'notif-12', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Ms. Hughes', type: 'Achievement', notes: 'Star of the Week for consistent effort!', date: new Date(Date.now() - 86400000 * 25).toISOString(), isRead: true },
+    { id: 'notif-13', parentId: 'parent-1', childId: 'child_1', childName: 'Charlie K.', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'General', notes: 'Reminder: PE Kit needed tomorrow.', date: new Date(Date.now() - 86400000 * 2).toISOString(), isRead: false },
+    // Sophie K. (Year 5) has 2 awards
+    { id: 'notif-4', parentId: 'parent-1', childId: 'child_2', childName: 'Sophie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Ms. Hughes', type: 'Values Award', notes: 'Values award for great teamwork!', date: new Date(Date.now() - 86400000 * 8).toISOString(), isRead: true },
+    { id: 'notif-7', parentId: 'parent-1', childId: 'child_2', childName: 'Sophie K.', teacherId: 'mock-teacher-id-1', teacherName: 'Ms. Hughes', type: 'Values Award', notes: 'Values award for trying her best!', date: new Date(Date.now() - 86400000 * 30).toISOString(), isRead: true },
+    // Year 6 students awards for Teacher Dashboard
+    { id: 'notif-8', parentId: 'mock_parent_8', childId: 'mock_child_8', childName: 'Elin Evans', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Values Award', notes: 'Award for being a kind friend.', date: new Date(Date.now() - 86400000 * 4).toISOString(), isRead: true },
+    { id: 'notif-9', parentId: 'mock_parent_16', childId: 'mock_child_16', childName: 'Ava Davis', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Values Award', notes: 'Award for excellent focus in class.', date: new Date(Date.now() - 86400000 * 5).toISOString(), isRead: true },
+    { id: 'notif-10', parentId: 'mock_parent_16', childId: 'mock_child_16', childName: 'Ava Davis', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Values Award', notes: 'Award for a brilliant science project.', date: new Date(Date.now() - 86400000 * 20).toISOString(), isRead: true },
+    { id: 'notif-11', parentId: 'mock_parent_20', childId: 'mock_child_24', childName: 'Mia Rodriguez', teacherId: 'mock-teacher-id-1', teacherName: 'David Williams', type: 'Values Award', notes: 'Award for always trying her best.', date: new Date(Date.now() - 86400000 * 6).toISOString(), isRead: true },
 ];
 
 export const addParentNotification = async (notificationData: ParentNotification): Promise<string> => {
     console.log("Mock addParentNotification", notificationData);
-    const newNotif = { ...notificationData, id: `mock_notif_${Date.now()}`};
+    const newNotif = { ...notificationData, id: `mock_notif_${Date.now()}` };
     mockNotifications.push(newNotif);
     return newNotif.id;
 };
@@ -343,7 +345,7 @@ export const getNotificationsForParent = async (parentId: string): Promise<Paren
 export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
     console.log("Mock markNotificationAsRead", notificationId);
     const index = mockNotifications.findIndex(n => n.id === notificationId);
-    if(index > -1) {
+    if (index > -1) {
         mockNotifications[index].isRead = true;
     }
 }
@@ -391,7 +393,7 @@ export const updateUserRole = async (userId: string, role: UserRole): Promise<vo
     }
 };
 
-export const createUser = async(email: string, role: UserRole) => {
+export const createUser = async (email: string, role: UserRole) => {
     console.log(`Mock: Creating user for ${email} with role ${role}`);
     const newUser = {
         id: `mock-user-${Date.now()}`,

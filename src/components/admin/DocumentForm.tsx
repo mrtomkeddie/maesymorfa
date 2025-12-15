@@ -32,12 +32,12 @@ import { Progress } from '../ui/progress';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 
 export const documentCategories = [
-    "Policy",
-    "Term Dates",
-    "Lunch Menu",
-    "Newsletter",
-    "Permission Slip",
-    "Other"
+  "Policy",
+  "Term Dates",
+  "Lunch Menu",
+  "Newsletter",
+  "Permission Slip",
+  "Other"
 ];
 
 const formSchema = (t: any) => z.object({
@@ -49,60 +49,60 @@ const formSchema = (t: any) => z.object({
 });
 
 const content = {
-    en: {
-        formSchema: {
-            title_message: 'Title must be at least 3 characters.',
-            category_required_error: 'Please select a category.',
-            file_message: 'A file upload is required.',
-        },
-        titleLabel: 'Document Title',
-        titlePlaceholder: 'e.g., Autumn Term Lunch Menu',
-        categoryLabel: 'Category',
-        categoryPlaceholder: 'Select a category',
-        fileLabel: {
-            edit: 'Replace File',
-            add: 'File Upload'
-        },
-        fileDesc: 'Please upload PDF files only. Max size 5MB.',
-        uploadComplete: 'Upload complete!',
-        toast: {
-            fileError: { title: "File Error", description: "A file is required. Please upload a PDF." },
-            updateSuccess: { title: "Success!", description: "Document has been updated." },
-            addSuccess: { title: "Success!", description: "New document has been uploaded." },
-            error: { title: "Error", description: "Something went wrong. Please try again." },
-        },
-        submitButton: {
-            update: 'Update Document',
-            add: 'Upload Document'
-        }
+  en: {
+    formSchema: {
+      title_message: 'Title must be at least 3 characters.',
+      category_required_error: 'Please select a category.',
+      file_message: 'A file upload is required.',
     },
-    cy: {
-        formSchema: {
-            title_message: 'Rhaid i\'r teitl fod o leiaf 3 nod.',
-            category_required_error: 'Dewiswch gategori.',
-            file_message: 'Mae angen uwchlwytho ffeil.',
-        },
-        titleLabel: 'Teitl y Ddogfen',
-        titlePlaceholder: 'e.e., Bwydlen Ginio Tymor yr Hydref',
-        categoryLabel: 'Categori',
-        categoryPlaceholder: 'Dewiswch gategori',
-        fileLabel: {
-            edit: 'Amnewid Ffeil',
-            add: 'Uwchlwytho Ffeil'
-        },
-        fileDesc: 'Uwchlwythwch ffeiliau PDF yn unig. Maint mwyaf 5MB.',
-        uploadComplete: 'Wedi\'i uwchlwytho\'n llwyddiannus!',
-        toast: {
-            fileError: { title: "Gwall Ffeil", description: "Mae angen ffeil. Uwchlwythwch PDF." },
-            updateSuccess: { title: "Llwyddiant!", description: "Mae'r ddogfen wedi'i diweddaru." },
-            addSuccess: { title: "Llwyddiant!", description: "Mae dogfen newydd wedi'i huwchlwytho." },
-            error: { title: "Gwall", description: "Aeth rhywbeth o'i le. Ceisiwch eto." },
-        },
-        submitButton: {
-            update: 'Diweddaru\'r Ddogfen',
-            add: 'Uwchlwytho Dogfen'
-        }
+    titleLabel: 'Document Title',
+    titlePlaceholder: 'e.g., Autumn Term Lunch Menu',
+    categoryLabel: 'Category',
+    categoryPlaceholder: 'Select a category',
+    fileLabel: {
+      edit: 'Replace File',
+      add: 'File Upload'
+    },
+    fileDesc: 'Please upload PDF files only. Max size 5MB.',
+    uploadComplete: 'Upload complete!',
+    toast: {
+      fileError: { title: "File Error", description: "A file is required. Please upload a PDF." },
+      updateSuccess: { title: "Success!", description: "Document has been updated." },
+      addSuccess: { title: "Success!", description: "New document has been uploaded." },
+      error: { title: "Error", description: "Something went wrong. Please try again." },
+    },
+    submitButton: {
+      update: 'Update Document',
+      add: 'Upload Document'
     }
+  },
+  cy: {
+    formSchema: {
+      title_message: 'Rhaid i\'r teitl fod o leiaf 3 nod.',
+      category_required_error: 'Dewiswch gategori.',
+      file_message: 'Mae angen uwchlwytho ffeil.',
+    },
+    titleLabel: 'Teitl y Ddogfen',
+    titlePlaceholder: 'e.e., Bwydlen Ginio Tymor yr Hydref',
+    categoryLabel: 'Categori',
+    categoryPlaceholder: 'Dewiswch gategori',
+    fileLabel: {
+      edit: 'Amnewid Ffeil',
+      add: 'Uwchlwytho Ffeil'
+    },
+    fileDesc: 'Uwchlwythwch ffeiliau PDF yn unig. Maint mwyaf 5MB.',
+    uploadComplete: 'Wedi\'i uwchlwytho\'n llwyddiannus!',
+    toast: {
+      fileError: { title: "Gwall Ffeil", description: "Mae angen ffeil. Uwchlwythwch PDF." },
+      updateSuccess: { title: "Llwyddiant!", description: "Mae'r ddogfen wedi'i diweddaru." },
+      addSuccess: { title: "Llwyddiant!", description: "Mae dogfen newydd wedi'i huwchlwytho." },
+      error: { title: "Gwall", description: "Aeth rhywbeth o'i le. Ceisiwch eto." },
+    },
+    submitButton: {
+      update: 'Diweddaru\'r Ddogfen',
+      add: 'Uwchlwytho Dogfen'
+    }
+  }
 }
 
 
@@ -146,9 +146,9 @@ export function DocumentForm({ onSuccess, existingDocument }: DocumentFormProps)
       }
 
       if (!fileUrl) {
-          toast(t.toast.fileError);
-          setIsLoading(false);
-          return;
+        toast(t.toast.fileError);
+        setIsLoading(false);
+        return;
       }
 
       const documentData = {
@@ -165,7 +165,7 @@ export function DocumentForm({ onSuccess, existingDocument }: DocumentFormProps)
         await db.addDocument(documentData);
         toast(t.toast.addSuccess);
       }
-      
+
       form.reset();
       onSuccess();
 
@@ -194,44 +194,49 @@ export function DocumentForm({ onSuccess, existingDocument }: DocumentFormProps)
             </FormItem>
           )}
         />
-        
+
         <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
+          control={form.control}
+          name="category"
+          render={({ field }) => (
             <FormItem>
-                <FormLabel>{t.categoryLabel}</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormLabel>{t.categoryLabel}</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                    <SelectTrigger>
+                  <SelectTrigger>
                     <SelectValue placeholder={t.categoryPlaceholder} />
-                    </SelectTrigger>
+                  </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                    {documentCategories.map((cat) => (
+                  {documentCategories.map((cat) => (
                     <SelectItem key={cat} value={cat}>
-                        {cat}
+                      {cat}
                     </SelectItem>
-                    ))}
+                  ))}
                 </SelectContent>
-                </Select>
-                <FormMessage />
+              </Select>
+              <FormDescription>
+                {language === 'cy'
+                  ? "Mae'r categori yn penderfynu lle mae'r ffeil yn ymddangos (e.e. Gwybodaeth Allweddol > Dyddiadau Tymor)."
+                  : "This determines where the file appears (e.g., Key Info > Term Dates)."}
+              </FormDescription>
+              <FormMessage />
             </FormItem>
-            )}
+          )}
         />
 
-         <FormField
+        <FormField
           control={form.control}
           name="file"
           render={({ field: { onChange, ...rest } }) => (
             <FormItem>
               <FormLabel>{existingDocument ? t.fileLabel.edit : t.fileLabel.add}</FormLabel>
               <FormControl>
-                 <Input 
-                    type="file" 
-                    accept="application/pdf"
-                    onChange={(e) => onChange(e.target.files?.[0])}
-                    {...rest}
+                <Input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => onChange(e.target.files?.[0])}
+                  {...rest}
                 />
               </FormControl>
               <FormDescription>

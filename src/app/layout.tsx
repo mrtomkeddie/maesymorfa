@@ -3,14 +3,19 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
-import { PT_Sans } from 'next/font/google';
+import { Inter, VT323 } from 'next/font/google';
 import { LanguageProvider } from './(public)/LanguageProvider';
 
-const ptSans = PT_Sans({
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-pt-sans',
-  weight: ['400', '700']
+  variable: '--font-inter',
+});
+
+const vt323 = VT323({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-pixel',
 });
 
 
@@ -36,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("min-h-screen bg-background font-body antialiased", ptSans.variable)} suppressHydrationWarning={true}>
+      <body className={cn("min-h-screen bg-background font-body antialiased", inter.variable, vt323.variable)} suppressHydrationWarning={true}>
         <LanguageProvider>
           {children}
           <Toaster />

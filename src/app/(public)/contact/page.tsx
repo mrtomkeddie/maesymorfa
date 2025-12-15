@@ -18,46 +18,46 @@ import { db } from '@/lib/db';
 import type { SiteSettings } from '@/lib/types';
 
 const content = {
-  en: {
-    title: "Contact Us",
-    intro: "We’re here to help. Reach out with any questions or to arrange a visit.",
-    addressTitle: "School Address",
-    phoneTitle: "Phone",
-    emailTitle: "Email",
-    formTitle: "Send us a Message",
-    formName: "Your Name",
-    formEmail: "Your Email Address",
-    formMessage: "Your Message",
-    formSend: "Send Message",
-    mapTitle: "Find Us",
-    mapPlaceholder: "Interactive map coming soon.",
-    toastSuccessTitle: "Message Sent!",
-    toastSuccessDesc: "Thank you for getting in touch. We'll get back to you soon.",
-    loading: "Loading contact information...",
-  },
-  cy: {
-    title: "Cysylltu â Ni",
-    intro: "Rydym yma i helpu. Cysylltwch ag unrhyw gwestiynau neu i drefnu ymweliad.",
-    addressTitle: "Cyfeiriad yr Ysgol",
-    phoneTitle: "Ffôn",
-    emailTitle: "E-bost",
-    formTitle: "Anfonwch neges atom",
-    formName: "Eich Enw",
-    formEmail: "Eich Cyfeiriad E-bost",
-    formMessage: "Eich Neges",
-    formSend: "Anfon Neges",
-    mapTitle: "Dod o Hyd i Ni",
-    mapPlaceholder: "Map rhyngweithiol yn dod yn fuan.",
-    toastSuccessTitle: "Neges wedi'i hanfon!",
-    toastSuccessDesc: "Diolch am gysylltu â ni. Byddwn yn ymateb yn fuan.",
-    loading: "Wrthi'n llwytho gwybodaeth gyswllt...",
-  }
+    en: {
+        title: "Contact Us",
+        intro: "We’re here to help. Reach out with any questions or to arrange a visit.",
+        addressTitle: "School Address",
+        phoneTitle: "Phone",
+        emailTitle: "Email",
+        formTitle: "Send us a Message",
+        formName: "Your Name",
+        formEmail: "Your Email Address",
+        formMessage: "Your Message",
+        formSend: "Send Message",
+        mapTitle: "Find Us",
+        mapPlaceholder: "Interactive map coming soon.",
+        toastSuccessTitle: "Message Sent!",
+        toastSuccessDesc: "Thank you for getting in touch. We'll get back to you soon.",
+        loading: "Loading contact information...",
+    },
+    cy: {
+        title: "Cysylltu â Ni",
+        intro: "Rydym yma i helpu. Cysylltwch ag unrhyw gwestiynau neu i drefnu ymweliad.",
+        addressTitle: "Cyfeiriad yr Ysgol",
+        phoneTitle: "Ffôn",
+        emailTitle: "E-bost",
+        formTitle: "Anfonwch neges atom",
+        formName: "Eich Enw",
+        formEmail: "Eich Cyfeiriad E-bost",
+        formMessage: "Eich Neges",
+        formSend: "Anfon Neges",
+        mapTitle: "Dod o Hyd i Ni",
+        mapPlaceholder: "Map rhyngweithiol yn dod yn fuan.",
+        toastSuccessTitle: "Neges wedi'i hanfon!",
+        toastSuccessDesc: "Diolch am gysylltu â ni. Byddwn yn ymateb yn fuan.",
+        loading: "Wrthi'n llwytho gwybodaeth gyswllt...",
+    }
 };
 
 const formSchema = (t: typeof content.en) => z.object({
-  name: z.string().min(2, { message: "Please enter your name." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  message: z.string().min(10, { message: "Message must be at least 10 characters." }),
+    name: z.string().min(2, { message: "Please enter your name." }),
+    email: z.string().email({ message: "Please enter a valid email address." }),
+    message: z.string().min(10, { message: "Message must be at least 10 characters." }),
 });
 
 
@@ -77,7 +77,7 @@ export default function ContactPage() {
                 setSettings(siteSettings);
             } catch (error) {
                 console.error("Failed to fetch site settings:", error);
-                 toast({
+                toast({
                     title: "Error",
                     description: "Could not load school information.",
                     variant: "destructive",
@@ -97,7 +97,7 @@ export default function ContactPage() {
     async function onSubmit(values: z.infer<ReturnType<typeof formSchema>>) {
         setIsLoading(true);
         try {
-             await db.addInboxMessage({
+            await db.addInboxMessage({
                 type: 'contact',
                 subject: `Contact Form: Inquiry from ${values.name}`,
                 body: values.message,
@@ -129,7 +129,7 @@ export default function ContactPage() {
 
     if (isSettingsLoading) {
         return (
-             <div className="flex h-96 w-full items-center justify-center bg-background">
+            <div className="flex h-96 w-full items-center justify-center bg-background">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="ml-4 text-muted-foreground">{t.loading}</p>
             </div>
@@ -146,7 +146,7 @@ export default function ContactPage() {
                             {t.title}
                         </h1>
                         <p className="mt-4 max-w-2xl mx-auto text-lg text-foreground/80">
-                           {t.intro}
+                            {t.intro}
                         </p>
                     </div>
 
@@ -179,11 +179,11 @@ export default function ContactPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                     <a href={`mailto:${settings?.email}`} className="text-muted-foreground hover:underline">{settings?.email || 'Email not available'}</a>
+                                    <a href={`mailto:${settings?.email}`} className="text-muted-foreground hover:underline">{settings?.email || 'Email not available'}</a>
                                 </CardContent>
                             </Card>
                         </div>
-                        
+
                         <div>
                             <Card>
                                 <CardHeader>
@@ -225,12 +225,12 @@ export default function ContactPage() {
                     </div>
 
                     <div className="mt-16">
-                         <h2 className="font-headline text-3xl font-extrabold tracking-tighter text-foreground text-center mb-6">
-                           {t.mapTitle}
+                        <h2 className="font-headline text-3xl font-extrabold tracking-tighter text-foreground text-center mb-6">
+                            {t.mapTitle}
                         </h2>
                         <div className="aspect-video w-full bg-muted rounded-lg overflow-hidden shadow-lg">
-                           <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2482.331502934825!2d-4.166649684462157!3d51.68114697966427!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x486efbe53038699d%3A0x6b8f36598bff7635!2sMaes-Y-Morfa%20Community%20Primary%20School!5e0!3m2!1sen!2suk!4v1678886472573!5m2!1sen!2suk"
+                            <iframe
+                                src="https://maps.google.com/maps?q=Ysgol%20Maes%20Y%20Morfa%2C%20Olive%20St%2C%20Llanelli%20SA15%202PZ&t=&z=15&ie=UTF8&iwloc=&output=embed"
                                 width="100%"
                                 height="100%"
                                 style={{ border: 0 }}

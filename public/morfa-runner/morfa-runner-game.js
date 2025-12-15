@@ -1,5 +1,6 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false; // Retro pixel look
 const startButton = document.getElementById("startButton");
 const scoreDisplay = document.getElementById("score");
 const fullscreenButton = document.getElementById("fullscreenButton");
@@ -15,6 +16,10 @@ let gameSpeed = 1; // multiplier for all speeds
 const maxGameSpeed = 3; // cap at 3x speed
 const speedIncreaseRate = 0.0002; // how fast the game speeds up
 let showingWelcome = true; // Start with welcome screen
+
+// Preview Mode Check
+const urlParams = new URLSearchParams(window.location.search);
+const isPreview = urlParams.has('preview');
 
 // High scores system
 let highScores = [];
@@ -137,12 +142,83 @@ imagesToLoad.forEach(img => {
 // Start the game loop immediately to show welcome screen
 loop();
 
-// Input
+// Unified Input Handler
+function handleInput(e) {
+  if (isPreview) return;
+
+  // Prevent default behavior for touch/click to stop scrolling/zooming/selecting
+  if (e.type === 'touchstart') {
+    e.preventDefault();
+  }
+
+  if (showingWelcome) {
+    showingWelcome = false;
+    startButton.style.display = "block";
+    // If it's a touch/click, we might want to trigger the start button logic immediately 
+    // or just let the user tap the start button (which is separate DOM element)
+    // But for better UX, let's just make the FIRST tap reveal the start button (or start if we want).
+    // The current logic just "hides welcome", showing the start button.
+    return;
+  }
+
+  if (enteringName) {
+    // Mobile text entry workaround: Use native prompt
+    const mobileName = prompt("NEW HIGH SCORE! Enter your initials (3 letters):", currentNameInput || "");
+    if (mobileName) {
+      currentNameInput = mobileName.substring(0, 3).toUpperCase();
+    } else {
+      currentNameInput = "???"; // Cancelled or empty
+    }
+
+    // Ensure we have something
+    if (currentNameInput.length === 0) currentNameInput = "???";
+
+    saveHighScore(currentNameInput, score);
+    enteringName = false;
+    showingHighScores = true;
+    currentNameInput = "";
+    return;
+  }
+
+  if (showingHighScores) {
+    showingHighScores = false;
+    startButton.style.display = "none";
+    return;
+  }
+
+  if (gameRunning) {
+    performJump();
+  }
+}
+
+function performJump() {
+  if (!player.jumping) {
+    // First jump
+    player.jumping = true;
+    player.jumpSpeed = -12;
+    player.canDoubleJump = true;
+    player.hasDoubleJumped = false;
+    playJumpSound();
+  } else if (player.canDoubleJump && !player.hasDoubleJumped) {
+    // Double jump
+    player.jumpSpeed = -10;
+    player.hasDoubleJumped = true;
+    player.canDoubleJump = false;
+    playJumpSound();
+  }
+}
+
+// Touch Input
+canvas.addEventListener("touchstart", handleInput, { passive: false });
+// Mouse Input (for jumping in game if they click canvas)
+canvas.addEventListener("mousedown", handleInput);
+
+// Keyboard Input
 document.addEventListener("keydown", e => {
+  if (isPreview) return;
   if (showingWelcome) {
     if (e.code === "Space" || e.key === "Enter") {
-      showingWelcome = false;
-      startButton.style.display = "block";
+      handleInput(e);
     }
   } else if (enteringName) {
     if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
@@ -165,64 +241,21 @@ document.addEventListener("keydown", e => {
     }
   } else if (showingHighScores) {
     if (e.key === "Enter") {
-      showingHighScores = false;
-      startButton.style.display = "none";
+      handleInput(e);
     }
   } else if (e.code === "Space" && gameRunning) {
-    if (!player.jumping) {
-      // First jump
-      player.jumping = true;
-      player.jumpSpeed = -12;
-      player.canDoubleJump = true;
-      player.hasDoubleJumped = false;
-      playJumpSound();
-    } else if (player.canDoubleJump && !player.hasDoubleJumped) {
-      // Double jump
-      player.jumpSpeed = -10;
-      player.hasDoubleJumped = true;
-      player.canDoubleJump = false;
-      playJumpSound();
-    }
+    performJump();
   }
 });
 
-fullscreenButton.addEventListener("click", () => {
-  if (!document.fullscreenElement) {
-    gameContainer.requestFullscreen().catch(err => {
-      alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-    });
-  } else {
-    document.exitFullscreen();
-  }
-});
-
-startButton.addEventListener("click", () => {
-  if (showingHighScores) {
-    showingHighScores = false;
-    startButton.style.display = "none";
-  }
-  
-  // Initialize music on first user interaction if not already done
-  if (!musicInitialized) {
-    initMusic().then(() => {
-      console.log("Music ready after initialization");
-      startGame();
-    }).catch(error => {
-      console.log("Music init failed:", error);
-      startGame(); // Start game anyway
-    });
-  } else {
-    startGame();
-  }
-});
-
-// Welcome screen click handler
-canvas.addEventListener("click", () => {
+// Welcome screen click handler (Legacy - keeping for compatibility but handleInput covers it)
+/* canvas.addEventListener("click", () => {
+  if (isPreview) return;
   if (showingWelcome) {
     showingWelcome = false;
     startButton.style.display = "block";
   }
-});
+}); */
 
 function startGame() {
   startButton.style.display = "none";
@@ -243,14 +276,14 @@ function startGame() {
   player.jumping = false;
   player.canDoubleJump = false;
   player.hasDoubleJumped = false;
-  
+
   // Start music
-  console.log("Checking music state:", { 
-    musicInitialized, 
+  console.log("Checking music state:", {
+    musicInitialized,
     backgroundMusic: !!backgroundMusic,
-    transportState: Tone.Transport.state 
+    transportState: Tone.Transport.state
   });
-  
+
   if (musicInitialized && backgroundMusic) {
     console.log("Attempting to start background music");
     try {
@@ -269,7 +302,7 @@ function startGame() {
   } else {
     console.log("Music not ready - will play without background music");
   }
-  
+
   loop();
 }
 
@@ -277,21 +310,48 @@ function loop() {
   if (!gameRunning && !showingHighScores && !enteringName && !showingWelcome) {
     // Game is completely stopped - show start button and clear canvas
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    
+
     // Draw static background for start screen
     const backgroundHeight = canvasHeight - groundHeight;
     ctx.drawImage(background, 0, 0, bgWidth, backgroundHeight);
     ctx.drawImage(groundImg, 0, canvasHeight - groundHeight, canvasWidth, groundHeight);
-    
+
     startButton.style.display = "block";
     return;
   }
-  
+
   if (gameRunning) {
     update();
+  } else if (showingWelcome) {
+    updateWelcome();
   }
   draw();
   requestAnimationFrame(loop);
+}
+
+function updateWelcome() {
+  // Scroll background slightly
+  bgX -= 0.5;
+  if (bgX <= -bgWidth) {
+    bgX = 0;
+  }
+
+  // Scroll ground
+  groundX -= baseScrollSpeed;
+  if (groundX <= -canvasWidth) {
+    groundX = 0;
+  }
+
+  // Animate player running
+  player.tickCount++;
+  if (player.tickCount > player.frameSpeed) {
+    player.tickCount = 0;
+    player.frameIndex++;
+    if (player.frameIndex > 3) player.frameIndex = 1; // running frames
+  }
+
+  // Keep player on ground
+  player.y = canvasHeight - groundHeight - player.height;
 }
 
 function update() {
@@ -398,14 +458,14 @@ function update() {
   // Check values collection
   values.forEach(val => {
     if (!val.collected &&
-        player.x < val.x + val.width &&
-        player.x + player.width > val.x &&
-        player.y < val.y + val.height &&
-        player.y + player.height > val.y) {
+      player.x < val.x + val.width &&
+      player.x + player.width > val.x &&
+      player.y < val.y + val.height &&
+      player.y + player.height > val.y) {
       val.collected = true;
       score += valuesPoints; // bonus points!
       playCollectSound();
-      
+
       // Create confetti burst
       for (let i = 0; i < 25; i++) {
         confetti.push({
@@ -418,7 +478,7 @@ function update() {
           life: confettiLifetime + Math.random() * 30
         });
       }
-      
+
       // Create +50 score popup
       scorePopups.push({
         x: val.x + val.width / 2,
@@ -436,7 +496,7 @@ function update() {
     let playerHeight = player.height;
     let playerX = player.x;
     let playerY = player.y;
-    
+
     if (player.jumping) {
       // Smaller hitbox for jump frame to avoid awkward collisions
       playerWidth = 50;  // reduced from 70
@@ -518,9 +578,9 @@ function draw() {
     ctx.fillStyle = "#FFD700";
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 3;
-    ctx.font = "bold 24px Arial";
+    ctx.font = "bold 32px 'VT323', monospace";
     ctx.textAlign = "center";
-    
+
     // Add thick outline for better visibility
     ctx.strokeText(popup.text, popup.x, popup.y);
     ctx.fillText(popup.text, popup.x, popup.y);
@@ -530,14 +590,14 @@ function draw() {
 
 function gameOver() {
   gameRunning = false;
-  
+
   // Stop music only when actually stopping, not just pausing
   if (musicInitialized && backgroundMusic && backgroundMusic.state === "started") {
     console.log("Stopping background music");
     backgroundMusic.stop();
     Tone.Transport.stop();
   }
-  
+
   // Check if this score qualifies for high scores
   if (isHighScore(score)) {
     enteringName = true;
@@ -552,7 +612,7 @@ function gameOver() {
 function loadHighScores() {
   const saved = JSON.parse(localStorage.getItem('morfa-runner-scores') || '[]');
   highScores = saved;
-  
+
   // Add default scores if empty - much lower scores so kids can beat them!
   if (highScores.length === 0) {
     highScores = [
@@ -569,10 +629,10 @@ function saveHighScore(name, score) {
   highScores.push({ name: name, score: score });
   highScores.sort((a, b) => b.score - a.score);
   highScores = highScores.slice(0, 10); // Keep only top 10
-  
+
   try {
     localStorage.setItem('morfa-runner-scores', JSON.stringify(highScores));
-  } catch(e) {
+  } catch (e) {
     console.log("Could not save high scores");
   }
 }
@@ -582,48 +642,66 @@ function isHighScore(score) {
 }
 
 function drawHighScores() {
-  // Draw background
-  ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+  // Blackboard Background
+  ctx.fillStyle = "#1a3c1e"; // Blackboard green
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  
+
+  // Wood Border
+  ctx.lineWidth = 20;
+  ctx.strokeStyle = "#8b4513"; // SaddleBrown
+  ctx.strokeRect(0, 0, canvasWidth, canvasHeight);
+
+  // Dust effect
+  ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+  for (let i = 0; i < 500; i++) {
+    const x = Math.random() * canvasWidth;
+    const y = Math.random() * canvasHeight;
+    ctx.fillRect(x, y, 2, 2);
+  }
+
   // Title
-  ctx.fillStyle = "#FFD700";
-  ctx.strokeStyle = "#000";
-  ctx.lineWidth = 3;
-  ctx.font = "bold 36px Arial";
+  ctx.fillStyle = "#ffffff";
+  ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+  ctx.shadowBlur = 4;
   ctx.textAlign = "center";
-  ctx.strokeText("HIGH SCORES", canvasWidth / 2, 60);
-  ctx.fillText("HIGH SCORES", canvasWidth / 2, 60);
-  
-  // Scores list - better formatting
-  ctx.font = "bold 20px Arial";
+
+  ctx.font = "60px 'VT323', monospace";
+  ctx.fillText("CLASS RECORDS", canvasWidth / 2, 80);
+
+  ctx.shadowBlur = 0; // Reset shadow
+
+  // Scores list
+  ctx.font = "32px 'VT323', monospace";
   highScores.forEach((entry, index) => {
-    const y = 110 + index * 25;
+    const y = 140 + index * 32;
     const rank = (index + 1).toString().padStart(2, '0');
-    
+
     // Draw rank and name on left
-    ctx.textAlign = "left";
-    ctx.strokeText(`${rank}. ${entry.name}`, canvasWidth / 2 - 150, y);
-    ctx.fillText(`${rank}. ${entry.name}`, canvasWidth / 2 - 150, y);
-    
-    // Draw score on right
     ctx.textAlign = "right";
-    ctx.strokeText(entry.score.toString(), canvasWidth / 2 + 150, y);
-    ctx.fillText(entry.score.toString(), canvasWidth / 2 + 150, y);
+    ctx.fillText(`${rank}. ${entry.name}`, canvasWidth / 2 - 20, y);
+
+    // Draw score on right
+    ctx.textAlign = "left";
+    ctx.fillText(entry.score.toString(), canvasWidth / 2 + 60, y);
+
+    // Dotted line connector
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.fillText("................", canvasWidth / 2 - 10, y);
+    ctx.fillStyle = "#ffffff";
   });
-  
-  // Instructions - positioned lower to avoid overlap
-  ctx.font = "18px Arial";
-  ctx.fillStyle = "#FFFFFF";
+
+  // Instructions
+  ctx.font = "24px 'VT323', monospace";
+  ctx.fillStyle = "#e0e0e0";
   ctx.textAlign = "center";
-  ctx.fillText("Press ENTER to continue", canvasWidth / 2, 370);
+  ctx.fillText("PRESS ENTER TO CONTINUE", canvasWidth / 2, 380);
 }
 
 function drawNameEntry() {
   // Draw background
   ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  
+
   // Congratulations
   ctx.fillStyle = "#FFD700";
   ctx.strokeStyle = "#000";
@@ -632,143 +710,115 @@ function drawNameEntry() {
   ctx.textAlign = "center";
   ctx.strokeText("NEW HIGH SCORE!", canvasWidth / 2, 120);
   ctx.fillText("NEW HIGH SCORE!", canvasWidth / 2, 120);
-  
+
   // Score
-  ctx.font = "bold 28px Arial";
+  ctx.font = "bold 40px 'VT323', monospace";
   ctx.strokeText(`Score: ${score}`, canvasWidth / 2, 170);
   ctx.fillText(`Score: ${score}`, canvasWidth / 2, 170);
-  
+
   // Name prompt
-  ctx.font = "24px Arial";
+  ctx.font = "32px 'VT323', monospace";
   ctx.fillStyle = "#FFFFFF";
   ctx.fillText("Enter your name (3 letters):", canvasWidth / 2, 220);
-  
+
   // Name input
-  ctx.font = "bold 36px Arial";
+  ctx.font = "bold 60px 'VT323', monospace";
   ctx.fillStyle = "#FFD700";
   const displayName = currentNameInput + "_".repeat(maxNameLength - currentNameInput.length);
   ctx.strokeText(displayName, canvasWidth / 2, 270);
   ctx.fillText(displayName, canvasWidth / 2, 270);
-  
+
   // Instructions
-  ctx.font = "18px Arial";
+  ctx.font = "24px 'VT323', monospace";
   ctx.fillStyle = "#FFFFFF";
   ctx.fillText("Type letters, BACKSPACE to delete, ENTER to save", canvasWidth / 2, 320);
 }
 
 function drawWelcomeScreen() {
-  // Draw beautiful gradient background
-  const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-  gradient.addColorStop(0, "#87CEEB"); // Sky blue
-  gradient.addColorStop(0.7, "#98FB98"); // Pale green
-  gradient.addColorStop(1, "#228B22"); // Forest green
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-  // Draw some decorative clouds
-  ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-  ctx.beginPath();
-  ctx.arc(150, 80, 25, 0, Math.PI * 2);
-  ctx.arc(170, 80, 35, 0, Math.PI * 2);
-  ctx.arc(190, 80, 25, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.beginPath();
-  ctx.arc(650, 60, 20, 0, Math.PI * 2);
-  ctx.arc(665, 60, 30, 0, Math.PI * 2);
-  ctx.arc(680, 60, 20, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Draw school building in background if loaded
-  if (imagesLoaded >= imagesToLoad.length) {
-    const backgroundHeight = canvasHeight - groundHeight;
-    ctx.drawImage(background, 0, 0, bgWidth, backgroundHeight);
-    ctx.drawImage(groundImg, 0, canvasHeight - groundHeight, canvasWidth, groundHeight);
+  // Draw animated background via updateWelcome() logic applied to bgX/groundX
+  const backgroundHeight = canvasHeight - groundHeight;
+  ctx.drawImage(background, bgX, 0, bgWidth, backgroundHeight);
+  // Handle wrapping for smooth scroll
+  if (bgX < 0) {
+    ctx.drawImage(background, bgX + bgWidth, 0, bgWidth, backgroundHeight);
   }
 
-  // Semi-transparent overlay for text readability
-  ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+  ctx.drawImage(groundImg, groundX, canvasHeight - groundHeight, canvasWidth, groundHeight);
+  // Handle wrapping for ground
+  if (groundX < 0) {
+    ctx.drawImage(groundImg, groundX + canvasWidth, canvasHeight - groundHeight, canvasWidth, groundHeight);
+  }
+
+  // Draw animated player
+  const spriteX = player.frameIndex * player.frameWidth;
+  ctx.drawImage(playerSprite, spriteX, 0, player.frameWidth, player.frameHeight, player.x, player.y, player.width, player.height);
+
+  // Overlay - retro style
+  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
   // Game Title
-  ctx.fillStyle = "#FFD700";
-  ctx.strokeStyle = "#8B0000";
-  ctx.lineWidth = 4;
-  ctx.font = "bold 48px Arial";
+  ctx.save();
+  ctx.shadowColor = "#000";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 4;
+  ctx.shadowOffsetY = 4;
+
+  ctx.fillStyle = "#FFC800"; // Retro yellow
+  ctx.font = "80px 'VT323', monospace";
   ctx.textAlign = "center";
-  ctx.strokeText("MORFA RUNNER", canvasWidth / 2, 100);
-  ctx.fillText("MORFA RUNNER", canvasWidth / 2, 100);
+  ctx.fillText("MORFA RUNNER", canvasWidth / 2, 120);
 
   // School name
   ctx.fillStyle = "#FFFFFF";
-  ctx.strokeStyle = "#000";
-  ctx.lineWidth = 2;
-  ctx.font = "24px Arial";
-  ctx.strokeText("Ysgol Maes Y Morfa", canvasWidth / 2, 140);
-  ctx.fillText("Ysgol Maes Y Morfa", canvasWidth / 2, 140);
+  ctx.font = "32px 'VT323', monospace";
+  ctx.fillText("YSGOL MAES Y MORFA", canvasWidth / 2, 160);
+  ctx.restore();
 
-  // Welcome message
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillText("Welcome to our school running adventure!", canvasWidth / 2, 180);
-
-  // Instructions box
-  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-  ctx.fillRect(canvasWidth / 2 - 200, 200, 400, 120);
-  ctx.strokeStyle = "#e11d48";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(canvasWidth / 2 - 200, 200, 400, 120);
-
-  // Instructions text
-  ctx.fillStyle = "#333";
-  ctx.font = "16px Arial";
-  ctx.fillText("🏃‍♂️ Help our student run through the school!", canvasWidth / 2, 230);
-  ctx.fillText("🎯 Collect VALUES certificates for bonus points", canvasWidth / 2, 255);
-  ctx.fillText("⚡ Jump over books, bags, and Mrs Jones", canvasWidth / 2, 280);
-  ctx.fillText("🏆 Beat the high scores and become champion!", canvasWidth / 2, 305);
-
-  // Start prompt
-  ctx.fillStyle = "#FFD700";
-  ctx.strokeStyle = "#8B0000";
-  ctx.lineWidth = 2;
-  ctx.font = "bold 24px Arial";
-  ctx.strokeText("CLICK TO START", canvasWidth / 2, 350);
-  ctx.fillText("CLICK TO START", canvasWidth / 2, 350);
-
-  // Animated prompt indicator - moved up to fit in frame
+  // Flashing Start Prompt
   const time = Date.now() * 0.005;
-  const alpha = (Math.sin(time) + 1) / 2;
-  ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-  ctx.font = "16px Arial";
-  ctx.fillText("Press SPACE or click anywhere to begin", canvasWidth / 2, 375);
+  const alpha = (Math.sin(time * 2) + 1) / 2; // Faster blink
+
+  ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+  ctx.font = "40px 'VT323', monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("PRESS START", canvasWidth / 2, 280);
+
+  // Instructions
+  ctx.fillStyle = "#e0e0e0";
+  ctx.font = "24px 'VT323', monospace";
+  ctx.fillText("[ SPACE to Jump ]", canvasWidth / 2, 330);
+  ctx.fillText("[ Double Jump supported ]", canvasWidth / 2, 360);
 }
 
 // Music functions
 async function initMusic() {
+  if (isPreview) return; // Silent in preview mode
+
   try {
     await Tone.start();
     console.log("Tone.js started successfully");
-    
+
     // Create sound effects first
     collectSound = new Tone.Synth({
       oscillator: { type: "sine" },
       envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 },
-      volume: -10
+      volume: -5
     }).toDestination();
-    
+
     jumpSound = new Tone.Synth({
       oscillator: { type: "triangle" },
       envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 },
-      volume: -15
+      volume: -8
     }).toDestination();
-    
+
     // Create background music synth
     const musicSynth = new Tone.Synth({
       oscillator: { type: "square" },
       envelope: { attack: 0.1, decay: 0.3, sustain: 0.3, release: 0.8 },
-      volume: -20
+      volume: -12
     }).toDestination();
-    
+
     // More complex melody - upbeat platformer style
     const melody = [
       // Energetic opening - jumping up
@@ -785,9 +835,9 @@ async function initMusic() {
       "E4", "E4", "G4", "G4", "B4", "B4", "D5", "C5",
       "A4", "F4", "D4", "E4", "F4", "G4", "E4", null
     ];
-    
+
     let noteIndex = 0;
-    
+
     // Create the loop - upbeat tempo
     backgroundMusic = new Tone.Loop((time) => {
       const note = melody[noteIndex];
@@ -797,7 +847,7 @@ async function initMusic() {
       }
       noteIndex = (noteIndex + 1) % melody.length;
     }, "8n");
-    
+
     musicInitialized = true;
     console.log("Music initialized successfully");
   } catch (error) {

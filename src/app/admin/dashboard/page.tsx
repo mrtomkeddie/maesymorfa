@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from 'framer-motion';
 import { db } from "@/lib/db";
 import { useLanguage } from "@/app/(public)/LanguageProvider";
+import { FEATURES } from "@/lib/config/features";
 
 const content = {
     en: {
@@ -30,67 +31,51 @@ const content = {
             goTo: "Go to {topic} page",
         },
         topics: [
-            { id: 'announcement', title: 'Announcements', icon: Megaphone, href: '/admin/announcements',
-              instructions: [
-                "Go to the 'Announcements' page from the sidebar.",
-                "Click the 'Add Announcement' button.",
-                "Fill in a title.",
-                "To make a calendar event, add a date.",
-                "To make a news post, add some body text.",
-                "To create both, fill in all fields.",
-                "Check 'Urgent' for a homepage banner alert."
-              ],
-              tip: "You can create a news post, a calendar event, or both from the same form. Just fill in the relevant fields!"
+            {
+                id: 'announcement', title: 'Announcements', icon: Megaphone, href: '/admin/announcements',
+                instructions: [
+                    "Go to the 'Announcements' page from the sidebar.",
+                    "Click the 'Add Announcement' button.",
+                    "Title: Give it a clear name (e.g., 'School Disco').",
+                    "Event: Pick a date to add it to the Calendar page.",
+                    "News: Add text in the Body to create a News Post.",
+                    "Both: Fill in date AND body to make it appear on both pages.",
+                    "Urgent: Checking 'Urgent' will also show a red banner on the Home page."
+                ],
+                tip: "Think of this as your one-stop shop. One form can create a calendar event, a news story, or an urgent alert."
             },
-            { id: 'staff', title: 'Staff Directory', icon: Users, href: '/admin/staff',
-              instructions: [
-                "Go to the 'Staff' page.",
-                "Click 'Add Staff Member' to open the staff form.",
-                "Enter the staff member's name, role, and assign them to a team (e.g., Leadership, Year 1).",
-                "You can also add a short bio and upload a profile photo.",
-                "Click 'Add Staff' to add them to the public 'About Us' page."
-              ],
-              tip: "If a staff photo appears stretched, make sure the original image is square (e.g., 500x500 pixels) before uploading."
+            {
+                id: 'staff', title: 'Staff Directory', icon: Users, href: '/admin/staff',
+                instructions: [
+                    "Go to the 'Staff' page.",
+                    "Click 'Add Staff Member'.",
+                    "Details: Name, Role (e.g., Year 2 Teacher), and Tag/Team.",
+                    "Photo: Upload a square photo if possible for best look.",
+                    "Site: Saving here immediately updates the 'About Us' > 'Staff' page."
+                ],
+                tip: "Use naming consistent with what you want parents to see. The 'Team' you select groups them on the public page."
             },
-            { id: 'parents', title: 'Parent Accounts', icon: Users2, href: '/admin/parents',
-              instructions: [
-                "Go to the 'Users' > 'Parents' page.",
-                "Click 'Add Parent' to create a new parent account.",
-                "Fill in the parent's name and email address.",
-                "In the 'Linked Children' section, search for and select the children associated with this parent.",
-                "Specify the relationship for each linked child (e.g., Mother, Guardian).",
-                "Click 'Add Parent' to save the account."
-              ],
-              tip: "A parent cannot log in until their account has been created here. Ensure the email address is correct as this is their username."
+            {
+                id: 'documents', title: 'Documents', icon: FileText, href: '/admin/documents',
+                instructions: [
+                    "Go to the 'Documents' page.",
+                    "Click 'Upload Document'.",
+                    "Category is Key: The category you choose determines WHERE it appears on the site.",
+                    "Term Dates -> Updates the 'Download Term Dates' button in Key Info.",
+                    "Lunch Menu -> Updates the 'Download Lunch Menu' button in Key Info.",
+                    "Policy -> Adds it to the list of policies in Key Info."
+                ],
+                tip: "You don't need to delete old lunch menus manually if you replace them, but keeping the folder tidy is good practice. The site always looks for the most recent file for menus and dates."
             },
-            { id: 'children', title: 'Child Profiles', icon: BookUser, href: '/admin/children',
-              instructions: [
-                "Navigate to 'Users' > 'Children'.",
-                "Click 'Enrol Child' to add a new student.",
-                "Enter the child's name and select their year group.",
-                "You can either link them to an existing parent or add a new parent directly from this form.",
-                "Click 'Enrol Child' to create the profile."
-              ],
-              tip: "To move all children to the next year group at the end of the school year, use the 'Promote Year Groups' button."
-            },
-            { id: 'documents', title: 'Documents', icon: FileText, href: '/admin/documents',
-              instructions: [
-                "Go to the 'Documents' page.",
-                "Click 'Upload Document'.",
-                "Give the document a clear title and select a category (e.g., Policy, Newsletter).",
-                "Upload the PDF file.",
-                "Click 'Upload Document'. It will now be available in the Parent Portal."
-              ],
-              tip: "Documents are available in the 'Key Information' section of the public website and Parent Portal."
-            },
-            { id: 'settings', title: 'Site Settings', icon: Settings, href: '/admin/settings',
-              instructions: [
-                "Go to the 'System' > 'Site Settings' page.",
-                "Update the school's address, phone number, and public email.",
-                "You can also add or update links to your social media pages.",
-                "Click 'Save Settings' to update this information across the public website."
-              ],
-              tip: "Changes to the school's address or phone number in Settings will automatically update the website's footer and Contact Us page."
+            {
+                id: 'settings', title: 'Site Settings', icon: Settings, href: '/admin/settings',
+                instructions: [
+                    "Go to the 'System' > 'Site Settings' page.",
+                    "Update Contact Info: Changing phone/email here updates the Footer and Contact page.",
+                    "Socials: Add your Facebook/Twitter links here to show icons in the Footer.",
+                    "Save: Changes are live immediately."
+                ],
+                tip: "Double-check phone numbers and emails to avoid parents contacting the wrong place."
             },
         ]
     },
@@ -113,67 +98,51 @@ const content = {
             goTo: "Ewch i dudalen {topic}",
         },
         topics: [
-            { id: 'announcement', title: 'Cyhoeddiadau', icon: Megaphone, href: '/admin/announcements',
-              instructions: [
-                "Ewch i'r dudalen 'Cyhoeddiadau' o'r bar ochr.",
-                "Cliciwch y botwm 'Ychwanegu Cyhoeddiad'.",
-                "Llenwch deitl.",
-                "I greu digwyddiad calendr, ychwanegwch ddyddiad.",
-                "I greu cofnod newyddion, ychwanegwch rywfaint o destun corff.",
-                "I greu'r ddau, llenwch yr holl feysydd.",
-                "Ticiwch 'Brys' am rybudd baner ar y dudalen gartref."
-              ],
-              tip: "Gallwch greu cofnod newyddion, digwyddiad calendr, neu'r ddau o'r un ffurflen. Llenwch y meysydd perthnasol!"
+            {
+                id: 'announcement', title: 'Cyhoeddiadau', icon: Megaphone, href: '/admin/announcements',
+                instructions: [
+                    "Ewch i 'Cyhoeddiadau'.",
+                    "Cliciwch 'Ychwanegu Cyhoeddiad'.",
+                    "Teitl: Rhowch enw clir.",
+                    "Digwyddiad: Dewiswch ddyddiad i'w ychwanegu at y Calendr.",
+                    "Newyddion: Ychwanegwch destun i greu Post Newyddion.",
+                    "Y Ddau: Llenwch ddyddiad A thestun i ymddangos ar y ddwy dudalen.",
+                    "Brys: Bydd ticio 'Brys' yn dangos baner goch ar y Hafan."
+                ],
+                tip: "Un ffurflen sy'n gwneud popeth. Gallwch greu digwyddiad, stori newyddion, neu rybudd brys fan hyn."
             },
-            { id: 'staff', title: 'Cyfeirlyfr Staff', icon: Users, href: '/admin/staff',
-              instructions: [
-                "Ewch i'r dudalen 'Staff'.",
-                "Cliciwch 'Ychwanegu Aelod o Staff' i agor y ffurflen staff.",
-                "Rhowch enw'r aelod o staff, ei rôl, a'i aseinio i dîm (e.e., Arweinyddiaeth, Blwyddyn 1).",
-                "Gallwch hefyd ychwanegu bywgraffiad byr a llwytho llun proffil i fyny.",
-                "Cliciwch 'Ychwanegu Staff' i'w hychwanegu at y dudalen gyhoeddus 'Amdanom Ni'."
-              ],
-              tip: "Os yw llun staff yn ymddangos wedi'i ymestyn, gwnewch yn siŵr bod y ddelwedd wreiddiol yn sgwâr (e.e., 500x500 picsel) cyn ei llwytho i fyny."
+            {
+                id: 'staff', title: 'Cyfeirlyfr Staff', icon: Users, href: '/admin/staff',
+                instructions: [
+                    "Ewch i 'Staff'.",
+                    "Cliciwch 'Ychwanegu Aelod o Staff'.",
+                    "Manylion: Enw, Rôl, a Thîm.",
+                    "Llun: Llwythwch lun sgwâr i fyny os yn bosibl.",
+                    "Gwefan: Mae cadw yma yn diweddaru'r dudalen 'Amdanom Ni' yn syth."
+                ],
+                tip: "Defnyddiwch enwau rydych chi am i rieni eu gweld."
             },
-            { id: 'parents', title: 'Cyfrifon Rhieni', icon: Users2, href: '/admin/parents',
-              instructions: [
-                "Ewch i'r dudalen 'Defnyddwyr' > 'Rhieni'.",
-                "Cliciwch 'Ychwanegu Rhiant' i greu cyfrif rhiant newydd.",
-                "Llenwch enw a chyfeiriad e-bost y rhiant.",
-                "Yn yr adran 'Plant Cysylltiedig', chwiliwch am a dewiswch y plant sy'n gysylltiedig â'r rhiant hwn.",
-                "Nodwch y berthynas ar gyfer pob plentyn cysylltiedig (e.e., Mam, Gwarcheidwad).",
-                "Cliciwch 'Ychwanegu Rhiant' i gadw'r cyfrif."
-              ],
-              tip: "Ni all rhiant fewngofnodi nes bod ei gyfrif wedi'i greu yma. Sicrhewch fod y cyfeiriad e-bost yn gywir gan mai hwn yw eu henw defnyddiwr."
+            {
+                id: 'documents', title: 'Dogfennau', icon: FileText, href: '/admin/documents',
+                instructions: [
+                    "Ewch i 'Dogfennau'.",
+                    "Cliciwch 'Llwytho Dogfen i Fyny'.",
+                    "Mae Categori yn Allweddol: Mae'r categori yn penderfynu LLE mae'n ymddangos.",
+                    "Dyddiadau Tymor -> Diweddaru botwm yn Gwybodaeth Allweddol.",
+                    "Bwydlen Ginio -> Diweddaru botwm yn Gwybodaeth Allweddol.",
+                    "Polisi -> Ychwanegu at y rhestr polisïau."
+                ],
+                tip: "Mae'r wefan bob amser yn chwilio am y ffeil ddiweddaraf ar gyfer bwydlenni a dyddiadau."
             },
-            { id: 'children', title: 'Proffiliau Plant', icon: BookUser, href: '/admin/children',
-              instructions: [
-                "Llywiwch i 'Defnyddwyr' > 'Plant'.",
-                "Cliciwch 'Cofrestru Plentyn' i ychwanegu myfyriwr newydd.",
-                "Rhowch enw'r plentyn a dewiswch ei grŵp blwyddyn.",
-                "Gallwch naill ai eu cysylltu â rhiant presennol neu ychwanegu rhiant newydd yn uniongyrchol o'r ffurflen hon.",
-                "Cliciwch 'Cofrestru Plentyn' i greu'r proffil."
-              ],
-              tip: "I symud pob plentyn i'r grŵp blwyddyn nesaf ar ddiwedd y flwyddyn ysgol, defnyddiwch y botwm 'Dyrchafu Grwpiau Blwyddyn'."
-            },
-            { id: 'documents', title: 'Dogfennau', icon: FileText, href: '/admin/documents',
-              instructions: [
-                "Ewch i'r dudalen 'Dogfennau'.",
-                "Cliciwch 'Llwytho Dogfen i Fyny'.",
-                "Rhowch deitl clir i'r ddogfen a dewiswch gategori (e.e., Polisi, Cylchlythyr).",
-                "Llwythwch y ffeil PDF i fyny.",
-                "Cliciwch 'Llwytho Dogfen i Fyny'. Bydd nawr ar gael yn Porth y Rieni."
-              ],
-              tip: "Mae dogfennau ar gael yn yr adran 'Gwybodaeth Allweddol' ar y wefan gyhoeddus ac ym Mhorth y Rieni."
-            },
-            { id: 'settings', title: 'Gosodiadau Gwefan', icon: Settings, href: '/admin/settings',
-              instructions: [
-                "Ewch i'r dudalen 'System' > 'Gosodiadau Gwefan'.",
-                "Diweddarwch gyfeiriad, rhif ffôn, ac e-bost cyhoeddus yr ysgol.",
-                "Gallwch hefyd ychwanegu neu ddiweddaru dolenni i'ch tudalennau cyfryngau cymdeithasol.",
-                "Cliciwch 'Cadw Gosodiadau' i ddiweddaru'r wybodaeth hon ar draws y wefan gyhoeddus."
-              ],
-              tip: "Bydd newidiadau i gyfeiriad neu rif ffôn yr ysgol yn y Gosodiadau yn diweddaru troedyn y wefan a'r dudalen Cysylltu â Ni yn awtomatig."
+            {
+                id: 'settings', title: 'Gosodiadau Gwefan', icon: Settings, href: '/admin/settings',
+                instructions: [
+                    "Ewch i 'Gosodiadau Gwefan'.",
+                    "Diweddarwch fanylion cyswllt i newid y Troedyn a'r dudalen Cysylltu.",
+                    "Cymdeithasol: Ychwanegwch ddolenni Facebook/Twitter yma.",
+                    "Cadw: Mae newidiadau yn fyw ar unwaith."
+                ],
+                tip: "Gwiriwch rifau ffôn ac e-byst yn ofalus."
             },
         ]
     }
@@ -189,28 +158,56 @@ type Stat = {
 export default function AdminDashboardPage() {
     const { language } = useLanguage();
     const t = content[language];
-    const managementTopics = t.topics;
+    const managementTopics = t.topics.filter(topic => {
+        if (!FEATURES.enableParentPortal && (topic.id === 'parents' || topic.id === 'children')) return false;
+        return true;
+    });
 
     const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-    const [stats, setStats] = useState<{label: string, value: number | null, icon: React.ElementType}[]>([
-        { label: t.stats.pupils, value: null, icon: BookUser },
-        { label: t.stats.parents, value: null, icon: Users2 },
-        { label: t.stats.documents, value: null, icon: FileText },
-    ]);
+    const [stats, setStats] = useState<{ label: string, value: number | null, icon: React.ElementType }[]>(
+        FEATURES.enableParentPortal ? [
+            { label: t.stats.pupils, value: null, icon: BookUser },
+            { label: t.stats.parents, value: null, icon: Users2 },
+            { label: t.stats.documents, value: null, icon: FileText },
+        ] : [
+            { label: 'News Posts', value: null, icon: Newspaper },
+            { label: 'Upcoming Events', value: null, icon: Calendar },
+            { label: t.stats.documents, value: null, icon: FileText },
+        ]
+    );
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [pupilCount, parentCount, documentCount] = await Promise.all([
-                    db.getCollectionCount('children'),
-                    db.getCollectionCount('parents'),
+                const promises = [
                     db.getCollectionCount('documents'),
-                ]);
-                setStats([
-                    { label: t.stats.pupils, value: pupilCount, icon: BookUser },
-                    { label: t.stats.parents, value: parentCount, icon: Users2 },
-                    { label: t.stats.documents, value: documentCount, icon: FileText },
-                ]);
+                ];
+
+                if (FEATURES.enableParentPortal) {
+                    promises.push(db.getCollectionCount('children'));
+                    promises.push(db.getCollectionCount('parents'));
+                } else {
+                    promises.push(db.getCollectionCount('news'));
+                    promises.push(db.getCollectionCount('events'));
+                }
+
+                const results = await Promise.all(promises);
+                const documentCount = results[0];
+
+                if (FEATURES.enableParentPortal) {
+                    setStats([
+                        { label: t.stats.pupils, value: results[1], icon: BookUser },
+                        { label: t.stats.parents, value: results[2], icon: Users2 },
+                        { label: t.stats.documents, value: documentCount, icon: FileText },
+                    ]);
+                } else {
+                    // MVP View: Focus on content
+                    setStats([
+                        { label: 'News Posts', value: results[1], icon: Newspaper }, // Fallback labels in English for now, ideally added to translation object
+                        { label: 'Upcoming Events', value: results[2], icon: Calendar },
+                        { label: t.stats.documents, value: documentCount, icon: FileText },
+                    ]);
+                }
             } catch (error) {
                 console.error("Failed to fetch collection counts:", error);
                 // Keep values as null to show loading state or error
@@ -224,7 +221,7 @@ export default function AdminDashboardPage() {
 
     return (
         <div className="space-y-6">
-             <div className="space-y-1">
+            <div className="space-y-1">
                 <h1 className="text-3xl font-bold tracking-tight">{t.welcome}</h1>
                 <p className="text-muted-foreground">{t.description}</p>
             </div>
@@ -251,7 +248,7 @@ export default function AdminDashboardPage() {
             </div>
 
 
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>{t.howTo.title}</CardTitle>
                     <CardDescription>
@@ -263,9 +260,9 @@ export default function AdminDashboardPage() {
                         {managementTopics.map((topic) => {
                             const Icon = topic.icon;
                             return (
-                                <Button 
-                                    key={topic.id} 
-                                    variant={selectedTopic === topic.id ? "secondary" : "outline"} 
+                                <Button
+                                    key={topic.id}
+                                    variant={selectedTopic === topic.id ? "secondary" : "outline"}
                                     onClick={() => setSelectedTopic(selectedTopic === topic.id ? null : topic.id)}
                                     className="p-4 h-auto flex flex-col items-start justify-start text-left"
                                 >
@@ -279,51 +276,51 @@ export default function AdminDashboardPage() {
             </Card>
 
             <AnimatePresence>
-            {activeTopic && (
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    <Card className="bg-secondary/30">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3">
-                                <activeTopic.icon className="h-5 w-5 text-primary"/>
-                                {activeTopic.title} {t.guide.titleSuffix}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <h3 className="font-semibold mb-2">{t.guide.instructions}</h3>
-                                <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                                    {activeTopic.instructions.map((step, index) => (
-                                        <li key={index}>{step}</li>
-                                    ))}
-                                </ol>
-                            </div>
-                            {activeTopic.tip && (
-                                <div className="p-3 rounded-md bg-background/50 border border-primary/20">
-                                    <div className="flex items-start gap-3">
-                                        <Lightbulb className="h-5 w-5 text-primary mt-0.5" />
-                                        <div>
-                                            <h4 className="font-semibold text-primary">{t.guide.tipTitle}</h4>
-                                            <p className="text-sm text-muted-foreground">{activeTopic.tip}</p>
+                {activeTopic && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <Card className="bg-secondary/30">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-3">
+                                    <activeTopic.icon className="h-5 w-5 text-primary" />
+                                    {activeTopic.title} {t.guide.titleSuffix}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <h3 className="font-semibold mb-2">{t.guide.instructions}</h3>
+                                    <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+                                        {activeTopic.instructions.map((step, index) => (
+                                            <li key={index}>{step}</li>
+                                        ))}
+                                    </ol>
+                                </div>
+                                {activeTopic.tip && (
+                                    <div className="p-3 rounded-md bg-background/50 border border-primary/20">
+                                        <div className="flex items-start gap-3">
+                                            <Lightbulb className="h-5 w-5 text-primary mt-0.5" />
+                                            <div>
+                                                <h4 className="font-semibold text-primary">{t.guide.tipTitle}</h4>
+                                                <p className="text-sm text-muted-foreground">{activeTopic.tip}</p>
+                                            </div>
                                         </div>
                                     </div>
+                                )}
+                                <div className="pt-2">
+                                    <Button asChild variant="link" className="p-0">
+                                        <Link href={activeTopic.href}>
+                                            {t.guide.goTo.replace('{topic}', activeTopic.title)} <ArrowRight className="ml-2 h-4 w-4" />
+                                        </Link>
+                                    </Button>
                                 </div>
-                            )}
-                            <div className="pt-2">
-                                <Button asChild variant="link" className="p-0">
-                                    <Link href={activeTopic.href}>
-                                        {t.guide.goTo.replace('{topic}', activeTopic.title)} <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Link>
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-            )}
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                )}
             </AnimatePresence>
         </div>
     );

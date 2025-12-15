@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -51,69 +52,70 @@ const absenceFormSchema = (t: any) => z.object({
 });
 
 
+
 const content = {
   en: {
     title: "Report an Absence",
     description: "Please complete the form below to report your child's absence.",
     form: {
-      title: "Absence Form",
-      description: "For security, you can only select children linked to your account.",
-      childLabel: "Child's Name",
+      title: "Absence Details",
+      description: "Please provide the details below.",
+      childLabel: "Who is absent?",
       childPlaceholder: "Select your child",
-      startDateLabel: "Start Date of Absence",
-      endDateLabel: "End Date of Absence",
+      startDateLabel: "Start Date",
+      endDateLabel: "End Date",
       datePlaceholder: "Pick a date",
       multiDayLabel: "This absence is for more than one day",
       reasonLabel: "Reason for Absence",
-      reasonPlaceholder: "e.g., Unwell with a cold.",
-      documentLabel: "Upload a Document (Optional)",
-      documentDescription: "e.g., a doctor's note or appointment confirmation.",
+      reasonPlaceholder: "Please provide a brief reason (e.g., Unwell with a cold, Medical appointment)",
+      documentLabel: "Upload Note (Optional)",
+      documentDescription: "Doctor's note or appointment letter.",
       submitButton: "Submit Report",
     },
     success: {
-        title: "Absence Reported Successfully",
-        description: "We've received the absence report for {childName}. The school office has been notified.",
+      title: "Absence Reported",
+      description: "We've notified the school office about {childName}.",
     },
     error: {
-        title: "Submission Failed",
-        description: "Could not submit the absence report. Please try again later or contact the school office directly.",
+      title: "Submission Failed",
+      description: "Could not submit the report. Please try again.",
     },
     formSchema: {
-        childId: { required_error: 'Please select a child.' },
-        absenceDate: { required_error_from: 'Please select a start date for the absence.' },
-        reason: { message: 'Please provide a brief reason for the absence (at least 10 characters).' }
+      childId: { required_error: 'Please select a child.' },
+      absenceDate: { required_error_from: 'Please select a start date.' },
+      reason: { message: 'Please provide a reason (min 10 chars).' }
     }
   },
   cy: {
     title: "Riportio Absenoldeb",
     description: "Cwblhewch y ffurflen isod i riportio absenoldeb eich plentyn.",
     form: {
-      title: "Ffurflen Absenoldeb",
-      description: "Er diogelwch, dim ond plant sy'n gysylltiedig â'ch cyfrif y gallwch eu dewis.",
-      childLabel: "Enw'r Plentyn",
+      title: "Manylion Absenoldeb",
+      description: "Rhowch y manylion isod.",
+      childLabel: "Pwy sy'n absennol?",
       childPlaceholder: "Dewiswch eich plentyn",
-      startDateLabel: "Dyddiad Dechrau'r Absenoldeb",
-      endDateLabel: "Dyddiad Gorffen yr Absenoldeb",
+      startDateLabel: "Dyddiad Dechrau",
+      endDateLabel: "Dyddiad Gorffen",
       datePlaceholder: "Dewiswch ddyddiad",
-      multiDayLabel: "Mae'r absenoldeb hwn am fwy nag un diwrnod",
-      reasonLabel: "Rheswm dros Absenoldeb",
-      reasonPlaceholder: "e.e., Yn sâl gydag annwyd.",
-      documentLabel: "Uwchlwytho Dogfen (Dewisol)",
-      documentDescription: "e.e., nodyn meddyg neu gadarnhad apwyntiad.",
-      submitButton: "Cyflwyno'r Adroddiad",
+      multiDayLabel: "Mwy nag un diwrnod",
+      reasonLabel: "Rheswm",
+      reasonPlaceholder: "Rhowch reswm byr...",
+      documentLabel: "Uwchlwytho Nodyn (Dewisol)",
+      documentDescription: "Nodyn meddyg neu lythyr.",
+      submitButton: "Cyflwyno",
     },
     success: {
-        title: "Absenoldeb Wedi'i Riportio'n Llwyddiannus",
-        description: "Rydym wedi derbyn yr adroddiad absenoldeb ar gyfer {childName}. Mae swyddfa'r ysgol wedi'i hysbysu.",
+      title: "Adroddiad Wedi'i Dderbyn",
+      description: "Wedi hysbysu'r swyddfa am {childName}.",
     },
     error: {
-        title: "Methiant Cyflwyno",
-        description: "Ni ellid cyflwyno'r adroddiad absenoldeb. Rhowch gynnig arall arni yn nes ymlaen neu cysylltwch â swyddfa'r ysgol yn uniongyrchol.",
+      title: "Methiant",
+      description: "Ni ellid cyflwyno. Rhowch gynnig arall.",
     },
     formSchema: {
-        childId: { required_error: 'Dewiswch blentyn.' },
-        absenceDate: { required_error_from: 'Dewiswch ddyddiad dechrau ar gyfer yr absenoldeb.' },
-        reason: { message: 'Rhowch reswm byr dros yr absenoldeb (o leiaf 10 nod).' }
+      childId: { required_error: 'Dewiswch blentyn.' },
+      absenceDate: { required_error_from: 'Dewiswch ddyddiad.' },
+      reason: { message: 'Rhowch reswm (o leiaf 10 nod).' }
     }
   }
 };
@@ -130,19 +132,20 @@ export default function AbsencePage() {
   const form = useForm<z.infer<ReturnType<typeof absenceFormSchema>>>({
     resolver: zodResolver(absenceFormSchema(t.formSchema)),
     defaultValues: {
-        reason: "",
+      reason: "",
     }
   });
 
   async function onSubmit(values: z.infer<ReturnType<typeof absenceFormSchema>>) {
     setIsLoading(true);
-    
+
+    // In a real app, we'd fetch the parent's actual details
     const parentInfo = { name: "Jane Doe", email: "parent@example.com" };
     const childName = mockChildren.find(c => c.id === values.childId)?.name || 'Unknown Child';
 
     let dateString = format(values.startDate, 'PPP', { locale });
     if (values.endDate && isMultiDay) {
-        dateString += ` - ${format(values.endDate, 'PPP', { locale })}`;
+      dateString += ` - ${format(values.endDate, 'PPP', { locale })}`;
     }
 
     const messageBody = `
@@ -152,87 +155,108 @@ Reason: ${values.reason}
 ---
 Submitted by: ${parentInfo.name} (${parentInfo.email})
     `;
-    
+
     try {
-        await db.addInboxMessage({
-            type: 'absence',
-            subject: `Absence Report for ${childName}`,
-            body: messageBody,
-            sender: parentInfo,
-            isRead: false,
-            createdAt: new Date().toISOString(),
-        });
-        
-        toast({
-            title: t.success.title,
-            description: t.success.description.replace('{childName}', childName),
-            variant: 'default',
-        });
-        
-        form.reset();
-        setIsMultiDay(false);
+      await db.addInboxMessage({
+        type: 'absence',
+        subject: `Absence Report for ${childName}`,
+        body: messageBody,
+        sender: parentInfo,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      toast({
+        title: t.success.title,
+        description: t.success.description.replace('{childName}', childName),
+        variant: 'default',
+      });
+
+      form.reset();
+      setIsMultiDay(false);
 
     } catch (error) {
-        console.error("Failed to submit absence report:", error);
-        toast({
-            title: t.error.title,
-            description: t.error.description,
-            variant: 'destructive',
-        });
+      console.error("Failed to submit absence report:", error);
+      toast({
+        title: t.error.title,
+        description: t.error.description,
+        variant: 'destructive',
+      });
     }
-
 
     setIsLoading(false);
   }
 
   return (
-    <div className="space-y-6">
-       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-headline">{t.title}</h1>
           <p className="text-muted-foreground">
-             {t.description}
+            {t.description}
           </p>
         </div>
       </div>
 
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>{t.form.title}</CardTitle>
-          <CardDescription>
-            {t.form.description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <FormField
-                control={form.control}
-                name="childId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t.form.childLabel}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t.form.childPlaceholder} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {mockChildren.map((child) => (
-                          <SelectItem key={child.id} value={child.id}>
-                            {child.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      <div className="max-w-3xl mx-auto">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 
-              <div className="space-y-4">
-                 <FormField
+            {/* 1. Who is absent? - Visual Selector */}
+            <FormField
+              control={form.control}
+              name="childId"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel className="text-lg font-semibold">{t.form.childLabel}</FormLabel>
+                  <FormControl>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {mockChildren.map((child) => {
+                        const isSelected = field.value === child.id;
+                        return (
+                          <div
+                            key={child.id}
+                            onClick={() => field.onChange(child.id)}
+                            className={cn(
+                              "cursor-pointer relative overflow-hidden rounded-xl border-2 p-4 transition-all hover:shadow-md",
+                              isSelected
+                                ? "border-primary bg-primary/5 shadow-md"
+                                : "border-border bg-card hover:border-primary/50"
+                            )}
+                          >
+                            <div className="flex items-center gap-4">
+                              <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+                                <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                                  {child.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-bold text-base">{child.name}</p>
+                                <p className="text-sm text-muted-foreground">{child.yearGroup}</p>
+                              </div>
+                              {isSelected && (
+                                <div className="ml-auto bg-primary text-primary-foreground rounded-full p-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Card className="border-border/60 shadow-sm">
+              <CardHeader>
+                <CardTitle>{t.form.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
                     control={form.control}
                     name="startDate"
                     render={({ field }) => (
@@ -244,12 +268,12 @@ Submitted by: ${parentInfo.name} (${parentInfo.email})
                               <Button
                                 variant={'outline'}
                                 className={cn(
-                                  'w-full justify-start text-left font-normal',
+                                  'w-full pl-3 text-left font-normal h-11',
                                   !field.value && 'text-muted-foreground'
                                 )}
                               >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
                                 {field.value ? format(field.value, 'PPP') : <span>{t.form.datePlaceholder}</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
@@ -269,98 +293,105 @@ Submitted by: ${parentInfo.name} (${parentInfo.email})
                     )}
                   />
 
-                  <div className="flex items-center space-x-2">
-                    <Switch id="multi-day-switch" checked={isMultiDay} onCheckedChange={setIsMultiDay} />
-                    <Label htmlFor="multi-day-switch">{t.form.multiDayLabel}</Label>
-                  </div>
-                  
                   {isMultiDay && (
-                     <FormField
-                        control={form.control}
-                        name="endDate"
-                        render={({ field }) => (
+                    <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
                         <FormItem className="flex flex-col">
-                            <FormLabel>{t.form.endDateLabel}</FormLabel>
-                            <Popover>
+                          <FormLabel>{t.form.endDateLabel}</FormLabel>
+                          <Popover>
                             <PopoverTrigger asChild>
-                                <FormControl>
+                              <FormControl>
                                 <Button
-                                    variant={'outline'}
-                                    className={cn(
-                                    'w-full justify-start text-left font-normal',
+                                  variant={'outline'}
+                                  className={cn(
+                                    'w-full pl-3 text-left font-normal h-11',
                                     !field.value && 'text-muted-foreground'
-                                    )}
+                                  )}
                                 >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {field.value ? format(field.value, 'PPP') : <span>{t.form.datePlaceholder}</span>}
+                                  {field.value ? format(field.value, 'PPP') : <span>{t.form.datePlaceholder}</span>}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
-                                </FormControl>
+                              </FormControl>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
+                              <Calendar
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
                                 disabled={(date) => form.getValues('startDate') ? date < form.getValues('startDate') : date < new Date("1900-01-01")}
                                 initialFocus
                                 locale={locale}
-                                />
+                              />
                             </PopoverContent>
-                            </Popover>
-                            <FormMessage />
+                          </Popover>
+                          <FormMessage />
                         </FormItem>
-                        )}
+                      )}
                     />
                   )}
-              </div>
+                </div>
 
-              <FormField
-                control={form.control}
-                name="reason"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t.form.reasonLabel}</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder={t.form.reasonPlaceholder}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <div className="flex items-center space-x-2">
+                  <Switch id="multi-day-switch" checked={isMultiDay} onCheckedChange={setIsMultiDay} />
+                  <Label htmlFor="multi-day-switch">{t.form.multiDayLabel}</Label>
+                </div>
 
-              <FormField
-                control={form.control}
-                name="document"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t.form.documentLabel}</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                          <Input type="file" className="pl-12" onChange={(e) => field.onChange(e.target.files && e.target.files[0])} />
-                          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                              <Upload className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      {t.form.documentDescription}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="reason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t.form.reasonLabel}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={t.form.reasonPlaceholder}
+                          className="min-h-[100px] resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <Button type="submit" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t.form.submitButton}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                <FormField
+                  control={form.control}
+                  name="document"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t.form.documentLabel}</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center justify-center w-full">
+                          <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                              <Upload className="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" />
+                              <p className="text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{t.form.documentDescription}</p>
+                            </div>
+                            <Input id="dropzone-file" type="file" className="hidden" onChange={(e) => field.onChange(e.target.files && e.target.files[0])} />
+                          </label>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="pt-2">
+                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t.form.submitButton}
+                  </Button>
+                </div>
+
+              </CardContent>
+            </Card>
+
+          </form>
+        </Form>
+      </div>
     </div>
   );
 }

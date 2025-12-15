@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Inbox, Reply, Send, Mail } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { db } from '@/lib/db';
 import type { InboxMessageWithId } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -20,32 +21,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 
 const replyFormSchema = z.object({
-  replyMessage: z.string().min(1, 'Reply cannot be empty.'),
+    replyMessage: z.string().min(1, 'Reply cannot be empty.'),
 });
+
 
 const content = {
     en: {
         title: 'Inbox',
-        description: 'Messages and replies from the school.',
-        noMessages: 'Your inbox is empty.',
-        noMessagesDesc: "You don't have any messages yet.",
-        from: "From:",
-        you: "You",
+        description: 'Communication with the school.',
+        noMessages: 'No messages yet.',
+        noMessagesDesc: "Messages from the school will appear here.",
         replyPlaceholder: "Type your reply...",
-        sendButton: "Send Reply",
-        toastSuccess: "Your reply has been sent.",
+        sendButton: "Send",
+        toastSuccess: "Reply sent",
         toastError: "Could not send reply.",
     },
     cy: {
         title: 'Mewnflwch',
-        description: 'Negeseuon ac atebion gan yr ysgol.',
-        noMessages: 'Mae eich mewnflwch yn wag.',
-        noMessagesDesc: "Nid oes gennych unrhyw negeseuon eto.",
-        from: "Oddi wrth:",
-        you: "Chi",
+        description: 'Cyfathrebu â\'r ysgol.',
+        noMessages: 'Dim negeseuon eto.',
+        noMessagesDesc: "Bydd negeseuon gan yr ysgol yn ymddangos yma.",
         replyPlaceholder: "Teipiwch eich ateb...",
-        sendButton: "Anfon Ateb",
-        toastSuccess: "Mae eich ateb wedi'i anfon.",
+        sendButton: "Anfon",
+        toastSuccess: "Anfonwyd yr ateb",
         toastError: "Ni ellid anfon yr ateb.",
     }
 }
@@ -79,7 +77,7 @@ const ReplyForm = ({ threadId, subject, onSuccess }: { threadId: string, subject
             });
             toast({ title: t.toastSuccess });
             form.reset();
-            onSuccess(); // Callback to refresh messages
+            onSuccess();
         } catch (error) {
             console.error("Failed to send reply:", error);
             toast({ title: t.toastError, variant: 'destructive' });
@@ -90,20 +88,24 @@ const ReplyForm = ({ threadId, subject, onSuccess }: { threadId: string, subject
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSendReply)} className="flex items-start gap-4 pt-4">
-                 <FormField
+            <form onSubmit={form.handleSubmit(handleSendReply)} className="flex items-end gap-2 mt-4 pt-4 border-t">
+                <FormField
                     control={form.control}
                     name="replyMessage"
                     render={({ field }) => (
                         <FormItem className="flex-grow">
                             <FormControl>
-                                <Textarea {...field} placeholder={t.replyPlaceholder} rows={1} className="min-h-0" />
+                                <Textarea
+                                    {...field}
+                                    placeholder={t.replyPlaceholder}
+                                    className="min-h-[60px] resize-none bg-muted/50 border-0 focus-visible:ring-1"
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
-                <Button type="submit" disabled={isSending}>
+                <Button type="submit" size="icon" disabled={isSending} className="mb-0.5 h-10 w-10 shrink-0 rounded-full">
                     {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
             </form>
@@ -120,13 +122,13 @@ export default function ParentInboxPage() {
     const { toast } = useToast();
     const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>(undefined);
 
-    const currentUserId = 'parent-1'; 
+    const currentUserId = 'parent-1';
 
     const fetchMessages = async () => {
         setIsLoading(true);
         try {
             const userMessages = await db.getInboxMessagesForUser(currentUserId);
-            
+
             const groupedByThread: Record<string, InboxMessageWithId[]> = {};
             userMessages.forEach(msg => {
                 const threadId = msg.threadId || msg.id;
@@ -135,7 +137,7 @@ export default function ParentInboxPage() {
                 }
                 groupedByThread[threadId].push(msg);
             });
-            
+
             for (const threadId in groupedByThread) {
                 groupedByThread[threadId].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
             }
@@ -145,7 +147,7 @@ export default function ParentInboxPage() {
                 const lastMessageB = groupedByThread[b][groupedByThread[b].length - 1];
                 return new Date(lastMessageB.createdAt).getTime() - new Date(lastMessageA.createdAt).getTime();
             });
-            
+
             const sortedThreads: Record<string, InboxMessageWithId[]> = {};
             sortedThreadIds.forEach(id => {
                 sortedThreads[id] = groupedByThread[id];
@@ -175,25 +177,23 @@ export default function ParentInboxPage() {
         const threadMessages = threads[value];
         if (!threadMessages) return;
 
-        for (const message of threadMessages) {
-            if (message.recipient.id === currentUserId && !message.isReadByParent) {
+        // Mark unread messages as read
+        const unreadMessages = threadMessages.filter(m => m.recipient.id === currentUserId && !m.isReadByParent);
+        if (unreadMessages.length > 0) {
+            for (const message of unreadMessages) {
                 try {
                     await db.updateInboxMessage(message.id, { isReadByParent: true });
-                    setThreads(prev => {
-                        const newThreads = {...prev};
-                        const threadToUpdate = newThreads[value].map(m => 
-                            m.id === message.id ? {...m, isReadByParent: true } : m
-                        );
-                        newThreads[value] = threadToUpdate;
-                        return newThreads;
-                    });
-                } catch (error) {
-                    console.error("Failed to mark message as read:", error);
-                }
+                } catch (e) { console.error(e) }
             }
+            // Optimistic update
+            setThreads(prev => {
+                const newThreads = { ...prev };
+                newThreads[value] = newThreads[value].map(m => ({ ...m, isReadByParent: true }));
+                return newThreads;
+            });
         }
     };
-    
+
     const hasUnread = (thread: InboxMessageWithId[]) => {
         return thread.some(m => m.recipient.id === currentUserId && !m.isReadByParent);
     }
@@ -207,7 +207,7 @@ export default function ParentInboxPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold font-headline">{t.title}</h1>
@@ -216,15 +216,17 @@ export default function ParentInboxPage() {
             </div>
 
             {Object.keys(threads).length === 0 ? (
-                 <Card className="text-center p-12 border-dashed">
-                    <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h2 className="mt-4 text-xl font-semibold">{t.noMessages}</h2>
+                <Card className="text-center p-16 border-dashed">
+                    <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Inbox className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h2 className="text-xl font-semibold">{t.noMessages}</h2>
                     <p className="mt-2 text-muted-foreground">{t.noMessagesDesc}</p>
                 </Card>
             ) : (
-                 <Accordion 
-                    type="single" 
-                    collapsible 
+                <Accordion
+                    type="single"
+                    collapsible
                     className="w-full space-y-4"
                     value={activeAccordionItem}
                     onValueChange={handleAccordionChange}
@@ -232,43 +234,59 @@ export default function ParentInboxPage() {
                     {Object.entries(threads).map(([threadId, messages]) => {
                         const firstMessage = messages[0];
                         const lastMessage = messages[messages.length - 1];
+                        const isUnread = hasUnread(messages);
+
                         return (
-                            <AccordionItem value={threadId} key={threadId} className="border rounded-lg bg-card overflow-hidden">
-                                <AccordionTrigger className={cn("p-4 hover:no-underline", hasUnread(messages) && 'font-bold')}>
-                                    <div className="flex items-center gap-4 w-full">
-                                        <div className="flex-grow text-left">
-                                            <p className="truncate">{firstMessage.subject}</p>
-                                            <p className="text-sm text-muted-foreground font-normal">
-                                                {messages.length} message{messages.length > 1 ? 's' : ''} - Last update {formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true })}
+                            <AccordionItem value={threadId} key={threadId} className="border rounded-xl bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/30">
+                                    <div className="flex items-center gap-4 w-full text-left">
+                                        <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shrink-0", isUnread ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                                            <Mail className="h-5 w-5" />
+                                        </div>
+                                        <div className="flex-grow overflow-hidden">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <h3 className={cn("truncate text-base", isUnread ? "font-bold text-foreground" : "font-medium text-foreground/80")}>
+                                                    {firstMessage.subject}
+                                                </h3>
+                                                <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                                                    {formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true })}
+                                                </span>
+                                            </div>
+                                            <p className={cn("truncate text-sm pr-4", isUnread ? "text-foreground" : "text-muted-foreground")}>
+                                                {lastMessage.body}
                                             </p>
                                         </div>
-                                         {hasUnread(messages) && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                        {isUnread && <div className="h-2.5 w-2.5 rounded-full bg-primary shrink-0 mr-2 animate-pulse" />}
                                     </div>
                                 </AccordionTrigger>
-                                <AccordionContent className="bg-muted/50">
-                                    <div className="p-4 space-y-4">
-                                        {messages.map(message => (
-                                            <div key={message.id} className={cn(
-                                                "p-4 rounded-md flex gap-4",
-                                                message.sender.type === 'admin' ? "bg-card" : "bg-primary/10"
-                                            )}>
-                                                <div className="shrink-0 mt-1">
-                                                     {message.sender.type === 'admin' ? <Reply className="h-5 w-5 text-primary" /> : <Mail className="h-5 w-5 text-primary" />}
-                                                </div>
-                                                <div className="flex-grow">
-                                                     <div className="flex justify-between items-baseline">
-                                                        <p className="font-semibold">
-                                                            {message.sender.type === 'admin' ? message.sender.name : t.you}
-                                                        </p>
-                                                         <p className="text-xs text-muted-foreground">
-                                                            {format(new Date(message.createdAt), 'dd MMM yyyy, p')}
-                                                        </p>
+                                <AccordionContent className="bg-muted/30 border-t">
+                                    <div className="p-6 space-y-6">
+                                        {messages.map((message, index) => {
+                                            const isMe = message.sender.type !== 'admin';
+                                            return (
+                                                <div key={message.id} className={cn("flex gap-3 max-w-[85%]", isMe ? "ml-auto flex-row-reverse" : "")}>
+                                                    <Avatar className="h-8 w-8 mt-1 border shadow-sm">
+                                                        <AvatarImage src={isMe ? `https://placehold.co/40x40.png?text=Me` : `https://placehold.co/40x40.png?text=S`} />
+                                                        <AvatarFallback className={isMe ? "bg-primary text-primary-foreground" : "bg-white"}>
+                                                            {isMe ? "Me" : "S"}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className={cn(
+                                                        "p-3.5 rounded-2xl text-sm shadow-sm",
+                                                        isMe
+                                                            ? "bg-primary text-primary-foreground rounded-tr-none"
+                                                            : "bg-white dark:bg-card border rounded-tl-none"
+                                                    )}>
+                                                        <div className="flex justify-between items-baseline gap-4 mb-1 opacity-80 text-xs">
+                                                            <span className="font-bold">{isMe ? "You" : message.sender.name}</span>
+                                                            <span>{format(new Date(message.createdAt), 'p')}</span>
+                                                        </div>
+                                                        <p className="whitespace-pre-wrap leading-relaxed">{message.body}</p>
                                                     </div>
-                                                    <p className="mt-2 text-sm whitespace-pre-wrap">{message.body}</p>
                                                 </div>
-                                            </div>
-                                        ))}
-                                         <ReplyForm 
+                                            );
+                                        })}
+                                        <ReplyForm
                                             threadId={threadId}
                                             subject={firstMessage.subject}
                                             onSuccess={fetchMessages}
