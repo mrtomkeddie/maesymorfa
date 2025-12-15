@@ -1,7 +1,6 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false; // Retro pixel look
-const startButton = document.getElementById("startButton");
 const scoreDisplay = document.getElementById("score");
 const fullscreenButton = document.getElementById("fullscreenButton");
 const gameContainer = document.querySelector(".game-container");
@@ -143,21 +142,27 @@ imagesToLoad.forEach(img => {
 loop();
 
 // Unified Input Handler
-function handleInput(e) {
+async function handleInput(e) {
   if (isPreview) return;
 
   // Prevent default behavior for touch/click to stop scrolling/zooming/selecting
   if (e.type === 'touchstart') {
+    // Don't prevent default if touching a button
+    if (e.target.closest('button')) return;
     e.preventDefault();
   }
 
+  // Ignore clicks on UI buttons
+  if (e.target.closest('button')) return;
+
   if (showingWelcome) {
-    showingWelcome = false;
-    startButton.style.display = "block";
-    // If it's a touch/click, we might want to trigger the start button logic immediately 
-    // or just let the user tap the start button (which is separate DOM element)
-    // But for better UX, let's just make the FIRST tap reveal the start button (or start if we want).
-    // The current logic just "hides welcome", showing the start button.
+    if (!musicInitialized) {
+      initMusic().then(() => {
+        startGame();
+      });
+    } else {
+      startGame();
+    }
     return;
   }
 
@@ -182,7 +187,20 @@ function handleInput(e) {
 
   if (showingHighScores) {
     showingHighScores = false;
-    startButton.style.display = "none";
+    showingHighScores = false;
+    // startButton.style.display = "none";
+    // Go back to welcome screen logic or directly to game? 
+    // Let's go to welcome screen (simulated start screen)
+    showingWelcome = true;
+    return;
+  }
+
+  // Handle "Tap to Start" screen (Idle state)
+  if (!gameRunning && !showingHighScores && !enteringName && !showingWelcome) {
+    if (!musicInitialized) {
+      await initMusic();
+    }
+    startGame();
     return;
   }
 
@@ -258,7 +276,7 @@ document.addEventListener("keydown", e => {
 }); */
 
 function startGame() {
-  startButton.style.display = "none";
+  // startButton.style.display = "none";
   showingWelcome = false;
   showingHighScores = false;
   enteringName = false;
@@ -299,11 +317,10 @@ function startGame() {
     } catch (error) {
       console.log("Error starting music:", error);
     }
-  } else {
     console.log("Music not ready - will play without background music");
   }
 
-  loop();
+  // loop(); // Removed to prevent double loop - loop is already running due to requestAnimationFrame
 }
 
 function loop() {
@@ -316,7 +333,23 @@ function loop() {
     ctx.drawImage(background, 0, 0, bgWidth, backgroundHeight);
     ctx.drawImage(groundImg, 0, canvasHeight - groundHeight, canvasWidth, groundHeight);
 
-    startButton.style.display = "block";
+    // Draw "TAP TO START" text
+    ctx.save();
+    const time = Date.now() * 0.005;
+    const alpha = (Math.sin(time * 2) + 1) / 2;
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.font = "40px 'VT323', monospace";
+    ctx.textAlign = "center";
+    ctx.shadowColor = "#000";
+    ctx.shadowBlur = 4;
+    ctx.fillText("TAP TO START", canvasWidth / 2, canvasHeight / 2 - 20);
+    ctx.font = "24px 'VT323', monospace";
+    ctx.fillStyle = "#e0e0e0";
+    ctx.fillText("[ SPACE / TAP to Jump ]", canvasWidth / 2, canvasHeight / 2 + 20);
+    ctx.restore();
+
+    // startButton.style.display = "block";
+    requestAnimationFrame(loop);
     return;
   }
 
@@ -782,12 +815,12 @@ function drawWelcomeScreen() {
   ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
   ctx.font = "40px 'VT323', monospace";
   ctx.textAlign = "center";
-  ctx.fillText("PRESS START", canvasWidth / 2, 280);
+  ctx.fillText("TAP TO START", canvasWidth / 2, 280);
 
   // Instructions
   ctx.fillStyle = "#e0e0e0";
   ctx.font = "24px 'VT323', monospace";
-  ctx.fillText("[ SPACE to Jump ]", canvasWidth / 2, 330);
+  ctx.fillText("[ TAP / SPACE to Jump ]", canvasWidth / 2, 330);
   ctx.fillText("[ Double Jump supported ]", canvasWidth / 2, 360);
 }
 

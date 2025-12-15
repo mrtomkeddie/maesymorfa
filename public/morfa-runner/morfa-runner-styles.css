@@ -89,3 +89,35 @@ canvas {
   width: 18px;
   height: 18px;
 }
+
+/* Back Button */
+#backButton {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  line-height: 1;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.2s;
+  text-decoration: none;
+  /* In case we use an anchor tag */
+}
+
+#backButton:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+#backButton svg {
+  width: 16px;
+  height: 16px;
+}
