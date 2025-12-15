@@ -884,6 +884,13 @@ async function initMusic() {
 
     musicInitialized = true;
     console.log("Music initialized successfully");
+
+    // If game is already running (e.g., waiting timeout fired first), start music now
+    if (gameRunning && backgroundMusic) {
+      console.log("Late start of background music");
+      if (Tone.Transport.state !== "started") Tone.Transport.start();
+      if (backgroundMusic.state !== "started") backgroundMusic.start();
+    }
   } catch (error) {
     console.log("Could not initialize music:", error);
   }
