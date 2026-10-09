@@ -13,6 +13,7 @@ import { cy as cyLocale } from 'date-fns/locale';
 import { UrgentNewsPost } from '@/lib/mockNews';
 import { RainbowHero } from '@/components/home/RainbowHero';
 import { TodayAtSchool } from '@/components/home/TodayAtSchool';
+import { GamePreview } from '@/components/home/GamePreview';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/Reveal';
 
 const content = {
@@ -217,12 +218,7 @@ export default function HomePage() {
 
             <Reveal x={40} delay={0.1} className="flex-1 w-full max-w-xl">
               <div className="relative w-full overflow-hidden rounded-3xl shadow-2xl border-4 border-white/20 aspect-video bg-black">
-                <iframe
-                  src="/morfa-runner/index.html?preview=true"
-                  className="w-full h-full border-0 pointer-events-none"
-                  title="Morfa Runner Preview"
-                  tabIndex={-1}
-                />
+                <GamePreview title="Morfa Runner Preview" />
                 <Link href="/play" className="absolute inset-0" aria-label={t.game.play} />
               </div>
             </Reveal>

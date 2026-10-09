@@ -25,6 +25,10 @@ canvas {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /* Taps are jumps: no scrolling, zooming or text selection */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #startButton {
@@ -120,4 +124,143 @@ canvas {
 #backButton svg {
   width: 16px;
   height: 16px;
+}
+/* Mute Button: bottom-right, clear of the page's own buttons at the top */
+#muteButton {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  line-height: 0;
+  z-index: 10;
+}
+
+#muteButton:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+#muteButton svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Class picker */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.72);
+  font-family: 'VT323', monospace;
+  color: #fff;
+  text-align: center;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay h2 {
+  margin: 0;
+  color: #FFC800;
+  font-size: clamp(28px, 6vw, 52px);
+  font-weight: normal;
+  line-height: 1;
+}
+
+.overlay p {
+  margin: 0 0 8px;
+  font-size: clamp(18px, 3vw, 24px);
+  color: #e0e0e0;
+}
+
+#classButtons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  width: min(760px, 100%);
+}
+
+@media (max-width: 560px) {
+  #classButtons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+#classButtons button,
+#changeClassButton {
+  min-height: 48px;
+  padding: 8px 12px;
+  font-family: 'VT323', monospace;
+  font-size: 26px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+
+#classButtons button:hover,
+#classButtons button:focus-visible,
+#classButtons button.current {
+  background: #FFC800;
+  border-color: #FFC800;
+  color: #1a1a1a;
+  outline: none;
+}
+
+#changeClassButton {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  font-size: 22px;
+  min-height: 44px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+#changeClassButton[hidden] {
+  display: none;
+}
+
+/* Landscape only on touch screens */
+#rotateNotice {
+  display: none;
+  z-index: 40;
+  background: #0b1530;
+}
+
+#rotateNotice svg {
+  color: #FFC800;
+  animation: rotate-hint 2.4s ease-in-out infinite;
+}
+
+@keyframes rotate-hint {
+  0%, 30% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(-90deg); }
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  #rotateNotice {
+    display: flex;
+  }
+  body.preview #rotateNotice {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #rotateNotice svg {
+    animation: none;
+  }
 }

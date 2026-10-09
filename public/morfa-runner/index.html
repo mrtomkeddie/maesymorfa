@@ -12,7 +12,7 @@
 <body>
   <div class="game-container">
     <canvas id="gameCanvas" width="900" height="400"></canvas>
-    <div id="score">Score: 0</div>
+    <div id="score" style="display:none">Score: 0</div>
 
     <button id="backButton" onclick="window.location.href='/'" aria-label="Go Back">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -27,6 +27,36 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+      </svg>
+    </button>
+
+    <!-- Real buttons (not drawn on the canvas) so they stay big enough to tap on a phone -->
+    <div id="classPicker" class="overlay" hidden>
+      <h2>Which class are you in?</h2>
+      <p>Your scores help your class climb the league</p>
+      <div id="classButtons"></div>
+    </div>
+    <button id="changeClassButton" hidden>Change class</button>
+    <!-- Phones held upright: ask the player to turn sideways (the game pauses meanwhile) -->
+    <div id="rotateNotice" class="overlay">
+      <svg viewBox="0 0 64 64" width="72" height="72" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="20" y="6" width="24" height="40" rx="4" />
+        <path d="M28 40h8" />
+        <path d="M50 30a20 20 0 0 1-8 22" />
+        <path d="M38 50l4 2 2-4" />
+      </svg>
+      <h2>Turn your phone sideways</h2>
+      <p>Morfa Runner plays in landscape</p>
+    </div>
+    <button id="muteButton" aria-label="Turn sound off" aria-pressed="false">
+      <svg class="icon-on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 5 6 9H2v6h4l5 4V5z" />
+        <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+        <path d="M19 5a10 10 0 0 1 0 14" />
+      </svg>
+      <svg class="icon-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <path d="M11 5 6 9H2v6h4l5 4V5z" />
+        <path d="m23 9-6 6M17 9l6 6" />
       </svg>
     </button>
   </div>

@@ -1,13 +1,45 @@
-
 rules_version = '2';
 
+// Locked down by default: nothing can be read or written unless a rule below allows it.
+// When the site starts storing real data (news, calendar, parents, children, staff),
+// add a rule for that collection here. Never go back to "allow read, write: if true".
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all collections for development purposes.
-    // In a production environment, you should secure your data with more
-    // restrictive rules.
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Morfa Runner class league: one document per class, holding only that class's best
+    // score and number of games. No names or personal data. Anyone may read it.
+    // Writes come from the site's /api/morfa-runner/leaderboard route and must:
+    // - be for a real class
+    // - hold only best, games and updatedAt
+    // - keep best as a whole number from 0 to 200,000 that never goes down
+    // - add exactly one game
+    // - use the server's own clock for updatedAt
+    match /morfaRunnerClasses/{classId} {
+      allow read: if true;
+
+      allow create: if isClass(classId)
+        && validShape()
+        && request.resource.data.games == 1;
+
+      allow update: if isClass(classId)
+        && validShape()
+        && request.resource.data.best >= resource.data.best
+        && request.resource.data.games == resource.data.games + 1;
+
+      allow delete: if false;
+    }
+
+    function isClass(classId) {
+      return classId in ['nursery', 'reception', 'y1', 'y2', 'y3', 'y4', 'y5', 'y6'];
+    }
+
+    function validShape() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['best', 'games', 'updatedAt'])
+        && d.keys().hasAll(['best', 'games', 'updatedAt'])
+        && d.best is int && d.best >= 0 && d.best <= 200000
+        && d.games is int
+        && d.updatedAt == request.time;
     }
   }
 }
