@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { sunTimes, SCHOOL_LAT, SCHOOL_LNG } from '@/lib/sunTimes';
 
 // Same seven bands as the rainbow on the school's own logo and old homepage.
 const BANDS = ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#3949ab', '#8e24aa'];
@@ -33,7 +34,7 @@ const SKIES: Record<TimeOfDay, string> = {
     night: 'linear-gradient(180deg,#0e1838 0%,#1c2b5a 50%,#2a3d72 72%,#8a97b8 88%,#ffffff 100%)',
 };
 
-// UK seasons by month, and four parts of the day by hour.
+// UK seasons by month.
 function seasonFor(d: Date): Season {
     const m = d.getMonth();
     if (m >= 2 && m <= 4) return 'spring';
@@ -41,12 +42,16 @@ function seasonFor(d: Date): Season {
     if (m >= 8 && m <= 10) return 'autumn';
     return 'winter';
 }
+// Time of day follows the real sun over the school, wherever the visitor is:
+// dawn from 40 minutes before sunrise to an hour after, dusk from an hour before sunset to 40 minutes after.
 function timeFor(d: Date): TimeOfDay {
-    const h = d.getHours();
-    if (h >= 6 && h < 9) return 'dawn';
-    if (h >= 9 && h < 17) return 'day';
-    if (h >= 17 && h < 20) return 'dusk';
-    return 'night';
+    const { sunrise, sunset } = sunTimes(d, SCHOOL_LAT, SCHOOL_LNG);
+    const min = 60_000;
+    const t = d.getTime();
+    if (t < sunrise.getTime() - 40 * min || t >= sunset.getTime() + 40 * min) return 'night';
+    if (t < sunrise.getTime() + 60 * min) return 'dawn';
+    if (t < sunset.getTime() - 60 * min) return 'day';
+    return 'dusk';
 }
 
 // Reads the real date and time; ?season=winter&time=night overrides them for previewing.
@@ -64,6 +69,14 @@ function useSeasonAndTime() {
             season: s && s in SEASON_IMAGES ? s : seasonFor(now),
             time: t && t in SKIES ? t : timeFor(now),
         });
+
+        // Keep following the sun while the page stays open (not when previewing a fixed sky)
+        if (s || t || q.has('demo')) return;
+        const id = setInterval(() => {
+            const at = new Date();
+            setState({ season: seasonFor(at), time: timeFor(at) });
+        }, 5 * 60_000);
+        return () => clearInterval(id);
     }, []);
     return { scene: state, setScene: setState, demo };
 }
