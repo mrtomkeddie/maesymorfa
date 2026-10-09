@@ -50,9 +50,12 @@ function timeFor(d: Date): TimeOfDay {
 }
 
 // Reads the real date and time; ?season=winter&time=night overrides them for previewing.
+// ?demo adds a small panel for switching season and time live (for showing the school).
 function useSeasonAndTime() {
     const [state, setState] = useState<{ season: Season; time: TimeOfDay } | null>(null);
+    const [demo, setDemo] = useState(false);
     useEffect(() => {
+        setDemo(new URLSearchParams(window.location.search).has('demo'));
         const now = new Date();
         const q = new URLSearchParams(window.location.search);
         const s = q.get('season') as Season | null;
@@ -62,7 +65,87 @@ function useSeasonAndTime() {
             time: t && t in SKIES ? t : timeFor(now),
         });
     }, []);
-    return state;
+    return { scene: state, setScene: setState, demo };
+}
+
+const SEASONS: Season[] = ['spring', 'summer', 'autumn', 'winter'];
+const TIMES: TimeOfDay[] = ['dawn', 'day', 'dusk', 'night'];
+// The auto tour: a run through the year, then into the night.
+const TOUR: [Season, TimeOfDay][] = [
+    ['spring', 'dawn'], ['spring', 'day'], ['summer', 'day'], ['summer', 'dusk'],
+    ['autumn', 'day'], ['autumn', 'dusk'], ['winter', 'day'], ['winter', 'night'],
+];
+const titleCase = (w: string) => w[0].toUpperCase() + w.slice(1);
+
+// Only shown with ?demo. Visitors never see it.
+function DemoPanel({ season, time, onChange }: { season: Season; time: TimeOfDay; onChange: (s: Season, t: TimeOfDay) => void }) {
+    const [open, setOpen] = useState(true);
+    const [touring, setTouring] = useState(false);
+
+    // Starts folded away on phones, so it does not cover the hero
+    useEffect(() => {
+        if (window.innerWidth < 640) setOpen(false);
+    }, []);
+
+    useEffect(() => {
+        if (!touring) return;
+        let i = Math.max(0, TOUR.findIndex(([s, t]) => s === season && t === time));
+        const id = setInterval(() => {
+            i = (i + 1) % TOUR.length;
+            onChange(...TOUR[i]);
+        }, 5000);
+        return () => clearInterval(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [touring]);
+
+    const chip = (active: boolean) =>
+        `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${active ? 'bg-primary text-white' : 'bg-black/5 text-foreground hover:bg-black/10'}`;
+
+    if (!open) {
+        return (
+            <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="fixed bottom-4 right-4 z-[60] rounded-full bg-white px-4 py-2 text-sm font-semibold shadow-lg ring-1 ring-black/10"
+            >
+                Seasons
+            </button>
+        );
+    }
+
+    return (
+        <div className="fixed bottom-4 right-4 z-[60] w-[22rem] max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 p-4 shadow-xl ring-1 ring-black/10 backdrop-blur">
+            <div className="mb-3 flex items-center justify-between">
+                <p className="font-headline text-lg font-bold">Preview the sky</p>
+                <button type="button" onClick={() => setOpen(false)} className="text-sm text-muted-foreground hover:text-foreground" aria-label="Hide panel">
+                    Hide
+                </button>
+            </div>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Season</p>
+            <div className="mb-3 flex flex-wrap gap-1.5">
+                {SEASONS.map((s) => (
+                    <button key={s} type="button" className={chip(s === season)} onClick={() => { setTouring(false); onChange(s, time); }}>
+                        {titleCase(s)}
+                    </button>
+                ))}
+            </div>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Time of day</p>
+            <div className="mb-3 flex flex-wrap gap-1.5">
+                {TIMES.map((t) => (
+                    <button key={t} type="button" className={chip(t === time)} onClick={() => { setTouring(false); onChange(season, t); }}>
+                        {titleCase(t)}
+                    </button>
+                ))}
+            </div>
+            <button
+                type="button"
+                onClick={() => setTouring((v) => !v)}
+                className={`w-full rounded-full px-3 py-2 text-sm font-semibold transition-colors ${touring ? 'bg-foreground text-background' : 'bg-primary/10 text-primary hover:bg-primary/15'}`}
+            >
+                {touring ? 'Stop the tour' : 'Play a tour of the year'}
+            </button>
+        </div>
+    );
 }
 
 function Cloud({ className, style }: { className: string; style?: React.CSSProperties }) {
@@ -199,7 +282,7 @@ const BUILDING_FILTER: Record<TimeOfDay, string> = {
 export function RainbowHero({ t }: { t: HeroText }) {
     const ref = useRef<HTMLElement>(null);
     const reduce = useReducedMotion();
-    const scene = useSeasonAndTime();
+    const { scene, setScene, demo } = useSeasonAndTime();
     const season = scene?.season ?? 'summer';
     const time = scene?.time ?? 'day';
     const night = time === 'night';
@@ -286,17 +369,21 @@ export function RainbowHero({ t }: { t: HeroText }) {
                     transition={{ duration: 1, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                     className="relative"
                 >
-                    <Image
-                        key={season}
-                        src={SEASON_IMAGES[season]}
-                        alt={t.imageAlt}
-                        width={920}
-                        height={675}
-                        priority
-                        sizes="(min-width: 1024px) 50vw, 108vw"
-                        className="block h-auto w-full transition-[filter] duration-1000"
-                        style={{ filter: BUILDING_FILTER[time] }}
-                    />
+                    {/* Visitors load only this season's drawing; the demo stacks all four so switching crossfades */}
+                    {(demo ? SEASONS : [season]).map((s, i) => (
+                        <Image
+                            key={s}
+                            src={SEASON_IMAGES[s]}
+                            alt={s === season ? t.imageAlt : ''}
+                            aria-hidden={s !== season}
+                            width={920}
+                            height={675}
+                            priority={s === season}
+                            sizes="(min-width: 1024px) 50vw, 108vw"
+                            className={`h-auto w-full transition-[filter,opacity] duration-1000 ${i === 0 ? 'relative block' : 'absolute inset-0'} ${s === season ? 'opacity-100' : 'opacity-0'}`}
+                            style={{ filter: BUILDING_FILTER[time] }}
+                        />
+                    ))}
                     {/* Warm lit windows after dark */}
                     {night && <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_30%_18%_at_55%_70%,rgba(255,214,120,0.35),transparent_70%)]" aria-hidden="true" />}
                 </motion.div>
@@ -358,6 +445,7 @@ export function RainbowHero({ t }: { t: HeroText }) {
                     </div>
                 </motion.div>
             </div>
+            {demo && scene && <DemoPanel season={season} time={time} onChange={(s, tm) => setScene({ season: s, time: tm })} />}
         </section>
     );
 }
