@@ -157,7 +157,7 @@ export default function HomePage() {
           <div>
             <div className="flex items-baseline justify-between gap-4 mb-6">
               <h2 className="font-headline text-[1.75rem] md:text-4xl font-bold">{t.upcomingEvents.heading}</h2>
-              <Link href="/calendar" className="shrink-0 whitespace-nowrap text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1">
+              <Link href="/events" className="shrink-0 whitespace-nowrap text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1">
                 {t.upcomingEvents.viewAll} <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -165,7 +165,7 @@ export default function HomePage() {
               <RevealGroup className="space-y-3">
                 {upcomingEvents.map((event) => (
                   <RevealItem key={event.id}>
-                    <Link href="/calendar" className="group flex items-center gap-4 rounded-2xl bg-secondary/60 p-4 transition-colors hover:bg-secondary">
+                    <Link href="/events" className="group flex items-center gap-4 rounded-2xl bg-secondary/60 p-4 transition-colors hover:bg-secondary">
                       <div className="shrink-0 w-14 rounded-xl bg-white py-2 text-center shadow-sm">
                         <span className="block font-headline text-2xl font-bold leading-none">{format(new Date(event.start), 'dd')}</span>
                         <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{format(new Date(event.start), 'MMM', locale)}</span>

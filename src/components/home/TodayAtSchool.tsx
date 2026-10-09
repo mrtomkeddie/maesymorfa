@@ -25,11 +25,13 @@ const content = {
         noEvents: 'Nothing on the calendar this week.',
         notice: 'Latest notice',
         allDay: 'All day',
+        fullMenu: 'Full menu',
+        fullCalendar: 'Full calendar',
+        readMore: 'Read more',
+        // The cards above already open the lunch menu and the calendar
         links: [
             { label: 'Term dates', href: '/key-info#term-dates' },
             { label: 'Uniform', href: '/key-info#uniform' },
-            { label: 'Full lunch menu', href: '/key-info#lunch-menu' },
-            { label: 'Calendar', href: '/calendar' },
         ],
     },
     cy: {
@@ -42,14 +44,25 @@ const content = {
         noEvents: "Dim byd ar y calendr yr wythnos hon.",
         notice: 'Hysbysiad diweddaraf',
         allDay: 'Drwy’r dydd',
+        fullMenu: 'Bwydlen lawn',
+        fullCalendar: 'Calendr llawn',
+        readMore: 'Darllen mwy',
         links: [
             { label: 'Dyddiadau tymor', href: '/key-info#term-dates' },
             { label: 'Gwisg ysgol', href: '/key-info#uniform' },
-            { label: 'Bwydlen lawn', href: '/key-info#lunch-menu' },
-            { label: 'Calendr', href: '/calendar' },
         ],
     },
 };
+
+// The "this card opens something" line at the foot of each card.
+function CardCue({ label, className }: { label: string; className: string }) {
+    return (
+        <span className={`mt-auto inline-flex items-center gap-1 pt-3 text-sm font-semibold ${className}`}>
+            {label}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+        </span>
+    );
+}
 
 // Sits under the hero: the three things a parent checks most, without leaving the homepage.
 export function TodayAtSchool() {
@@ -88,7 +101,7 @@ export function TodayAtSchool() {
 
                 <RevealGroup className="grid gap-4 md:grid-cols-3">
                     <RevealItem className="h-full">
-                        <div className="h-full rounded-2xl bg-amber-50 p-5">
+                        <Link href="/key-info#lunch-menu" className="group flex h-full flex-col rounded-2xl bg-amber-50 p-5 transition-colors hover:bg-amber-100">
                             <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700">
                                 <Utensils className="h-4 w-4" /> {isWeekend ? t.lunchMonday : t.lunchToday}
                             </p>
@@ -108,11 +121,12 @@ export function TodayAtSchool() {
                                     <div className="h-4 w-1/2 rounded bg-amber-100 animate-pulse" />
                                 </div>
                             )}
-                        </div>
+                            <CardCue label={t.fullMenu} className="text-amber-800" />
+                        </Link>
                     </RevealItem>
 
                     <RevealItem className="h-full">
-                        <Link href="/calendar" className="group block h-full rounded-2xl bg-sky-50 p-5 transition-colors hover:bg-sky-100">
+                        <Link href="/events" className="group flex h-full flex-col rounded-2xl bg-sky-50 p-5 transition-colors hover:bg-sky-100">
                             <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-700">
                                 <CalendarDays className="h-4 w-4" /> {t.nextEvent}
                             </p>
@@ -136,6 +150,7 @@ export function TodayAtSchool() {
                             ) : (
                                 <p className="mt-3 text-sm text-muted-foreground">{t.noEvents}</p>
                             )}
+                            <CardCue label={t.fullCalendar} className="text-sky-800" />
                         </Link>
                     </RevealItem>
 
@@ -143,7 +158,7 @@ export function TodayAtSchool() {
                         {notice && (
                             <Link
                                 href={`/news/${notice.slug}`}
-                                className={`group block h-full rounded-2xl p-5 transition-colors ${notice.isUrgent ? 'bg-red-50 hover:bg-red-100' : 'bg-rose-50 hover:bg-rose-100'}`}
+                                className={`group flex h-full flex-col rounded-2xl p-5 transition-colors ${notice.isUrgent ? 'bg-red-50 hover:bg-red-100' : 'bg-rose-50 hover:bg-rose-100'}`}
                             >
                                 <p className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${notice.isUrgent ? 'text-red-700' : 'text-primary'}`}>
                                     <BellRing className="h-4 w-4" /> {t.notice}
@@ -151,10 +166,7 @@ export function TodayAtSchool() {
                                 <p className="mt-3 font-headline text-xl font-semibold leading-snug">
                                     {language === 'en' ? notice.title_en : notice.title_cy}
                                 </p>
-                                <span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary">
-                                    {language === 'en' ? 'Read more' : 'Darllen mwy'}
-                                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                                </span>
+                                <CardCue label={t.readMore} className="text-primary" />
                             </Link>
                         )}
                     </RevealItem>
