@@ -18,7 +18,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['var(--font-inter)', 'sans-serif'],
-        headline: ['var(--font-inter)', 'sans-serif'],
+        headline: ['var(--font-fredoka)', 'var(--font-inter)', 'sans-serif'],
         pixel: ['var(--font-pixel)', 'monospace'],
         code: ['monospace'],
       },

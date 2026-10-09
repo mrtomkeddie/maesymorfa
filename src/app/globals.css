@@ -110,8 +110,90 @@
     text-wrap: balance;
   }
 
+  /* Homepage hero: plain-CSS entrance so the words show even before JS loads */
+  .hero-rise {
+    animation: hero-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .hero-cloud {
+    left: 0;
+    animation-name: hero-drift;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  /* Mirrored up-and-down, so the loop has no jump at either end */
+  .hero-bob {
+    animation: hero-bob 7s ease-in-out infinite alternate;
+  }
+
+  .season-fall {
+    animation-name: season-fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+
+  .sky-twinkle {
+    animation: sky-twinkle 2.4s ease-in-out infinite alternate;
+  }
+
+  .sun-spin {
+    animation: sun-spin 60s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .season-fall { animation: none; display: none; }
+    .sky-twinkle, .sun-spin { animation: none; }
+    .hero-rise { animation: none; }
+    .hero-bob { animation: none; }
+    .hero-cloud { animation: none; transform: translateX(20vw); }
+  }
+
   .bg-pixel-pattern {
     background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px);
     background-size: 16px 16px;
   }
+}
+/* Starts above the picture and ends below it, so the restart is never seen */
+@keyframes season-fall {
+  0% { top: -6%; transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(16px) rotate(80deg); }
+  50% { transform: translateX(-12px) rotate(170deg); }
+  75% { transform: translateX(14px) rotate(260deg); }
+  100% { top: 104%; transform: translateX(0) rotate(360deg); }
+}
+
+@keyframes sky-twinkle {
+  from { opacity: 0.25; }
+  to { opacity: 1; }
+}
+
+/* A full turn ends where it began, so the loop is seamless */
+@keyframes sun-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes hero-bob {
+  from { transform: translateY(-5px); }
+  to { transform: translateY(5px); }
+}
+
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Starts and ends fully off-screen, so the restart is invisible */
+@keyframes hero-drift {
+  from { transform: translateX(-260px); }
+  to { transform: translateX(calc(100vw + 40px)); }
+}
+
+/* Gusts carry each leaf from left to right as it falls; it starts and ends out of view */
+@keyframes leaf-blow {
+  0% { top: -6%; transform: translateX(-140px) rotate(0deg); }
+  30% { transform: translateX(40px) rotate(150deg); }
+  55% { transform: translateX(10px) rotate(230deg); }
+  80% { transform: translateX(170px) rotate(420deg); }
+  100% { top: 104%; transform: translateX(260px) rotate(540deg); }
 }

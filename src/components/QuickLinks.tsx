@@ -4,6 +4,7 @@ import { Calendar, Shirt, Utensils, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
+import { RevealGroup, RevealItem } from './motion/Reveal';
 
 const content = {
     en: {
@@ -27,14 +28,14 @@ export function QuickLinks() {
     const t = content[language];
 
     return (
-        <div className="relative -mt-16 z-30 container mx-auto px-8 mb-16">
+        <div className="relative -mt-6 md:-mt-10 z-30 container mx-auto px-8 mb-16">
             <div className="bg-background/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-4 md:p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-gray-700">
+                <RevealGroup className="grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-gray-700">
                     {t.items.map((item, i) => {
                         const Icon = item.icon;
                         return (
+                            <RevealItem key={i}>
                             <Link
-                                key={i}
                                 href={item.href}
                                 className="group flex items-center justify-between p-4 hover:bg-black/5 rounded-xl transition-colors"
                             >
@@ -51,9 +52,10 @@ export function QuickLinks() {
                                 </div>
                                 <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                             </Link>
+                            </RevealItem>
                         )
                     })}
-                </div>
+                </RevealGroup>
             </div>
         </div>
     );
