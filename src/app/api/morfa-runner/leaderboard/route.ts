@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
+import { CLASS_IDS as SCHOOL_CLASS_IDS } from '@/lib/schoolClasses';
 
 // Morfa Runner class league: one best score per class. No names are ever stored.
 export const dynamic = 'force-dynamic';
 
-const CLASS_IDS = ['nursery', 'reception', 'y1', 'y2', 'y3', 'y4', 'y5', 'y6'] as const;
-type ClassId = (typeof CLASS_IDS)[number];
+const CLASS_IDS = SCHOOL_CLASS_IDS;
+type ClassId = string;
 type ClassRow = { classId: ClassId; best: number; games: number };
 
 // A long, very good run at full speed scores in the tens of thousands; anything above this is not a real run.
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
     }
     const { classId, score } = (body ?? {}) as { classId?: unknown; score?: unknown };
 
-    if (typeof classId !== 'string' || !(CLASS_IDS as readonly string[]).includes(classId)) {
+    if (typeof classId !== 'string' || !CLASS_IDS.includes(classId)) {
         return NextResponse.json({ error: 'Unknown class' }, { status: 400 });
     }
     if (typeof score !== 'number' || !Number.isInteger(score) || score < 0 || score > MAX_SCORE) {

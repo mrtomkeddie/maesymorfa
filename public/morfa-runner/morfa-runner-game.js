@@ -105,22 +105,22 @@ const confettiLifetime = 60; // frames
 let scorePopups = [];
 
 // ---------- Classes and the class league ----------
+// Keep in step with src/lib/schoolClasses.ts (the league API rejects any other class)
 const CLASSES = [
-  { id: "nursery", label: "Nursery", key: "n" },
-  { id: "reception", label: "Reception", key: "r" },
-  { id: "y1", label: "Year 1", key: "1" },
-  { id: "y2", label: "Year 2", key: "2" },
-  { id: "y3", label: "Year 3", key: "3" },
-  { id: "y4", label: "Year 4", key: "4" },
-  { id: "y5", label: "Year 5", key: "5" },
-  { id: "y6", label: "Year 6", key: "6" }
+  { id: "bethania", label: "Bethania", hint: "Mr Gravell", key: "b" },
+  { id: "tregoning", label: "Tregoning", hint: "Mr Lewis", key: "t" },
+  { id: "florence", label: "Florence", hint: "Mrs Harris", key: "f" },
+  { id: "westbury", label: "Westbury", hint: "Mrs Mason", key: "w" },
+  { id: "trinity", label: "Trinity", hint: "Mrs Murphy", key: "r" },
+  { id: "olive", label: "Olive", hint: "Miss Barclay & Mrs Smith", key: "o" }
 ];
 const classLabel = id => (CLASSES.find(c => c.id === id) || {}).label || "";
 
 CLASSES.forEach(c => {
   const b = document.createElement("button");
   b.type = "button";
-  b.textContent = c.label;
+  b.innerHTML = `<span class="class-name">${c.label}</span><span class="class-hint">${c.hint}</span>`;
+  b.setAttribute("aria-label", `Dosbarth ${c.label}, ${c.hint}`);
   b.dataset.id = c.id;
   b.addEventListener("click", () => { unlockAudio(); chooseClass(c.id); });
   classButtonsEl.appendChild(b);
@@ -148,6 +148,8 @@ function writeStore(key, value) {
 }
 
 let myClass = readStore("morfa-runner-class", null);
+// A class saved before the classes were renamed no longer exists: ask again
+if (!CLASSES.some(c => c.id === myClass)) myClass = null;
 let myBest = readStore("morfa-runner-best", 0);
 let league = null; // [{ classId, best, games }]
 let leagueStatus = "idle"; // idle | saving | saved | offline
@@ -523,7 +525,7 @@ function drawWelcomeScreen() {
   if (myClass) {
     ctx.fillStyle = "#FFC800";
     ctx.font = "28px 'VT323', monospace";
-    ctx.fillText(`Running for ${classLabel(myClass).toUpperCase()}`, canvasWidth / 2, 310);
+    ctx.fillText(`Running for DOSBARTH ${classLabel(myClass).toUpperCase()}`, canvasWidth / 2, 310);
   }
 }
 
@@ -550,7 +552,7 @@ function drawResults() {
   ctx.fillText(String(lastRun.score), leftX, 150);
   ctx.fillStyle = "#ffffff";
   ctx.font = "28px 'VT323', monospace";
-  ctx.fillText(`for ${classLabel(myClass).toUpperCase()}`, leftX, 185);
+  ctx.fillText(`for DOSBARTH ${classLabel(myClass).toUpperCase()}`, leftX, 185);
   ctx.fillStyle = "#cfe8d0";
   ctx.font = "24px 'VT323', monospace";
   ctx.fillText(`Your best: ${myBest}`, leftX, 225);

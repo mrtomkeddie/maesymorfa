@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Heart, Sparkles } from "lucide-react";
 import { useLanguage } from './../LanguageProvider';
 import Image from "next/image";
+import { STAFF_GROUPS } from "@/lib/staff";
+import { SCHOOL_CLASSES } from "@/lib/schoolClasses";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -52,57 +54,29 @@ const content = {
     }
 };
 
-const teams = {
-    en: [
-        {
-            name: "Leadership Team", members: [
-                { name: "Jane Morgan", role: "Headteacher", imageHint: "woman headteacher portrait" },
-                { name: "Alex Evans", role: "Deputy Head", imageHint: "man teacher portrait" },
-                { name: "Ceri Lloyd", role: "SENCo", imageHint: "woman teacher friendly" },
-            ]
-        },
-        { name: "Nursery & Reception", members: [{ name: "David Williams", role: "Teacher", imageHint: "man teacher classroom" }] },
-        { name: "Year 1", members: [{ name: "Sarah Davies", role: "Teacher", imageHint: "woman teacher primary" }] },
-        { name: "Year 2", members: [{ name: "Tomos Jones", role: "Teacher", imageHint: "man teacher smiling" }] },
-        { name: "Year 3", members: [{ name: "Emily Roberts", role: "Teacher", imageHint: "woman teacher books" }] },
-        { name: "Year 4", members: [{ name: "Megan Phillips", role: "Teacher", imageHint: "teacher portrait" }] },
-        { name: "Year 5", members: [{ name: "Owain Thomas", role: "Teacher", imageHint: "man teacher diverse" }] },
-        { name: "Year 6", members: [{ name: "Ffion Hughes", role: "Teacher", imageHint: "woman teacher outside" }] },
-        {
-            name: "Support Staff", members: [
-                { name: "Mark Phillips", role: "Office Manager", imageHint: "man administrator office" },
-                { name: "Rhiannon Price", role: "Teaching Assistant", imageHint: "woman teaching assistant" },
-            ]
-        },
-    ],
-    cy: [
-        {
-            name: "Tîm Arweinyddiaeth", members: [
-                { name: "Jane Morgan", role: "Pennaeth", imageHint: "woman headteacher portrait" },
-                { name: "Alex Evans", role: "Dirprwy Bennaeth", imageHint: "man teacher portrait" },
-                { name: "Ceri Lloyd", role: "Cydlynydd AAA", imageHint: "woman teacher friendly" },
-            ]
-        },
-        { name: "Meithrin a Derbyn", members: [{ name: "David Williams", role: "Athro", imageHint: "man teacher classroom" }] },
-        { name: "Blwyddyn 1", members: [{ name: "Sarah Davies", role: "Athrawes", imageHint: "woman teacher primary" }] },
-        { name: "Blwyddyn 2", members: [{ name: "Tomos Jones", role: "Athro", imageHint: "man teacher smiling" }] },
-        { name: "Blwyddyn 3", members: [{ name: "Emily Roberts", role: "Athrawes", imageHint: "woman teacher books" }] },
-        { name: "Blwyddyn 4", members: [{ name: "Megan Phillips", role: "Athrawes", imageHint: "teacher portrait" }] },
-        { name: "Blwyddyn 5", members: [{ name: "Owain Thomas", role: "Athro", imageHint: "man teacher diverse" }] },
-        { name: "Blwyddyn 6", members: [{ name: "Ffion Hughes", role: "Athrawes", imageHint: "woman teacher outside" }] },
-        {
-            name: "Staff Cymorth", members: [
-                { name: "Mark Phillips", role: "Rheolwr Swyddfa", imageHint: "man administrator office" },
-                { name: "Rhiannon Price", role: "Cynorthwyydd Addysgu", imageHint: "woman teaching assistant" },
-            ]
-        },
-    ]
-};
+// Real staff only (the school's own published list). No stock photos.
+function buildTeams(lang: 'en' | 'cy') {
+    return STAFF_GROUPS.map((g) => ({ name: g.name[lang], members: g.members.map((m) => ({ name: m.name, role: m.role[lang] })) }));
+}
+
+// Initials in a circle, e.g. "Mr R Gravell" -> "RG"
+function Initials({ name, size }: { name: string; size: 'lg' | 'sm' | 'xs' }) {
+    const parts = name.split(' ').filter((p) => !/^(Mr|Mrs|Ms|Miss|Dr)$/i.test(p));
+    const letters = parts.map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+    return (
+        <div
+            aria-hidden="true"
+            className={`mx-auto flex items-center justify-center rounded-full bg-primary/10 font-headline font-bold text-primary ${size === 'lg' ? 'mb-4 h-32 w-32 text-4xl md:h-40 md:w-40 md:text-5xl' : size === 'sm' ? 'mb-4 h-20 w-20 text-2xl' : 'mx-0 h-11 w-11 shrink-0 text-base'}`}
+        >
+            {letters}
+        </div>
+    );
+}
 
 export default function AboutPage() {
     const { language } = useLanguage();
     const t = content[language];
-    const teamData = teams[language];
+    const teamData = buildTeams(language);
 
     return (
         <div className="bg-background">
@@ -161,16 +135,8 @@ export default function AboutPage() {
                                 <h3 className="font-headline text-2xl font-bold text-center mb-8">{teamData[0].name}</h3>
                                 <div className="flex flex-wrap justify-center gap-8 md:gap-12">
                                     {teamData[0].members.map(member => (
-                                        <div key={member.name} className="group text-center w-full sm:w-64">
-                                            <div className="relative mb-4 mx-auto w-40 h-40 md:w-48 md:h-48 overflow-hidden rounded-full border-4 border-background shadow-xl group-hover:scale-105 transition-transform duration-300">
-                                                <Image
-                                                    src="https://placehold.co/400x400.png"
-                                                    alt={`Portrait of ${member.name}`}
-                                                    data-ai-hint={member.imageHint}
-                                                    fill
-                                                    className="object-cover"
-                                                />
-                                            </div>
+                                        <div key={member.name + member.role} className="group text-center w-full sm:w-64">
+                                            <Initials name={member.name} size="lg" />
                                             <h4 className="font-bold text-xl md:text-2xl mb-1">{member.name}</h4>
                                             <p className="text-primary font-medium uppercase tracking-wide text-sm">{member.role}</p>
                                         </div>
@@ -178,6 +144,36 @@ export default function AboutPage() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Our classes: one card per class with its teachers */}
+                        <div>
+                            <h3 className="font-headline text-2xl font-bold mb-8 flex items-center gap-4">
+                                <span className="bg-primary/10 text-primary p-2 rounded-lg"><Users className="h-6 w-6" /></span>
+                                {language === 'en' ? 'Our Classes' : 'Ein Dosbarthiadau'}
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {SCHOOL_CLASSES.map((c) => (
+                                    <Card key={c.id} className="border-0 bg-secondary/10 overflow-hidden">
+                                        <CardContent className="p-6">
+                                            <p className="text-xs font-bold uppercase tracking-wider text-primary">Dosbarth</p>
+                                            <h4 className="font-headline text-2xl font-bold leading-tight">{c.name}</h4>
+                                            {c.year && <p className="text-sm text-muted-foreground">{c.year[language]}</p>}
+                                            <ul className="mt-4 space-y-3">
+                                                {c.teachers.map((tc) => (
+                                                    <li key={tc.name} className="flex items-center gap-3">
+                                                        <Initials name={tc.name} size="xs" />
+                                                        <div>
+                                                            <p className="font-semibold leading-tight">{tc.name}</p>
+                                                            <p className="text-xs text-muted-foreground">{tc.role[language]}</p>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
 
                         {/* Other Departments */}
                         <div className="grid grid-cols-1 gap-12">
@@ -187,19 +183,11 @@ export default function AboutPage() {
                                         <span className="bg-primary/10 text-primary p-2 rounded-lg"><Users className="h-6 w-6" /></span>
                                         {group.name}
                                     </h3>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                                         {group.members.map(member => (
-                                            <Card key={member.name} className="border-0 bg-secondary/10 hover:bg-white hover:shadow-lg transition-all duration-300 group overflow-hidden text-center">
+                                            <Card key={member.name + member.role} className="border-0 bg-secondary/10 hover:bg-white hover:shadow-lg transition-all duration-300 group overflow-hidden text-center">
                                                 <CardContent className="p-6">
-                                                    <div className="relative w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden bg-background shadow-inner group-hover:scale-110 transition-transform duration-500">
-                                                        <Image
-                                                            src="https://placehold.co/200x200.png"
-                                                            alt={member.name}
-                                                            data-ai-hint={member.imageHint}
-                                                            fill
-                                                            className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
-                                                        />
-                                                    </div>
+                                                    <Initials name={member.name} size="sm" />
                                                     <h4 className="font-bold text-lg leading-tight mb-1">{member.name}</h4>
                                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{member.role}</p>
                                                 </CardContent>

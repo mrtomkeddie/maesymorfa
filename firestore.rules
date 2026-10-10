@@ -30,7 +30,8 @@ service cloud.firestore {
     }
 
     function isClass(classId) {
-      return classId in ['nursery', 'reception', 'y1', 'y2', 'y3', 'y4', 'y5', 'y6'];
+      // Keep in step with src/lib/schoolClasses.ts
+      return classId in ['bethania', 'tregoning', 'florence', 'westbury', 'trinity', 'olive'];
     }
 
     function validShape() {
