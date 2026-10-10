@@ -1,13 +1,22 @@
-import { useState, useMemo } from 'react';
-import { calendarEvents, CalendarEvent } from '@/lib/mockCalendar';
+import { useEffect, useState, useMemo } from 'react';
+import { calendarEvents } from '@/lib/mockCalendar';
 
+type CalendarEvent = (typeof calendarEvents)[number];
+import { db } from '@/lib/db';
+
+// Reads through the data layer, so events added in the admin area show on the site
 export function useCalendar(filteredYearGroups: string[] = []) {
     const [isFiltered, setIsFiltered] = useState(false);
+    const [raw, setRaw] = useState<CalendarEvent[]>([]);
+
+    useEffect(() => {
+        db.getCalendarEvents().then(setRaw).catch(console.error);
+    }, []);
 
     const events = useMemo(() => {
         // Sort events by date
-        return [...calendarEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-    }, []);
+        return [...raw].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    }, [raw]);
 
     const filteredEvents = useMemo(() => {
         if (!isFiltered || filteredYearGroups.length === 0) {

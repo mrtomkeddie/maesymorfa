@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
 import type { SiteSettings } from '@/lib/types';
+import { PARENTPAY_URL } from '@/lib/links';
 
 const content = {
     en: {
@@ -22,6 +23,7 @@ const content = {
                 { label: 'Admissions', href: '/admissions' },
                 { label: 'Curriculum', href: '/curriculum' },
                 { label: 'Key Info', href: '/key-info' },
+                { label: 'ParentPay', href: PARENTPAY_URL },
                 { label: 'Contact', href: '/contact' },
             ]
         },
@@ -60,6 +62,7 @@ const content = {
                 { label: 'Derbyniadau', href: '/admissions' },
                 { label: 'Cwricwlwm', href: '/curriculum' },
                 { label: 'Gwybodaeth Allweddol', href: '/key-info' },
+                { label: 'ParentPay', href: PARENTPAY_URL },
                 { label: 'Cysylltu', href: '/contact' },
             ]
         },
@@ -154,7 +157,11 @@ export function PublicFooter() {
                                 <ul className="space-y-2">
                                     {group.links.map((link) => (
                                         <li key={link.label}>
-                                            <Link href={link.href} className="text-sm text-background/70 hover:text-background hover:underline">
+                                            <Link
+                                                href={link.href}
+                                                {...(link.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                                className="text-sm text-background/70 hover:text-background hover:underline"
+                                            >
                                                 {link.label}
                                             </Link>
                                         </li>

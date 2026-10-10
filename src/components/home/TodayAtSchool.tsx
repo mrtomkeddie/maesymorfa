@@ -4,22 +4,23 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { cy as cyLocale } from 'date-fns/locale';
-import { ArrowRight, BellRing, CalendarDays, Utensils } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarDays, ExternalLink, Utensils } from 'lucide-react';
 import { db } from '@/lib/db';
-import type { WeeklyMenu } from '@/lib/types';
+import { weekMenuFor, WEEK_DAYS } from '@/lib/lunchMenu';
+import { PARENTPAY_URL } from '@/lib/links';
 import { useCalendar } from '@/hooks/useCalendar';
 import { useNews } from '@/hooks/useNews';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
 
-const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 const content = {
     en: {
         heading: 'Today at school',
         lunchToday: "Today's lunch",
         lunchMonday: "Monday's lunch",
-        or: 'or',
+        or: 'Vegetarian:',
+        noLunch: 'No school lunches this week. See the full menu for what is next.',
         pudding: 'Pudding',
         nextEvent: 'Coming up',
         noEvents: 'Nothing on the calendar this week.',
@@ -32,13 +33,15 @@ const content = {
         links: [
             { label: 'Term dates', href: '/key-info#term-dates' },
             { label: 'Uniform', href: '/key-info#uniform' },
+            { label: 'ParentPay: trips, lunches & forms', href: PARENTPAY_URL },
         ],
     },
     cy: {
         heading: "Heddiw yn yr ysgol",
         lunchToday: 'Cinio heddiw',
         lunchMonday: 'Cinio dydd Llun',
-        or: 'neu',
+        or: 'Llysieuol:',
+        noLunch: 'Dim cinio ysgol yr wythnos hon. Gweler y fwydlen lawn.',
         pudding: 'Pwdin',
         nextEvent: 'I ddod',
         noEvents: "Dim byd ar y calendr yr wythnos hon.",
@@ -50,6 +53,7 @@ const content = {
         links: [
             { label: 'Dyddiadau tymor', href: '/key-info#term-dates' },
             { label: 'Gwisg ysgol', href: '/key-info#uniform' },
+            { label: 'ParentPay: tripiau, cinio a ffurflenni', href: PARENTPAY_URL },
         ],
     },
 };
@@ -70,18 +74,17 @@ export function TodayAtSchool() {
     const t = content[language];
     const { events } = useCalendar();
     const { urgentNews, latestNews } = useNews();
-    const [menu, setMenu] = useState<WeeklyMenu | null>(null);
     const [now, setNow] = useState<Date | null>(null);
 
     useEffect(() => {
         setNow(new Date());
-        db.getWeeklyMenu().then(setMenu).catch(console.error);
     }, []);
 
-    // Weekends show Monday's menu, so the card is never empty.
+    // Weekends show next Monday's lunch, so the card is never empty.
     const dayIndex = now?.getDay() ?? 1;
     const isWeekend = dayIndex === 0 || dayIndex === 6;
-    const lunch = menu?.[isWeekend ? 'monday' : DAYS[dayIndex]];
+    const week = now ? weekMenuFor(now) : null;
+    const lunch = week ? week.days[WEEK_DAYS[isWeekend ? 0 : dayIndex - 1]] : null;
 
     const startOfToday = now ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) : null;
     const nextEvent = startOfToday ? events.find((e) => new Date(e.start) >= startOfToday) : undefined;
@@ -109,12 +112,14 @@ export function TodayAtSchool() {
                                 <>
                                     <p className="mt-3 font-headline text-xl font-semibold leading-snug">{lunch.main}</p>
                                     <p className="text-sm text-muted-foreground">
-                                        {t.or} {lunch.alt}
+                                        {t.or} {lunch.vegetarian}
                                     </p>
                                     <p className="mt-2 text-sm">
                                         <span className="font-semibold">{t.pudding}:</span> {lunch.dessert}
                                     </p>
                                 </>
+                            ) : now ? (
+                                <p className="mt-3 text-sm text-muted-foreground">{t.noLunch}</p>
                             ) : (
                                 <div className="mt-3 space-y-2">
                                     <div className="h-5 w-3/4 rounded bg-amber-100 animate-pulse" />
@@ -173,15 +178,20 @@ export function TodayAtSchool() {
                 </RevealGroup>
 
                 <nav className="mt-5 flex flex-wrap gap-2" aria-label={t.heading}>
-                    {t.links.map((link) => (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className="rounded-full border px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                        >
-                            {link.label}
-                        </Link>
-                    ))}
+                    {t.links.map((link) => {
+                        const external = link.href.startsWith('http');
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                className="inline-flex items-center gap-1 rounded-full border px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                            >
+                                {link.label}
+                                {external && <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />}
+                            </Link>
+                        );
+                    })}
                 </nav>
             </div>
         </section>

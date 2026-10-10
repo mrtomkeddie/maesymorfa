@@ -11,6 +11,7 @@ import { QueryDocumentSnapshot } from "firebase/firestore";
 import { news as mockNewsData } from '@/lib/mockNews';
 import { calendarEvents as mockCalendarEvents } from '@/lib/mockCalendar';
 import { generateMockData, parentChildren } from '@/lib/mockData';
+import { weekMenuFor } from '@/lib/lunchMenu';
 
 // === NEWS ===
 export type NewsPostWithId = NewsPost & { id: string };
@@ -224,14 +225,14 @@ export const updateSiteSettings = async (settings: SiteSettings) => console.log(
 
 
 // === LUNCH MENU SETTINGS ===
-const mockWeeklyMenu: WeeklyMenu = {
-    monday: { main: "Shepherd's Pie", alt: "Jacket Potato with Beans", dessert: "Apple Crumble" },
-    tuesday: { main: "Chicken Curry", alt: "Vegetable Lasagne", dessert: "Fruit Salad" },
-    wednesday: { main: "Roast Beef Dinner", alt: "Quorn Roast Dinner", dessert: "Chocolate Sponge" },
-    thursday: { main: "Spaghetti Bolognese", alt: "Vegetable Stir Fry", dessert: "Yoghurt" },
-    friday: { main: "Fish and Chips", alt: "Veggie Sausages", dessert: "Flapjack" },
+// The real council menu for this school week (see src/lib/lunchMenu.ts)
+export const getWeeklyMenu = async (): Promise<WeeklyMenu | null> => {
+    const week = weekMenuFor(new Date());
+    if (!week) return null;
+    return Object.fromEntries(
+        Object.entries(week.days).map(([day, d]) => [day, { main: d.main, alt: d.vegetarian, dessert: d.dessert }])
+    );
 };
-export const getWeeklyMenu = async (): Promise<WeeklyMenu | null> => Promise.resolve(mockWeeklyMenu);
 export const updateWeeklyMenu = async (menu: WeeklyMenu) => console.log("Mock updateWeeklyMenu", menu);
 
 

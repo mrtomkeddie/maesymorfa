@@ -37,7 +37,7 @@ export default function EventsPage() {
     const upcoming = events.filter((event) => {
         const relevantTo = (event as { relevantTo?: string[] }).relevantTo;
         return new Date(event.start) >= today && (!relevantTo || relevantTo.includes('All'));
-    });
+    }).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
     // Group by month, in date order
     const months: { key: string; label: string; items: typeof upcoming }[] = [];

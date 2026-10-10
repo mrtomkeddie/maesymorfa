@@ -11,6 +11,9 @@ import { format, startOfWeek, addDays } from 'date-fns';
 import { enGB, cy as cyLocale } from 'date-fns/locale';
 import { db } from '@/lib/db';
 import type { DocumentWithId } from '@/lib/types';
+import { weekMenuFor, WEEK_DAYS, COUNCIL_MENU_URL } from '@/lib/lunchMenu';
+import { PARENTPAY_URL } from '@/lib/links';
+import { TERMS, SCHOOL_YEAR } from '@/lib/termDates';
 
 const content = {
     en: {
@@ -18,7 +21,7 @@ const content = {
         intro: "Find essential information for parents, including term dates, uniform policies, and lunch menus.",
         termDates: {
             title: "Term Dates",
-            body: "View the academic calendar for the current school year. Please note INSET days are subject to change.",
+            body: "Carmarthenshire term dates for the school year. The school sets four more INSET (training) days, which will be added here.",
             button: "Download Term Dates"
         },
         uniform: {
@@ -28,7 +31,7 @@ const content = {
         },
         lunchMenu: {
             title: "Lunch Menu",
-            body: "We offer a rotating menu of healthy and delicious school lunches, prepared fresh on site.",
+            body: "Carmarthenshire’s primary school menu runs on a three-week cycle. Fresh fruit and water are available every day. For allergies, please speak to the school cook.",
             button: "Download Lunch Menu"
         },
         policies: {
@@ -47,7 +50,7 @@ const content = {
         intro: "Dewch o hyd i wybodaeth hanfodol i rieni, gan gynnwys dyddiadau tymor, polisïau gwisg ysgol, a bwydlenni cinio.",
         termDates: {
             title: "Dyddiadau'r Tymor",
-            body: "Gweler y calendr academaidd ar gyfer y flwyddyn ysgol gyfredol. Nodwch y gall diwrnodau HMS newid.",
+            body: "Dyddiadau tymor Sir Gâr ar gyfer y flwyddyn ysgol. Mae’r ysgol yn pennu pedwar diwrnod HMS arall, a fydd yn cael eu hychwanegu yma.",
             button: "Lawrlwytho Dyddiadau Tymor"
         },
         uniform: {
@@ -100,6 +103,14 @@ export default function KeyInfoPage() {
     };
 
 
+
+    // The real council menu, same source as the homepage's "Today at school" card.
+    // At the weekend it shows next week.
+    const week = weekMenuFor(today);
+    const menuDays = week
+        ? WEEK_DAYS.map((key, i) => ({ day: formatDate(addDays(week.weekStart, i), language), ...week.days[key], veg: week.days[key].vegetarian }))
+        : [];
+    const shortDate = (iso: string) => format(new Date(iso + 'T12:00:00'), 'EEE d MMM', { locale: language === 'cy' ? cyLocale : enGB });
 
     useEffect(() => {
         db.getDocuments().then((data) => {
@@ -177,36 +188,22 @@ export default function KeyInfoPage() {
                                 <div className="p-3 rounded-xl bg-primary/10 text-primary">
                                     <Calendar className="h-8 w-8" />
                                 </div>
-                                <h2 className="font-headline text-3xl font-bold">{t.termDates.title}</h2>
+                                <h2 className="font-headline text-3xl font-bold">{t.termDates.title} <span className="text-muted-foreground font-medium text-2xl">{SCHOOL_YEAR[language]}</span></h2>
                             </div>
 
                             <Card className="overflow-hidden">
                                 <CardContent className="p-0">
                                     <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x border-b">
-                                        <div className="p-6">
-                                            <h3 className="font-bold text-lg mb-4 text-primary">Autumn Term 2024</h3>
-                                            <ul className="space-y-2 text-sm">
-                                                <li className="flex justify-between"><span>Starts:</span> <span className="font-semibold">2 Sept</span></li>
-                                                <li className="flex justify-between"><span>Half Term:</span> <span className="font-semibold">28 Oct - 1 Nov</span></li>
-                                                <li className="flex justify-between"><span>Ends:</span> <span className="font-semibold">20 Dec</span></li>
-                                            </ul>
-                                        </div>
-                                        <div className="p-6">
-                                            <h3 className="font-bold text-lg mb-4 text-primary">Spring Term 2025</h3>
-                                            <ul className="space-y-2 text-sm">
-                                                <li className="flex justify-between"><span>Starts:</span> <span className="font-semibold">6 Jan</span></li>
-                                                <li className="flex justify-between"><span>Half Term:</span> <span className="font-semibold">24-28 Feb</span></li>
-                                                <li className="flex justify-between"><span>Ends:</span> <span className="font-semibold">11 Apr</span></li>
-                                            </ul>
-                                        </div>
-                                        <div className="p-6">
-                                            <h3 className="font-bold text-lg mb-4 text-primary">Summer Term 2025</h3>
-                                            <ul className="space-y-2 text-sm">
-                                                <li className="flex justify-between"><span>Starts:</span> <span className="font-semibold">28 Apr</span></li>
-                                                <li className="flex justify-between"><span>Half Term:</span> <span className="font-semibold">26-30 May</span></li>
-                                                <li className="flex justify-between"><span>Ends:</span> <span className="font-semibold">21 Jul</span></li>
-                                            </ul>
-                                        </div>
+                                        {TERMS.map((term) => (
+                                            <div key={term.starts} className="p-6">
+                                                <h3 className="font-bold text-lg mb-4 text-primary">{term.name[language]}</h3>
+                                                <ul className="space-y-2 text-sm">
+                                                    <li className="flex justify-between gap-4"><span>{language === 'en' ? 'Starts:' : 'Dechrau:'}</span> <span className="font-semibold text-right">{shortDate(term.starts)}</span></li>
+                                                    <li className="flex justify-between gap-4"><span>{language === 'en' ? 'Half term:' : 'Hanner tymor:'}</span> <span className="font-semibold text-right">{shortDate(term.halfTerm[0])} - {shortDate(term.halfTerm[1])}</span></li>
+                                                    <li className="flex justify-between gap-4"><span>{language === 'en' ? 'Ends:' : 'Gorffen:'}</span> <span className="font-semibold text-right">{shortDate(term.ends)}</span></li>
+                                                </ul>
+                                            </div>
+                                        ))}
                                     </div>
                                     <div className="p-6 bg-muted/30 flex items-center justify-between">
                                         <p className="text-sm text-muted-foreground">{t.termDates.body}</p>
@@ -276,6 +273,18 @@ export default function KeyInfoPage() {
                                 <div className="text-center max-w-2xl mx-auto mb-8">
                                     <h3 className="font-headline text-2xl font-bold mb-2">Healthy Meals, Every Day</h3>
                                     <p className="text-muted-foreground">{t.lunchMenu.body}</p>
+                                    {week ? (
+                                        <p className="mt-3 inline-block rounded-full bg-background px-4 py-1.5 text-sm font-semibold">
+                                            {language === 'en' ? `Week ${week.weekNumber} of 3` : `Wythnos ${week.weekNumber} o 3`} · {language === 'en' ? 'w/c' : 'w/d'} {format(week.weekStart, 'd MMMM', { locale: language === 'cy' ? cyLocale : enGB })}
+                                        </p>
+                                    ) : (
+                                        <p className="mt-3 text-sm">
+                                            {language === 'en' ? 'No menu for this week yet. ' : 'Dim bwydlen ar gyfer yr wythnos hon eto. '}
+                                            <a href={COUNCIL_MENU_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary underline">
+                                                {language === 'en' ? 'See the council’s school meals page' : 'Gweler tudalen prydau ysgol y cyngor'}
+                                            </a>
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4 mb-8">
@@ -288,74 +297,12 @@ export default function KeyInfoPage() {
 
 
 
-                                    {(language === 'en' ? [
-                                        {
-                                            day: formatDate(weekDates[0], 'en'),
-                                            main: 'Margarita Pizza, Seasoned Cubed Potatoes & Veg',
-                                            veg: 'Vegetarian Pizza',
-                                            dessert: 'Ice Cream Tub'
-                                        },
-                                        {
-                                            day: formatDate(weekDates[1], 'en'),
-                                            main: 'Beef Bolognese, Pasta, Veg & Garlic Bread',
-                                            veg: 'Vegetarian Bolognese, Pasta, Veg & Garlic Bread',
-                                            dessert: 'Homemade Cookie'
-                                        },
-                                        {
-                                            day: formatDate(weekDates[2], 'en'),
-                                            main: 'Traditional Roast Turkey Dinner',
-                                            veg: 'Traditional Quorn Fillet Roast Dinner',
-                                            dessert: 'Fruit Salad'
-                                        },
-                                        {
-                                            day: formatDate(weekDates[3], 'en'),
-                                            main: 'Chicken Fajita Wrap, Mixed Rice & Veg Selection',
-                                            veg: 'Jacket Potato, Beans, Cheese, Mixed Rice & Veg',
-                                            dessert: 'Yoghurt & Fruit'
-                                        },
-                                        {
-                                            day: formatDate(weekDates[4], 'en'),
-                                            main: 'Fish Finger/Fillet, Beans/Veg, Chips/Potatoes',
-                                            veg: 'Quorn Dipper, Beans/Veg, Chips/Potatoes',
-                                            dessert: 'Shortbread Biscuit'
-                                        },
-                                    ] : [
-                                        {
-                                            day: formatDate(weekDates[0], 'cy'),
-                                            main: 'Pizza Margarita, Tatws Ciwb a Llysiau',
-                                            veg: 'Pizza Llysieuol',
-                                            dessert: 'Hufen Iâ'
-                                        },
-                                        {
-                                            day: formatDate(weekDates[1], 'cy'),
-                                            main: 'Bolognese Eidion, Pasta, Llysiau a Bara Garlleg',
-                                            veg: 'Bolognese Llysieuol, Pasta, Llysiau a Bara Garlleg',
-                                            dessert: 'Cwci Cartref'
-                                        },
-                                        {
-                                            day: formatDate(weekDates[2], 'cy'),
-                                            main: 'Cinio Twrci Rhost Traddodiadol',
-                                            veg: 'Cinio Rhost Quorn Traddodiadol',
-                                            dessert: 'Salad Ffrwythau'
-                                        },
-                                        {
-                                            day: formatDate(weekDates[3], 'cy'),
-                                            main: 'Fajita Cyw Iâr, Reis Cymysg a Llysiau',
-                                            veg: 'Taten Siaced, Ffa, Caws',
-                                            dessert: 'Iogwrt a Ffrwythau'
-                                        },
-                                        {
-                                            day: formatDate(weekDates[4], 'cy'),
-                                            main: 'Bysedd Pysgod, Ffa/Llysiau, Sglodion',
-                                            veg: 'Dipydd Quorn, Ffa/Llysiau, Sglodion',
-                                            dessert: 'Bisgedi Byr'
-                                        },
-                                    ]).map((item, i) => (
+                                    {menuDays.map((item, i) => (
                                         <Card key={i} className="border-0 shadow-sm bg-background/50 hover:bg-background transition-colors text-left overflow-hidden">
                                             <div className="flex flex-row items-center justify-between border-b bg-muted/30 px-4 py-2">
                                                 <span className="font-bold tracking-widest uppercase text-sm">{item.day}</span>
                                             </div>
-                                            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-6">
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-2 text-primary">
                                                         <UtensilsCrossed className="h-4 w-4" />
@@ -371,18 +318,33 @@ export default function KeyInfoPage() {
                                                     <p className="text-sm font-medium leading-normal">{item.veg}</p>
                                                 </div>
                                                 <div>
+                                                    <div className="flex items-center gap-2 mb-2 text-amber-600">
+                                                        <Utensils className="h-4 w-4" />
+                                                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{language === 'en' ? 'Or' : 'Neu'}</p>
+                                                    </div>
+                                                    <p className="text-sm font-medium leading-normal">{item.alternative}</p>
+                                                </div>
+                                                <div>
                                                     <div className="flex items-center gap-2 mb-2 text-pink-500">
                                                         <IceCream className="h-4 w-4" />
                                                         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Dessert</p>
                                                     </div>
                                                     <p className="text-sm font-medium leading-normal">{item.dessert}</p>
                                                 </div>
+                                                <p className="md:col-span-4 border-t pt-3 text-xs text-muted-foreground">
+                                                    <span className="font-semibold">{language === 'en' ? 'Served with:' : 'Gyda:'}</span> {item.sides}. {language === 'en' ? 'Salad:' : 'Salad:'} {item.salad}.
+                                                </p>
                                             </CardContent>
                                         </Card>
                                     ))}
                                 </div>
 
-                                <div className="text-center">
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                    <Button asChild size="lg" variant="outline" className="rounded-full">
+                                        <a href={PARENTPAY_URL} target="_blank" rel="noopener noreferrer">
+                                            <ExternalLink className="mr-2 h-4 w-4" /> {language === 'en' ? 'Pay for lunches on ParentPay' : 'Talu am ginio ar ParentPay'}
+                                        </a>
+                                    </Button>
                                     <Button asChild size="lg" className="rounded-full shadow-md hover:shadow-xl transition-all" disabled={!findDocUrl('Lunch Menu')}>
                                         <a href={findDocUrl('Lunch Menu') || '#'} download>
                                             <Download className="mr-2 h-4 w-4" /> {t.lunchMenu.button}
