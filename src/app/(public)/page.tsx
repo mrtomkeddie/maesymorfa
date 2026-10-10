@@ -14,6 +14,7 @@ import { UrgentNewsPost } from '@/lib/mockNews';
 import { RainbowHero } from '@/components/home/RainbowHero';
 import { TodayAtSchool } from '@/components/home/TodayAtSchool';
 import { GamePreview } from '@/components/home/GamePreview';
+import { AddToCalendar } from '@/components/AddToCalendar';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/Reveal';
 
 const content = {
@@ -189,6 +190,9 @@ export default function HomePage() {
                 <p>{t.upcomingEvents.none}</p>
               </div>
             )}
+            <div className="mt-4">
+              <AddToCalendar className="w-full sm:w-auto" />
+            </div>
           </div>
         </div>
       </section>

@@ -13,6 +13,7 @@ import { db } from '@/lib/db';
 import type { DocumentWithId } from '@/lib/types';
 import { weekMenuFor, WEEK_DAYS, COUNCIL_MENU_URL } from '@/lib/lunchMenu';
 import { PARENTPAY_URL } from '@/lib/links';
+import { AddToCalendar } from '@/components/AddToCalendar';
 import { TERMS, SCHOOL_YEAR } from '@/lib/termDates';
 
 const content = {
@@ -205,8 +206,9 @@ export default function KeyInfoPage() {
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="p-6 bg-muted/30 flex items-center justify-between">
+                                    <div className="p-6 bg-muted/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <p className="text-sm text-muted-foreground">{t.termDates.body}</p>
+                                        <AddToCalendar variant="default" className="shrink-0" />
                                         <Button variant="outline" size="sm" asChild disabled={!findDocUrl('Term Dates')}>
                                             <a href={findDocUrl('Term Dates') || '#'} download>
                                                 <Download className="mr-2 h-4 w-4" /> Download PDF

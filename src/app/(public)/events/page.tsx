@@ -6,6 +6,7 @@ import { CalendarDays, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '../LanguageProvider';
 import { useCalendar } from '@/hooks/useCalendar';
+import { AddToCalendar } from '@/components/AddToCalendar';
 
 // Public list of upcoming whole-school events. The full /calendar lives in the parent portal,
 // which is switched off for the public site, so homepage links come here instead.
@@ -57,6 +58,9 @@ export default function EventsPage() {
             <div className="text-center space-y-3 mb-10">
                 <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight">{t.title}</h1>
                 <p className="text-lg text-muted-foreground">{t.subtitle}</p>
+                <div className="pt-2">
+                    <AddToCalendar variant="default" />
+                </div>
             </div>
 
             {months.length === 0 ? (
