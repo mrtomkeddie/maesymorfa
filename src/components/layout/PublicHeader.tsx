@@ -71,8 +71,8 @@ export function PublicHeader() {
           <Image src="/logo-header.png" alt="Maes Y Morfa logo" width={1640} height={403} className="h-14 w-auto max-h-14" />
         </Link>
 
-        {/* Center: Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-1 mx-6">
+        {/* Center: Desktop Navigation. Starts at xl, because the Welsh labels do not fit on one line at lg. */}
+        <nav className="hidden xl:flex items-center gap-1 mx-6">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
@@ -80,7 +80,7 @@ export function PublicHeader() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                  "px-3 2xl:px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200",
                   isActive
                     ? "bg-primary/10 text-primary font-semibold"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -101,7 +101,7 @@ export function PublicHeader() {
           </div>
 
           {/* Desktop Action Button */}
-          <div className="hidden lg:block">
+          <div className="hidden xl:block">
             {FEATURES.enableParentPortal && (
               isClient && isParent ? (
                 <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-white rounded-full px-6">
@@ -118,7 +118,7 @@ export function PublicHeader() {
           {/* Mobile Menu Trigger */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="lg:hidden">
+              <Button variant="outline" size="icon" className="xl:hidden">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle Menu</span>
               </Button>

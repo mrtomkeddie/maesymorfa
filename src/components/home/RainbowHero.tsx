@@ -344,9 +344,11 @@ export function RainbowHero({ t }: { t: HeroText }) {
                 <Cloud className="hero-cloud absolute top-[4%] w-28 md:w-40 opacity-80" style={{ animationDuration: '85s', animationDelay: '-38s' }} />
             </motion.div>
 
-            {/* The school scene: rainbow rising from behind the roof, then the drawing. Right-hand side on desktop. */}
+            {/* The school scene: rainbow rising from behind the roof, then the drawing. Right-hand side on desktop.
+                On desktop it fills the space between the words (2rem padding + 34rem) and the right edge of the 80rem content column,
+                pushed out 1.5rem so its faded edge lines up with that column, giving even margins on both sides. */}
             <div
-                className="relative mt-4 mx-auto w-[108%] max-w-[560px] lg:absolute lg:top-1/2 lg:-translate-y-1/2 lg:right-[3%] lg:mx-0 lg:mt-0 lg:w-[50%] lg:max-w-[1000px] order-last"
+                className="relative mt-4 mx-auto w-[108%] max-w-[560px] lg:absolute lg:top-1/2 lg:-translate-y-1/2 lg:right-[max(-1.5rem,calc((100%_-_80rem)/2_-_1.5rem))] lg:mx-0 lg:mt-0 lg:w-[calc(min(100%,80rem)_-_34.5rem)] lg:max-w-none order-last"
                 style={SCENE_MASK}
             >
                 <motion.svg
