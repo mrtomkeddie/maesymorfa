@@ -633,10 +633,12 @@ async function initMusic() {
       volume: -5
     }).toDestination();
 
+    // Holds its level through the whole slide, about 3 dB above a note of the tune,
+    // so it is heard over the music without being harsh.
     jumpSound = new Tone.Synth({
       oscillator: { type: "triangle" },
-      envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.05 },
-      volume: -10
+      envelope: { attack: 0.005, decay: 0.05, sustain: 0.6, release: 0.08 },
+      volume: -6
     }).toDestination();
 
     const musicSynth = new Tone.Synth({
@@ -683,8 +685,8 @@ function playCollectSound() {
 function playJumpSound(isDoubleJump) {
   if (!jumpSound) return;
   const now = Tone.now();
-  const startHz = isDoubleJump ? 440 : 330;
+  const startHz = isDoubleJump ? 530 : 400;
   jumpSound.frequency.cancelScheduledValues(now);
-  jumpSound.triggerAttackRelease(startHz, 0.1, now);
-  jumpSound.frequency.exponentialRampToValueAtTime(startHz * 2, now + 0.1);
+  jumpSound.triggerAttackRelease(startHz, 0.12, now);
+  jumpSound.frequency.exponentialRampToValueAtTime(startHz * 2, now + 0.12);
 }
