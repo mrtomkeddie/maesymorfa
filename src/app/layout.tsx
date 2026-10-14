@@ -3,7 +3,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
-import { Fredoka, Inter, VT323 } from 'next/font/google';
+import { Inter, VT323 } from 'next/font/google';
+import localFont from 'next/font/local';
 import { LanguageProvider } from './(public)/LanguageProvider';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 
@@ -14,10 +15,13 @@ const inter = Inter({
 });
 
 // Rounded headings, to match the lettering in the school logo.
-const fredoka = Fredoka({
-  subsets: ['latin'],
+// Self-hosted: since 14 Oct 2026 Google Fonts sends Vercel's build machines Fredoka links
+// (fonts.gstatic.com/l/font?kit=...) that next/font/google cannot read, and the build fails.
+// The file is the full Fredoka from github.com/google/fonts, width fixed at normal, weight 300-700.
+const fredoka = localFont({
+  src: './fonts/fredoka.woff2',
   display: 'swap',
-  weight: ['500', '600', '700'],
+  weight: '300 700',
   variable: '--font-fredoka',
 });
 
