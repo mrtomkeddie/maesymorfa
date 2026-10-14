@@ -36,7 +36,7 @@ const newsData_en = [
         title_en: "School Closed due to Heavy Snow",
         body_en: "<p>Due to the adverse weather conditions and heavy snowfall overnight, Maes Y Morfa Primary School will be closed today, <strong>Friday, 12th January 2024</strong>. The safety of our pupils and staff is our utmost priority. We will provide updates on the school's reopening as soon as possible. Please check back for more information. Stay warm and safe.</p>",
         category: 'Urgent',
-        isUrgent: true,
+        isUrgent: false, // sample story only: no red banner on the demo home page
         image: "https://images.unsplash.com/photo-1547573854-ea8427f69447?q=80&w=2670&auto=format&fit=crop"
     },
     {
