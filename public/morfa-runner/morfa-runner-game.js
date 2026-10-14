@@ -213,16 +213,25 @@ fullscreenButton.addEventListener("click", () => {
 
 // ---------- Input ----------
 function unlockAudio() {
-  if (isPreview || musicInitialized || !window.Tone) return;
-  // Fire-and-forget: audio must be started inside a user gesture
-  Tone.start().catch(() => {});
+  if (isPreview || !window.Tone) return;
+  // Fire-and-forget: audio must be started inside a user gesture. Retry until it runs,
+  // because a failed early try must not block the next one.
+  if (Tone.context.state !== "running") Tone.start().catch(() => {});
   initMusic();
 }
+
+// iPhone and iPad only let sound start when the finger lifts, not on the first touch,
+// so try again on every tap release.
+document.addEventListener("pointerup", unlockAudio);
+document.addEventListener("touchend", unlockAudio);
 
 // One pointerdown per tap or click, so one press is always one jump.
 canvas.addEventListener("pointerdown", e => {
   if (isPreview || mustRotate()) return;
   e.preventDefault();
+  // preventDefault also stops the click from moving keyboard focus into the game,
+  // so do it by hand: otherwise SPACE goes to the page around the game.
+  window.focus();
   unlockAudio();
   handlePress();
 });

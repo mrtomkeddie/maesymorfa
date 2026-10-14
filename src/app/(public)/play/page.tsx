@@ -4,7 +4,7 @@ import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const content = {
     en: {
@@ -22,6 +22,18 @@ export default function PlayPage() {
     const t = content[language];
     const containerRef = useRef<HTMLDivElement>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+
+    // The game page is only the game, so SPACE should work before the first click.
+    // The iframe often finishes loading before React is ready, so check both ways.
+    useEffect(() => {
+        const iframe = iframeRef.current;
+        if (!iframe) return;
+        const focusGame = () => iframe.contentWindow?.focus();
+        if (iframe.contentDocument?.readyState === 'complete') focusGame();
+        iframe.addEventListener('load', focusGame);
+        return () => iframe.removeEventListener('load', focusGame);
+    }, []);
 
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
@@ -62,6 +74,7 @@ export default function PlayPage() {
 
             {/* Game Iframe */}
             <iframe
+                ref={iframeRef}
                 src="/morfa-runner/index.html"
                 className="w-full h-full border-0 select-none"
                 title="Morfa Runner"

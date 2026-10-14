@@ -1,5 +1,5 @@
 // Self-updating service worker. Bump CACHE on EVERY deploy, or phones keep the old version.
-const CACHE = 'maesymorfa-v2';
+const CACHE = 'maesymorfa-v3';
 const ASSETS = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/logo-header.png'];
 
 self.addEventListener('install', (e) => {
