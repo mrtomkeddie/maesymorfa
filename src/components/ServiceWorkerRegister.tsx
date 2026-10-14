@@ -31,6 +31,8 @@ export function ServiceWorkerRegister() {
         // Never reload over live work: a game in progress or a half-typed form.
         const isBusy = () => {
             if (window.location.pathname.startsWith('/play')) return true;
+            // Kids Corner plays the game in the page too (the homepage preview is silent, so it does not count).
+            if (document.querySelector('iframe[src^="/morfa-runner/"]:not([src*="preview"])')) return true;
             const el = document.activeElement;
             return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
         };

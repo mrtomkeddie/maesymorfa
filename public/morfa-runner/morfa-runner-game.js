@@ -272,7 +272,7 @@ function performJump() {
     player.jumpSpeed = -10;
     player.hasDoubleJumped = true;
     player.canDoubleJump = false;
-    playJumpSound();
+    playJumpSound(true);
   }
 }
 
@@ -626,8 +626,8 @@ async function initMusic() {
 
     jumpSound = new Tone.Synth({
       oscillator: { type: "triangle" },
-      envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 },
-      volume: -8
+      envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.05 },
+      volume: -10
     }).toDestination();
 
     const musicSynth = new Tone.Synth({
@@ -669,6 +669,13 @@ function playCollectSound() {
   if (collectSound) collectSound.triggerAttackRelease("C5", "8n");
 }
 
-function playJumpSound() {
-  if (jumpSound) jumpSound.triggerAttackRelease("A4", "16n");
+// A short "boing": the pitch slides up an octave, so it never sounds like a note of the tune.
+// The double jump starts higher.
+function playJumpSound(isDoubleJump) {
+  if (!jumpSound) return;
+  const now = Tone.now();
+  const startHz = isDoubleJump ? 440 : 330;
+  jumpSound.frequency.cancelScheduledValues(now);
+  jumpSound.triggerAttackRelease(startHz, 0.1, now);
+  jumpSound.frequency.exponentialRampToValueAtTime(startHz * 2, now + 0.1);
 }
