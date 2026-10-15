@@ -18,13 +18,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, CheckCircle, CalendarIcon, Languages } from 'lucide-react';
+import { Loader2, CheckCircle, CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/db';
 import type { NewsPostWithId, CalendarEventWithId } from '@/lib/db/firebase';
 import { uploadFile } from '@/lib/firebase/storage';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
-import { adminIdToken, getSchoolAuth } from '@/lib/firebase/auth';
+import { getSchoolAuth } from '@/lib/firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn, htmlToText, textToHtml } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -53,7 +53,6 @@ interface AnnouncementFormProps {
 export function AnnouncementForm({ onSuccess, existingAnnouncement }: AnnouncementFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const editingNews = existingAnnouncement?.type === 'news' ? existingAnnouncement : null;
@@ -72,33 +71,6 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
       attachment: undefined,
     },
   });
-
-  const handleTranslate = async () => {
-    const title = form.getValues('title_en')?.trim() || '';
-    const body = form.getValues('body_en') || '';
-    if (!title) {
-      form.setError('title_en', { message: 'Add the English title first.' });
-      return;
-    }
-    setIsTranslating(true);
-    try {
-      const token = await adminIdToken();
-      const res = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ title, body }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Translation failed. Please try again.');
-      form.setValue('title_cy', data.title, { shouldDirty: true, shouldValidate: true });
-      form.setValue('body_cy', data.body, { shouldDirty: true, shouldValidate: true });
-      toast({ title: 'Welsh added', description: 'Read it through and fix anything before you save.' });
-    } catch (error) {
-      toast({ title: 'Could not translate', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
-    } finally {
-      setIsTranslating(false);
-    }
-  };
 
   const onSubmit = async (values: AnnouncementFormValues) => {
     const titleEn = values.title_en.trim();
@@ -284,17 +256,11 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
         />
 
         <div className="space-y-4 rounded-lg border p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-0.5">
-              <p className="text-sm font-medium">Welsh version (Cymraeg)</p>
-              <p className="text-sm text-muted-foreground">
-                Shown when visitors switch the site to Cymraeg. Leave blank to show the English.
-              </p>
-            </div>
-            <Button type="button" variant="outline" size="sm" onClick={handleTranslate} disabled={isTranslating || isLoading} className="shrink-0">
-              {isTranslating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Languages className="mr-2 h-4 w-4" />}
-              Translate from English
-            </Button>
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Welsh version (Cymraeg)</p>
+            <p className="text-sm text-muted-foreground">
+              Shown when visitors switch the site to Cymraeg. Leave blank to show the English.
+            </p>
           </div>
           <FormField
             control={form.control}
@@ -318,9 +284,6 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
                 <FormControl>
                   <Textarea className="min-h-[100px]" {...field} />
                 </FormControl>
-                <FormDescription>
-                  Translations are done by computer. Read them through before you save.
-                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -376,7 +339,7 @@ export function AnnouncementForm({ onSuccess, existingAnnouncement }: Announceme
         />
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isLoading || isTranslating}>
+          <Button type="submit" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {existingAnnouncement ? 'Update Announcement' : 'Create Announcement'}
           </Button>

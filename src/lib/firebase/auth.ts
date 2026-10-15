@@ -66,9 +66,3 @@ export function watchAdmin(callback: (state: { user: User | null; admin: boolean
 export const signOutAdmin = () => signOut(getSchoolAuth());
 
 export const sendAdminPasswordReset = (email: string) => sendPasswordResetEmail(getSchoolAuth(), email);
-
-// Proves to the site's own API routes that the request comes from a signed-in admin
-export async function adminIdToken(): Promise<string | null> {
-  const user = getSchoolAuth().currentUser;
-  return user ? user.getIdToken() : null;
-}
