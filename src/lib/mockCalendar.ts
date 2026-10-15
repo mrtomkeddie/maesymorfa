@@ -1,5 +1,25 @@
 
-export const calendarEvents = [
+export type CalendarEvent = {
+    id?: string;
+    title_en: string;
+    title_cy: string;
+    description_en?: string;
+    description_cy?: string;
+    start: string; // ISO 8601
+    end?: string;
+    allDay?: boolean;
+    tags?: string[];
+    yearGroups?: number[];
+    relevantTo?: string[];
+    isUrgent?: boolean;
+    showOnHomepage?: boolean;
+    attachmentUrl?: string;
+    attachmentName?: string;
+    attachments?: unknown[];
+    published?: boolean;
+};
+
+export const calendarEvents: CalendarEvent[] = [
     {
         id: 'trip-1',
         title_en: 'Year 6 Trip to Cardiff',

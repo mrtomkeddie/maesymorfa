@@ -1,23 +1,26 @@
 import { useEffect, useState, useMemo } from 'react';
 import { db } from '@/lib/db';
-import type { NewsPostWithId } from '@/lib/db/firebase';
+import type { NewsPostWithId, SiteContent } from '@/lib/db/firebase';
 
 // Reads through the data layer, so news added in the admin area shows on the site
 export function useNews() {
     const [all, setAll] = useState<NewsPostWithId[]>([]);
+    const [urgentNewsId, setUrgentNewsId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         db.getNews().then(setAll).catch(console.error).finally(() => setIsLoading(false));
+        db.getSiteContent().then((site: SiteContent) => setUrgentNewsId(site.urgentNewsId)).catch(console.error);
     }, []);
 
     const publishedNews = useMemo(() => {
         return all.filter(n => n.published).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [all]);
 
+    // The banner is the one post named in site/content (the latest urgent save), if it is still urgent
     const urgentNews = useMemo(() => {
-        return publishedNews.find(n => n.isUrgent);
-    }, [publishedNews]);
+        return publishedNews.find(n => n.id === urgentNewsId && n.isUrgent);
+    }, [publishedNews, urgentNewsId]);
 
     const latestNews = useMemo(() => {
         // Get top 3 non-urgent news or just top 3

@@ -1,8 +1,8 @@
 
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc, writeBatch, where, getDoc, limit, startAfter, count, getCountFromServer } from "firebase/firestore";
-// This file is intended for a Firebase implementation, but for Studio's mock environment,
-// we will return mock data instead of making live calls.
-import { db as firestoreDb } from "../firebase/config";
+import { collection, addDoc, getDocs, getDocsFromServer, getDocFromServer, runTransaction, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc, writeBatch, where, getDoc, limit, startAfter, count, getCountFromServer } from "firebase/firestore";
+// News and calendar events use Firestore when a Firebase project is set up. The other
+// sections below still return mock data.
+import { db as firestoreDb, isFirebaseConfigured } from "../firebase/config";
 import type { NewsPost } from "@/lib/mockNews";
 import type { CalendarEvent } from "@/lib/mockCalendar";
 import type { StaffMember, StaffMemberWithId, Document, DocumentWithId, Parent, ParentWithId, Child, ChildWithId, SiteSettings, LinkedParent, InboxMessage, InboxMessageWithId, Photo, PhotoWithId, DailyMenu, WeeklyMenu, UserWithRole, UserRole, ParentNotification, ParentNotificationWithId } from "@/lib/types";
@@ -14,7 +14,16 @@ import { generateMockData, parentChildren } from '@/lib/mockData';
 import { weekMenuFor } from '@/lib/lunchMenu';
 
 // === NEWS ===
+// Real posts live in the "news" collection in Firestore and are added in the admin area.
+// Until the school saves its first post, the site shows the built-in sample stories so the
+// pages are never empty. Saving the first real post also sets site/content.newsStarted, after
+// which the samples never come back, even if every real post is later deleted.
+// With no Firebase project at all (local preview), everything stays in memory as before.
 export type NewsPostWithId = NewsPost & { id: string };
+
+const NEWS = 'news';
+const CALENDAR = 'calendarEvents';
+const CONTENT_FLAGS = ['site', 'content'] as const;
 
 const generateMockNews = () => mockNewsData.map((post, index) => ({
     ...post,
@@ -23,43 +32,154 @@ const generateMockNews = () => mockNewsData.map((post, index) => ({
 
 let mockNewsStore = generateMockNews();
 
-export const getNews = async (): Promise<NewsPostWithId[]> => {
-    return Promise.resolve(mockNewsStore);
+// Firestore refuses fields set to undefined
+const withoutUndefined = <T extends object>(data: T) =>
+    Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as T;
+
+const newsFrom = (snap: { docs: QueryDocumentSnapshot[] }) =>
+    snap.docs.map((d) => ({ ...(d.data() as NewsPost), id: d.id }));
+
+const slugify = (title: string) =>
+    title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
+
+// Site-wide state in site/content: whether the school has started adding its own news and
+// events (see the note at the top), and which post is the homepage banner. Keeping the banner
+// as one shared value means the latest save always wins, even if two admins save at once.
+export type SiteContent = { news: boolean; events: boolean; urgentNewsId: string | null };
+
+export const getSiteContent = async (): Promise<SiteContent> => {
+    if (!isFirebaseConfigured) {
+        return { news: false, events: false, urgentNewsId: mockNewsStore.find((p) => p.isUrgent)?.id ?? null };
+    }
+    const data = (await getDocFromServer(doc(firestoreDb, ...CONTENT_FLAGS))).data();
+    return {
+        news: data?.newsStarted === true,
+        events: data?.eventsStarted === true,
+        urgentNewsId: typeof data?.urgentNewsId === 'string' ? data.urgentNewsId : null,
+    };
 };
 
-export const addNews = async (newsData: Omit<NewsPost, 'id' | 'attachments' | 'slug'>): Promise<string> => {
-    console.log("Mock addNews:", newsData);
-    if (newsData.isUrgent) {
-        mockNewsStore.forEach(post => post.isUrgent = false);
-    }
-    const newPost = {
-        ...newsData,
-        id: `mock_news_${Date.now()}`,
-        slug: newsData.title_en.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, ''),
-        attachments: [],
-    } as NewsPostWithId
-    mockNewsStore.unshift(newPost);
-    return Promise.resolve(newPost.id);
+export const getContentStarted = async () => {
+    const { news, events } = await getSiteContent();
+    return { news, events };
 };
+
+// Only one post can carry the red homepage banner at a time
+async function clearOtherUrgentNews(batch: ReturnType<typeof writeBatch>, keepId: string) {
+    const snap = await getDocs(query(collection(firestoreDb, NEWS), where('isUrgent', '==', true)));
+    snap.docs.filter((d) => d.id !== keepId).forEach((d) => batch.update(d.ref, { isUrgent: false }));
+}
+
+// Published posts, for the public site. Reads from the server (never a stale or empty cache)
+// and lets errors through, so a failed read is never mistaken for "no news".
+export const getNews = async (): Promise<NewsPostWithId[]> => {
+    if (!isFirebaseConfigured) return mockNewsStore;
+    const posts = newsFrom(await getDocsFromServer(query(collection(firestoreDb, NEWS), where('published', '==', true))));
+    if (posts.length > 0) return posts;
+    return (await getContentStarted()).news ? [] : generateMockNews();
+};
+
+// One published post by its web address, for the full story page. Null when there is none.
+export const getNewsBySlug = async (slug: string): Promise<NewsPostWithId | null> => {
+    if (!isFirebaseConfigured) return mockNewsStore.find((p) => p.slug === slug) ?? null;
+    const snap = await getDocsFromServer(query(collection(firestoreDb, NEWS), where('published', '==', true), where('slug', '==', slug), limit(1)));
+    if (!snap.empty) return newsFrom(snap)[0];
+    if ((await getContentStarted()).news) return null;
+    return generateMockNews().find((p) => p.slug === slug) ?? null;
+};
+
+// Every post, drafts included, for the admin area. Only signed-in school admins can read these.
+export const getAllNews = async (): Promise<NewsPostWithId[]> => {
+    if (!isFirebaseConfigured) return mockNewsStore;
+    return newsFrom(await getDocsFromServer(collection(firestoreDb, NEWS)));
+};
+
+type NewNews = Omit<NewsPost, 'id' | 'attachments' | 'slug'>;
+type NewEvent = Omit<CalendarEvent, 'id' | 'attachments'>;
+
+// Saves a new announcement: a calendar event, a news post, or both. Everything (including the
+// banner rule and the "started" flags) is written in one go, so it either all saves or none of it does.
+export const createAnnouncement = async ({ event, news }: { event?: NewEvent; news?: NewNews }): Promise<void> => {
+    if (!isFirebaseConfigured) {
+        if (news) {
+            if (news.isUrgent) mockNewsStore.forEach(post => post.isUrgent = false);
+            mockNewsStore.unshift({ ...news, id: `mock_news_${Date.now()}`, slug: slugify(news.title_en), attachments: [] } as NewsPostWithId);
+        }
+        if (event) console.log("Mock addCalendarEvent:", event);
+        return;
+    }
+    const batch = writeBatch(firestoreDb);
+    let newsId: string | null = null;
+    if (event) {
+        batch.set(doc(collection(firestoreDb, CALENDAR)), withoutUndefined(event));
+    }
+    if (news) {
+        const ref = doc(collection(firestoreDb, NEWS));
+        if (news.isUrgent) await clearOtherUrgentNews(batch, ref.id);
+        // Ending with the post's own ID keeps every web address unique, even when two posts share a title
+        const slug = `${slugify(news.title_en) || 'news'}-${ref.id}`;
+        batch.set(ref, withoutUndefined({ ...news, slug, attachments: [] }));
+        newsId = ref.id;
+    }
+    batch.set(doc(firestoreDb, ...CONTENT_FLAGS), {
+        ...(news ? { newsStarted: true } : {}),
+        ...(event ? { eventsStarted: true } : {}),
+        ...(news?.isUrgent ? { urgentNewsId: newsId } : {}),
+    }, { merge: true });
+    await batch.commit();
+};
+
+export const addNews = (newsData: NewNews) => createAnnouncement({ news: newsData });
 
 export const updateNews = async (id: string, newsData: Partial<Omit<NewsPost, 'id' | 'attachments'>>) => {
-    console.log(`Mock updateNews (id: ${id}):`, newsData);
-    if (newsData.isUrgent) {
-        mockNewsStore.forEach(post => {
-            if (post.id !== id) post.isUrgent = false;
-        });
+    // The web address stays the same when a title is edited, so shared links keep working
+    const { slug: _slug, ...changes } = newsData;
+    if (!isFirebaseConfigured) {
+        if (changes.isUrgent) {
+            mockNewsStore.forEach(post => {
+                if (post.id !== id) post.isUrgent = false;
+            });
+        }
+        const index = mockNewsStore.findIndex(p => p.id === id);
+        if (index !== -1) {
+            mockNewsStore[index] = { ...mockNewsStore[index], ...changes };
+        }
+        return;
     }
-    const index = mockNewsStore.findIndex(p => p.id === id);
-    if (index !== -1) {
-        mockNewsStore[index] = { ...mockNewsStore[index], ...newsData };
+    if (changes.isUrgent) {
+        const batch = writeBatch(firestoreDb);
+        await clearOtherUrgentNews(batch, id);
+        batch.set(doc(firestoreDb, ...CONTENT_FLAGS), { urgentNewsId: id }, { merge: true });
+        batch.update(doc(firestoreDb, NEWS, id), withoutUndefined(changes));
+        await batch.commit();
+        return;
     }
-    return Promise.resolve();
+    // Clearing the banner checks and clears in one step; if another admin sets a new banner
+    // at the same moment, Firestore runs this again and leaves their banner alone
+    await runTransaction(firestoreDb, async (tx) => {
+        const contentRef = doc(firestoreDb, ...CONTENT_FLAGS);
+        const site = await tx.get(contentRef);
+        if (changes.isUrgent === false && site.data()?.urgentNewsId === id) {
+            tx.set(contentRef, { urgentNewsId: null }, { merge: true });
+        }
+        tx.update(doc(firestoreDb, NEWS, id), withoutUndefined(changes));
+    });
 };
 
 export const deleteNews = async (id: string) => {
-    console.log(`Mock deleteNews (id: ${id})`);
-    mockNewsStore = mockNewsStore.filter(p => p.id !== id);
-    return Promise.resolve();
+    if (!isFirebaseConfigured) {
+        mockNewsStore = mockNewsStore.filter(p => p.id !== id);
+        return;
+    }
+    // Same one-step check as updateNews, so a banner set by someone else meanwhile is kept
+    await runTransaction(firestoreDb, async (tx) => {
+        const contentRef = doc(firestoreDb, ...CONTENT_FLAGS);
+        const site = await tx.get(contentRef);
+        if (site.data()?.urgentNewsId === id) {
+            tx.set(contentRef, { urgentNewsId: null }, { merge: true });
+        }
+        tx.delete(doc(firestoreDb, NEWS, id));
+    });
 };
 
 export const getPaginatedNews = async (limitNum = 20, lastDoc?: any): Promise<{ data: NewsPostWithId[], lastDoc?: any }> => {
@@ -74,6 +194,7 @@ export const getPaginatedNews = async (limitNum = 20, lastDoc?: any): Promise<{ 
 };
 
 // === CALENDAR ===
+// Same pattern as news: real events in the "calendarEvents" collection, sample events until the first one.
 export type CalendarEventWithId = CalendarEvent & { id: string };
 
 const generateMockCalendarEvents = () => mockCalendarEvents.map((event, index) => ({
@@ -81,23 +202,40 @@ const generateMockCalendarEvents = () => mockCalendarEvents.map((event, index) =
     id: `mock_cal_${index}`,
 }));
 
+const eventsFrom = (snap: { docs: QueryDocumentSnapshot[] }) =>
+    snap.docs.map((d) => ({ ...(d.data() as CalendarEvent), id: d.id }));
+
+// Published events, for the public site and the phone calendar feed. Errors are let through
+// (see getNews), so the feed never sends phones an empty calendar by mistake.
 export const getCalendarEvents = async (): Promise<CalendarEventWithId[]> => {
-    return Promise.resolve(generateMockCalendarEvents());
+    if (!isFirebaseConfigured) return generateMockCalendarEvents();
+    const events = eventsFrom(await getDocsFromServer(query(collection(firestoreDb, CALENDAR), where('published', '==', true))));
+    if (events.length > 0) return events;
+    return (await getContentStarted()).events ? [] : generateMockCalendarEvents();
 };
 
-export const addCalendarEvent = async (eventData: Omit<CalendarEvent, 'id' | 'attachments'>, crossPost: boolean) => {
-    console.log("Mock addCalendarEvent:", eventData, `Cross-post: ${crossPost}`);
-    return Promise.resolve();
+// Every event, for the admin area. Only signed-in school admins can read these.
+export const getAllCalendarEvents = async (): Promise<CalendarEventWithId[]> => {
+    if (!isFirebaseConfigured) return generateMockCalendarEvents();
+    return eventsFrom(await getDocsFromServer(collection(firestoreDb, CALENDAR)));
 };
+
+export const addCalendarEvent = (eventData: NewEvent, _crossPost?: boolean) => createAnnouncement({ event: eventData });
 
 export const updateCalendarEvent = async (id: string, eventData: Partial<Omit<CalendarEvent, 'id' | 'attachments'>>, crossPost: boolean) => {
-    console.log(`Mock updateCalendarEvent (id: ${id}):`, eventData, `Cross-post: ${crossPost}`);
-    return Promise.resolve();
+    if (!isFirebaseConfigured) {
+        console.log(`Mock updateCalendarEvent (id: ${id}):`, eventData, `Cross-post: ${crossPost}`);
+        return;
+    }
+    await updateDoc(doc(firestoreDb, CALENDAR, id), withoutUndefined(eventData));
 };
 
 export const deleteCalendarEvent = async (id: string) => {
-    console.log(`Mock deleteCalendarEvent (id: ${id})`);
-    return Promise.resolve();
+    if (!isFirebaseConfigured) {
+        console.log(`Mock deleteCalendarEvent (id: ${id})`);
+        return;
+    }
+    await deleteDoc(doc(firestoreDb, CALENDAR, id));
 };
 
 export const getPaginatedCalendarEvents = async (limitNum = 20, lastDoc?: any): Promise<{ data: CalendarEventWithId[], lastDoc?: any }> => {

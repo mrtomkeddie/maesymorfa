@@ -20,8 +20,9 @@ import { Input } from '@/components/ui/input';
 
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2, FileText, Search, Megaphone, Calendar } from 'lucide-react';
 import { db } from '@/lib/db';
-import type { NewsPostWithId, CalendarEventWithId } from '@/lib/types';
+import type { NewsPostWithId, CalendarEventWithId } from '@/lib/db/firebase';
 import { deleteFile } from '@/lib/firebase/storage';
+import { isFirebaseConfigured } from '@/lib/firebase/config';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -47,14 +48,24 @@ export default function AnnouncementsAdminPage() {
   const [itemToDelete, setItemToDelete] = useState<Announcement | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  // Whether the school has added its own news / events yet (until then the site shows samples)
+  const [started, setStarted] = useState({ news: true, events: true });
   const isMobile = useIsMobile();
 
   const { toast } = useToast();
 
   const fetchAnnouncements = async () => {
     setIsLoading(true);
-    const newsPosts = await db.getNews();
-    const calendarEvents = await db.getCalendarEvents();
+    let newsPosts: NewsPostWithId[] = [];
+    let calendarEvents: CalendarEventWithId[] = [];
+    try {
+      let contentStarted;
+      [newsPosts, calendarEvents, contentStarted] = await Promise.all([db.getAllNews(), db.getAllCalendarEvents(), db.getContentStarted()]);
+      setStarted(contentStarted);
+    } catch (error) {
+      console.error('Error loading announcements:', error);
+      toast({ title: 'Could not load announcements', description: 'Check your internet connection, then refresh the page.', variant: 'destructive' });
+    }
 
     const allAnnouncements: Announcement[] = [
         ...newsPosts.map(n => ({...n, type: 'news' as const })),
@@ -115,8 +126,11 @@ export default function AnnouncementsAdminPage() {
             await db.deleteCalendarEvent(itemToDelete.id);
         }
 
-        if (itemToDelete.attachmentUrl) {
-           await deleteFile(itemToDelete.attachmentUrl);
+        // A news post and a calendar entry made together share one file; keep it while either uses it
+        const fileStillUsed = announcements.some(a => a !== itemToDelete && a.attachmentUrl === itemToDelete.attachmentUrl);
+        if (itemToDelete.attachmentUrl && !fileStillUsed) {
+           // The announcement is already gone; a file left behind is harmless
+           await deleteFile(itemToDelete.attachmentUrl).catch((error) => console.error('Could not delete attachment:', error));
         }
 
         toast({
@@ -264,6 +278,13 @@ export default function AnnouncementsAdminPage() {
             </DialogTrigger>
         </div>
         
+
+        {isFirebaseConfigured && !isLoading && (!started.news || !started.events) && (
+          <div className="rounded-lg border bg-secondary/40 p-4 text-sm text-muted-foreground">
+            Until you add your first {!started.news && !started.events ? 'news post and calendar entry' : !started.news ? 'news post' : 'calendar entry'},
+            the website shows a few sample ones so the pages are not empty. They disappear for good as soon as you add your own.
+          </div>
+        )}
 
         <Card>
           <CardHeader>

@@ -3,7 +3,7 @@
 'use client';
 
 import { useLanguage } from '@/app/(public)/LanguageProvider';
-import { news as mockNews } from '@/lib/mockNews';
+import { safeHtml } from '@/lib/utils';
 import { notFound, useParams } from 'next/navigation';
 import { ArrowLeft, Calendar, Paperclip, Send, Loader2, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -18,10 +18,12 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/db';
+import type { NewsPostWithId } from '@/lib/db/firebase';
 
 const content = {
     en: {
         back: 'Back to all news',
+        loadFailed: "This story couldn't be loaded. Check your internet connection and refresh the page.",
         urgent: 'Urgent',
         by: 'Posted on',
         attachment: 'Attachment',
@@ -34,6 +36,7 @@ const content = {
     },
     cy: {
         back: 'Yn ôl i\'r holl newyddion',
+        loadFailed: "Doedd dim modd llwytho'r stori hon. Gwiriwch eich cysylltiad â'r rhyngrwyd ac adnewyddwch y dudalen.",
         urgent: 'Pwysig',
         by: 'Postiwyd ar',
         attachment: 'Atodiad',
@@ -130,7 +133,41 @@ export default function NewsArticlePage() {
     
     const params = useParams();
     const slug = params.slug as string;
-    const post = mockNews.find(p => p.slug === slug);
+    // undefined while loading, null when there is no published post with this address
+    const [post, setPost] = useState<NewsPostWithId | null | undefined>(undefined);
+    const [loadFailed, setLoadFailed] = useState(false);
+
+    useEffect(() => {
+        // Start fresh for each address, and ignore answers for an address the visitor has left
+        let current = true;
+        setPost(undefined);
+        setLoadFailed(false);
+        db.getNewsBySlug(slug).then((found: NewsPostWithId | null) => {
+            if (current) setPost(found);
+        }).catch((error: unknown) => {
+            if (!current) return;
+            console.error('Could not load news post:', error);
+            setLoadFailed(true);
+        });
+        return () => { current = false; };
+    }, [slug]);
+
+    if (loadFailed) {
+        return (
+            <div className="container flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
+                <p className="text-lg">{t.loadFailed}</p>
+                <Link href="/news" className="underline">{t.back}</Link>
+            </div>
+        );
+    }
+
+    if (post === undefined) {
+        return (
+            <div className="flex min-h-[50vh] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     if (!post) {
         notFound();
@@ -173,7 +210,7 @@ export default function NewsArticlePage() {
                         
                         <div 
                             className="prose prose-lg max-w-none dark:prose-invert text-foreground/90" 
-                            dangerouslySetInnerHTML={{ __html: pageBody }}
+                            dangerouslySetInnerHTML={{ __html: safeHtml(pageBody) }}
                         />
 
                         {post.attachmentUrl && post.attachmentName && (

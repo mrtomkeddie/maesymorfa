@@ -12,8 +12,17 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import Link from "next/link";
-// import { getAuth, signInWithEmailAndPassword } from "firebase/auth"; // REMOVED
-// import { app } from "@/lib/firebase/config"; // REMOVED
+import { isFirebaseConfigured, isLocalDemo } from "@/lib/firebase/config";
+import { sendAdminPasswordReset, signInAdmin } from "@/lib/firebase/auth";
+
+// Plain-English messages for the sign-in errors staff are likely to see
+function signInErrorMessage(error: unknown): string {
+  const code = (error as { code?: string })?.code || '';
+  if (code === 'auth/too-many-requests') return "Too many tries. Wait a few minutes, then try again, or reset your password below.";
+  if (code === 'auth/network-request-failed') return "Could not reach the server. Check your internet connection and try again.";
+  if (code === 'auth/user-disabled') return "This account has been switched off.";
+  return "That email and password don't match. Please try again.";
+}
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -29,7 +38,9 @@ export function LoginForm({ userRole }: LoginFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // const auth = getAuth(app); // REMOVED
+  const [notice, setNotice] = useState<string | null>(null);
+  // School admins sign in for real; the parent and teacher portals are still demos
+  const realSignIn = userRole === 'admin' && isFirebaseConfigured;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,11 +53,33 @@ export function LoginForm({ userRole }: LoginFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setError(null);
+    setNotice(null);
 
-    // Always Mock Login for Development
-    await new Promise(resolve => setTimeout(resolve, 500)); // Fake delay
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userRole', userRole);
+    if (userRole === 'admin' && !isFirebaseConfigured && !isLocalDemo) {
+      setError("The admin area isn't set up on this website yet. Ask whoever runs the website to check its Firebase settings.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (realSignIn) {
+      try {
+        const result = await signInAdmin(values.email, values.password);
+        if (result === 'not-admin') {
+          setError("This account can't edit the school website yet. Ask whoever runs the website to add you.");
+          setIsLoading(false);
+          return;
+        }
+      } catch (signInError) {
+        setError(signInErrorMessage(signInError));
+        setIsLoading(false);
+        return;
+      }
+    } else {
+      // Demo sign-in for the parent and teacher portals
+      await new Promise(resolve => setTimeout(resolve, 500)); // Fake delay
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userRole', userRole);
+    }
 
     toast({
       title: "Login Successful",
@@ -64,12 +97,34 @@ export function LoginForm({ userRole }: LoginFormProps) {
     router.refresh();
   }
 
+  async function onForgotPassword() {
+    const email = form.getValues('email').trim();
+    if (!z.string().email().safeParse(email).success) {
+      form.setError('email', { message: 'Type your email address first, then press "Forgot your password?" again.' });
+      return;
+    }
+    setError(null);
+    try {
+      await sendAdminPasswordReset(email);
+    } catch (resetError) {
+      // Say the same thing whether or not the account exists
+      console.error('Password reset failed:', resetError);
+    }
+    setNotice(`If ${email} has an account, a link to set a new password is on its way. Check your inbox and spam folder.`);
+  }
+
   return (
     <div className="space-y-6">
       {error && (
         <Alert variant="destructive">
           <AlertTitle>Login Failed</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {notice && (
+        <Alert>
+          <AlertTitle>Check your email</AlertTitle>
+          <AlertDescription>{notice}</AlertDescription>
         </Alert>
       )}
       <Form {...form}>
@@ -112,6 +167,10 @@ export function LoginForm({ userRole }: LoginFormProps) {
             <p>Don't have an account? <Link href="/signup" className="underline">Sign up</Link></p>
             <p>Forgot your password? <Link href="/signup" className="underline">Reset it</Link></p>
           </>
+        ) : realSignIn ? (
+          <p>
+            <button type="button" onClick={onForgotPassword} className="underline">Forgot your password?</button>
+          </p>
         ) : (
           <p>Contact your system administrator for access.</p>
         )}

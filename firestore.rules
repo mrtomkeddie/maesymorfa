@@ -1,8 +1,9 @@
 rules_version = '2';
 
 // Locked down by default: nothing can be read or written unless a rule below allows it.
-// When the site starts storing real data (news, calendar, parents, children, staff),
-// add a rule for that collection here. Never go back to "allow read, write: if true".
+// News and calendar events are stored for real (below). When the site starts storing other
+// real data (parents, children, staff), add a rule for that collection here.
+// Never go back to "allow read, write: if true".
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -27,6 +28,112 @@ service cloud.firestore {
         && request.resource.data.games == resource.data.games + 1;
 
       allow delete: if false;
+    }
+
+    // School staff who may edit news and events. One document per person, named with their
+    // Firebase sign-in user ID and added by hand in the Firebase console. A person may read only
+    // their own entry (so the admin area can check it). Nothing on the site can write here.
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // News posts. Anyone may read published posts; school admins may read and change all of them.
+    match /news/{postId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow create, update: if isAdmin() && validNews();
+      allow delete: if isAdmin();
+    }
+
+    // Calendar events. Same access as news.
+    match /calendarEvents/{eventId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow create, update: if isAdmin() && validEvent();
+      allow delete: if isAdmin();
+    }
+
+    // site/content records whether the school has started adding its own news and events.
+    // Until it has, the public site shows sample ones (see src/lib/db/firebase.ts).
+    match /site/{docId} {
+      allow read: if docId == 'content';
+      allow create, update: if isAdmin() && docId == 'content'
+        && request.resource.data.keys().hasOnly(['newsStarted', 'eventsStarted', 'urgentNewsId'])
+        && (!('newsStarted' in request.resource.data) || request.resource.data.newsStarted is bool)
+        && (!('eventsStarted' in request.resource.data) || request.resource.data.eventsStarted is bool)
+        && (!('urgentNewsId' in request.resource.data) || request.resource.data.urgentNewsId == null
+            || (request.resource.data.urgentNewsId is string && request.resource.data.urgentNewsId.size() <= 100));
+      allow delete: if false;
+    }
+
+    // Translation use per admin per hour, counted by /api/translate with the admin's own sign-in.
+    // Shared by every server, so the hourly cap holds however many servers are running.
+    match /translateUsage/{docId} {
+      allow read, delete: if false;
+      allow create: if isAdmin()
+        && docId.matches(request.auth.uid + '_[0-9]{10}')
+        && request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count == 1;
+      // Only ever one more than before, so the count cannot be wound back
+      allow update: if isAdmin()
+        && docId.matches(request.auth.uid + '_[0-9]{10}')
+        && request.resource.data.keys().hasOnly(['count'])
+        && request.resource.data.count == resource.data.count + 1
+        && request.resource.data.count <= 50;
+    }
+
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // A real date and time, exactly as the site writes them: 2026-10-20T11:00:00.000Z
+    function isIsoDate(value) {
+      return value is string
+        && value.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9][.][0-9]{3}Z$')
+        && isRealDay(int(value.split('-')[0]), int(value.split('-')[1]), int(value.split('T')[0].split('-')[2]));
+    }
+
+    // No 31 April or 30 February; 29 February only in leap years
+    function isRealDay(year, month, day) {
+      return day <= (month == 2
+        ? ((year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) ? 29 : 28)
+        : (month in [4, 6, 9, 11] ? 30 : 31));
+    }
+
+    function validNews() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['title_en', 'title_cy', 'body_en', 'body_cy', 'date', 'category',
+          'attachments', 'attachmentUrl', 'attachmentName', 'image', 'isUrgent', 'published',
+          'createdBy', 'lastEdited', 'slug'])
+        && d.title_en is string && d.title_en.size() > 0 && d.title_en.size() <= 200
+        && d.title_cy is string && d.title_cy.size() <= 200
+        // The form takes up to 10,000 characters; escaping can make the saved HTML up to 6 times longer
+        && d.body_en is string && d.body_en.size() <= 100000
+        && d.body_cy is string && d.body_cy.size() <= 100000
+        && isIsoDate(d.date)
+        && d.slug is string && d.slug.matches('^[a-zA-Z0-9_-]{1,120}$')
+        && d.isUrgent is bool
+        && d.published is bool
+        && d.category in ['Urgent', 'Event', 'General'];
+    }
+
+    function validEvent() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['title_en', 'title_cy', 'description_en', 'description_cy', 'start',
+          'end', 'allDay', 'isUrgent', 'showOnHomepage', 'relevantTo', 'yearGroups', 'tags',
+          'attachments', 'attachmentUrl', 'attachmentName', 'published'])
+        && d.title_en is string && d.title_en.size() > 0 && d.title_en.size() <= 200
+        && d.title_cy is string && d.title_cy.size() <= 200
+        && (!('description_en' in d) || (d.description_en is string && d.description_en.size() <= 20000))
+        && (!('description_cy' in d) || (d.description_cy is string && d.description_cy.size() <= 20000))
+        && isIsoDate(d.start)
+        && (!('end' in d) || isIsoDate(d.end))
+        && (!('allDay' in d) || d.allDay is bool)
+        && (!('isUrgent' in d) || d.isUrgent is bool)
+        && (!('relevantTo' in d) || d.relevantTo is list)
+        && (!('tags' in d) || d.tags is list)
+        && (!('yearGroups' in d) || d.yearGroups is list)
+        && d.published is bool;
     }
 
     function isClass(classId) {

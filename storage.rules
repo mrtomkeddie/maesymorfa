@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Locked down by default: nothing can be listed, read or written unless a rule below allows it.
+// Only school admins (admins/{uid} in Firestore, see firestore.rules) may upload announcement
+// attachments. Visitors open attachments through the download link saved on each post,
+// which works without a rule here.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /attachments/{fileName} {
+      allow read, delete: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.size < 10 * 1024 * 1024
+        && (request.resource.contentType == 'application/pdf'
+            || request.resource.contentType.matches('image/.*'));
+    }
+
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+  }
+}

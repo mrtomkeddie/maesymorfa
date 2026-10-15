@@ -47,8 +47,9 @@ import { db } from '@/lib/db';
 import { useLanguage } from '../(public)/LanguageProvider';
 import { Button } from '@/components/ui/button';
 import { LanguageToggle } from '../(portal)/layout';
-import { getAuth, onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
-import { app } from '@/lib/firebase/config';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { isFirebaseConfigured, isLocalDemo } from '@/lib/firebase/config';
+import { signOutAdmin, watchAdmin } from '@/lib/firebase/auth';
 
 const content = {
   en: {
@@ -126,14 +127,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [unreadCount, setUnreadCount] = useState(0);
   const { language } = useLanguage();
   const t = content[language];
-  const isFirebaseConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-
 
   useEffect(() => {
-    // DEV MODE: Auto-login
-    console.log('Dev Mode: Auto-logging in as Admin');
-    setUser({ uid: 'dev-admin', email: 'admin@dev.com' } as FirebaseUser);
-    setIsLoading(false);
+    if (isLocalDemo) {
+      // Local preview with no Firebase project: nothing is saved anywhere, so skip the sign-in
+      setUser({ uid: 'dev-admin', email: 'admin@dev.com' } as FirebaseUser);
+      setIsLoading(false);
+      return;
+    }
+    if (!isFirebaseConfigured) {
+      // Live site with missing Firebase settings: keep the admin area locked
+      if (!window.location.pathname.startsWith('/admin/login')) router.replace('/admin/login');
+      return;
+    }
+    // Only signed-in school admins get past this point (see src/lib/firebase/auth.ts)
+    return watchAdmin(({ user, admin }) => {
+      if (user && admin) {
+        setUser(user);
+        setIsLoading(false);
+        return;
+      }
+      setUser(null);
+      if (user && !admin) signOutAdmin();
+      if (!window.location.pathname.startsWith('/admin/login')) router.replace('/admin/login');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -145,8 +163,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     if (isFirebaseConfigured) {
-      const auth = getAuth(app);
-      await signOut(auth);
+      await signOutAdmin();
     }
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userRole');

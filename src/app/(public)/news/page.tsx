@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { CalendarDays, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
+import { safeHtml } from '@/lib/utils';
 import { useNews } from '@/hooks/useNews';
 
 const content = {
@@ -65,7 +66,7 @@ export default function NewsPage() {
                                 <CardContent className="flex-grow flex flex-col justify-between space-y-4">
                                     <div
                                         className="text-muted-foreground line-clamp-3 text-sm"
-                                        dangerouslySetInnerHTML={{ __html: body }}
+                                        dangerouslySetInnerHTML={{ __html: safeHtml(body) }}
                                     />
                                     <Button variant="ghost" className="w-full group/btn justify-between hover:bg-primary/5" asChild>
                                         <Link href={`/news/${post.slug}`}>
