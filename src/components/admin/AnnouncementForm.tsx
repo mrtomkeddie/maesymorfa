@@ -159,7 +159,7 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
         });
       }
 
-      toast({ title: existingAnnouncement ? 'Changes saved' : 'Posted', description: 'It is on the website now.' });
+      toast({ title: existingAnnouncement ? 'Changes saved' : 'Added', description: 'It is on the website now.' });
 
       form.reset();
       onSuccess();
@@ -173,7 +173,7 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
     }
   };
 
-  const submitLabel = existingAnnouncement ? 'Save changes' : isEvent ? 'Add date' : 'Post news';
+  const submitLabel = existingAnnouncement ? 'Save changes' : isEvent ? 'Add event' : 'Add news';
 
   return (
     <Form {...form}>
@@ -198,7 +198,7 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Date</FormLabel>
+                <FormLabel>Day of the event</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -212,7 +212,7 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
                         {field.value ? (
                           format(field.value, 'PPP')
                         ) : (
-                          <span>Pick a date</span>
+                          <span>Pick the day</span>
                         )}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
@@ -305,9 +305,9 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
           <FormField control={form.control} name="alsoNews" render={({ field }) => (
             <FormItem className="flex items-center justify-between gap-4 space-y-0 rounded-lg border p-4">
               <div className="space-y-0.5">
-                <FormLabel>Also post this on the News page</FormLabel>
+                <FormLabel>Also put this under Latest News</FormLabel>
                 <FormDescription>
-                  Use this for dates parents need to hear about, like a parents&apos; evening.
+                  Switch this on if parents need to read about it too, like a parents&apos; evening.
                 </FormDescription>
               </div>
               <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>

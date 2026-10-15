@@ -30,7 +30,7 @@ const content = {
   en: {
     title: 'School website',
     menu: {
-      posts: 'News and dates',
+      posts: 'News and events',
       lunch: 'Lunch menu',
       viewSite: 'View the website',
     },
@@ -42,7 +42,7 @@ const content = {
   cy: {
     title: 'Gwefan yr ysgol',
     menu: {
-      posts: 'Newyddion a dyddiadau',
+      posts: 'Newyddion a digwyddiadau',
       lunch: 'Bwydlen ginio',
       viewSite: 'Gweld y wefan',
     },

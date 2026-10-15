@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
             <Image src="/icon.png" alt="School logo" width={40} height={40} className="h-10 w-10" />
           </Link>
           <CardTitle className="font-headline text-2xl">School website</CardTitle>
-          <CardDescription>Sign in to post news and dates on the website</CardDescription>
+          <CardDescription>Sign in to add news and events to the website</CardDescription>
         </CardHeader>
         <CardContent>
           <LoginForm userRole="admin" />

@@ -39,16 +39,38 @@ const AnnouncementForm = dynamic(() => import('@/components/admin/AnnouncementFo
 
 type Announcement = (NewsPostWithId & { type: 'news' }) | (CalendarEventWithId & { type: 'event' });
 
+// Same words as the home page ("Latest News", "Upcoming Events"), so staff know where each one goes
+const CHOICES = [
+  {
+    kind: 'news' as const,
+    icon: Megaphone,
+    name: 'News',
+    when: 'Choose this for a message or story for parents.',
+    examples: 'For example: the school is closed today, a letter home, or how the Year 4 trip went.',
+    where: 'Goes under Latest News on the home page.',
+    button: 'Add news',
+  },
+  {
+    kind: 'event' as const,
+    icon: Calendar,
+    name: 'Event',
+    when: 'Choose this for something happening on a set day.',
+    examples: 'For example: an INSET day, Sports Day or a school trip.',
+    where: 'Goes under Upcoming Events on the home page.',
+    button: 'Add an event',
+  },
+];
+
 const DIALOG_TEXT: Record<'news' | 'event', { add: string; edit: string; description: string }> = {
   news: {
-    add: 'Post news',
-    edit: 'Edit news post',
-    description: 'Shows on the News page straight away.',
+    add: 'Add news',
+    edit: 'Edit news',
+    description: 'Goes under Latest News on the home page straight away.',
   },
   event: {
-    add: 'Add a date',
-    edit: 'Edit date',
-    description: "Shows on the Events page and in parents' phone calendars straight away.",
+    add: 'Add an event',
+    edit: 'Edit event',
+    description: "Goes under Upcoming Events on the home page straight away. Parents who added the school dates to their phone get it too.",
   },
 };
 
@@ -183,7 +205,7 @@ export default function AnnouncementsAdminPage() {
   const TypeBadge = ({ item }: { item: Announcement }) => (
     <Badge variant="outline" className="gap-2">
       {item.type === 'news' ? <Megaphone className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
-      <span>{item.type === 'news' ? 'News' : 'Date'}</span>
+      <span>{item.type === 'news' ? 'News' : 'Event'}</span>
     </Badge>
   );
 
@@ -220,7 +242,7 @@ export default function AnnouncementsAdminPage() {
 
   const EmptyState = () => (
     <p className="py-8 text-center text-muted-foreground">
-      {announcements.length === 0 ? 'Nothing posted yet. Use "Post news" or "Add a date" above.' : 'Nothing matches your search.'}
+      {announcements.length === 0 ? 'Nothing added yet. Use "Add news" or "Add an event" above.' : 'Nothing matches your search.'}
     </p>
   );
 
@@ -289,27 +311,44 @@ export default function AnnouncementsAdminPage() {
   return (
     <Dialog open={dialogKind !== null} onOpenChange={(isOpen) => { if (!isOpen) closeDialog(); }}>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">News and dates</h1>
-                <p className="text-muted-foreground">Anything you post here is on the website straight away.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:flex">
-                <Button onClick={() => openNew('news')}>
-                    <Megaphone className="mr-2 h-4 w-4" /> Post news
-                </Button>
-                <Button variant="outline" onClick={() => openNew('event')}>
-                    <Calendar className="mr-2 h-4 w-4" /> Add a date
-                </Button>
-            </div>
+        <div>
+            <h1 className="text-3xl font-bold tracking-tight">News and events</h1>
+            <p className="text-muted-foreground">Anything you add here goes on the website straight away.</p>
         </div>
+
+        <section aria-labelledby="add-heading" className="space-y-3">
+          <h2 id="add-heading" className="text-xl font-semibold">What do you want to add?</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {CHOICES.map((choice) => (
+              <Card key={choice.kind} className="flex flex-col">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <choice.icon className="h-5 w-5 text-primary" /> {choice.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-1 flex-col gap-2">
+                  <p className="font-medium">{choice.when}</p>
+                  <p className="text-sm text-muted-foreground">{choice.examples}</p>
+                  <p className="text-sm text-muted-foreground">{choice.where}</p>
+                  <Button className="mt-auto w-full sm:w-auto sm:self-start" onClick={() => openNew(choice.kind)}>
+                    <choice.icon className="mr-2 h-4 w-4" /> {choice.button}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            <strong className="font-semibold text-foreground">Not sure?</strong> If it happens on a set day, choose Event. Anything else, choose News.
+            {' '}<strong className="font-semibold text-foreground">Need both?</strong> Choose Event, then switch on &quot;Also put this under Latest News&quot;.
+          </p>
+        </section>
 
         {!lunchMenus.isLoading && !lunchMenus.loadFailed && <LunchMenuReminder menus={lunchMenus.menus} />}
 
         {isFirebaseConfigured && !isLoading && (!started.news || !started.events) && (
           <div className="rounded-lg border bg-secondary/40 p-4 text-sm text-muted-foreground">
-            Until you add your first {!started.news && !started.events ? 'news post and date' : !started.news ? 'news post' : 'date'},
-            the website shows a few sample ones so the pages are not empty. They disappear for good as soon as you add your own.
+            The website shows a few sample {!started.news && !started.events ? 'news stories and events' : !started.news ? 'news stories' : 'events'} until
+            you add your own, so the pages are not empty. They disappear for good as soon as you do.
           </div>
         )}
 
@@ -317,8 +356,8 @@ export default function AnnouncementsAdminPage() {
           <CardHeader>
             <div className="flex flex-col gap-4 md:flex-row md:justify-between">
                 <div>
-                    <CardTitle>Your posts</CardTitle>
-                    <CardDescription>Everything on the website&apos;s News and Events pages.</CardDescription>
+                    <CardTitle>Everything you have added</CardTitle>
+                    <CardDescription>All your news and events. Edit or delete them here.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-2">
                     <div className="relative w-full sm:w-auto">
@@ -332,13 +371,13 @@ export default function AnnouncementsAdminPage() {
                         />
                     </div>
                      <Select value={typeFilter} onValueChange={setTypeFilter}>
-                        <SelectTrigger className="w-full sm:w-[150px]">
+                        <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Show..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">News and dates</SelectItem>
+                            <SelectItem value="all">News and events</SelectItem>
                             <SelectItem value="news">News only</SelectItem>
-                            <SelectItem value="event">Dates only</SelectItem>
+                            <SelectItem value="event">Events only</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
