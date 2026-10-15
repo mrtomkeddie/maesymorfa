@@ -16,6 +16,7 @@ import { TodayAtSchool } from '@/components/home/TodayAtSchool';
 import { GamePreview } from '@/components/home/GamePreview';
 import { AddToCalendar } from '@/components/AddToCalendar';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/Reveal';
+import { htmlToText } from '@/lib/utils';
 
 const content = {
   en: {
@@ -131,7 +132,8 @@ export default function HomePage() {
               {latestNews.slice(0, 3).map((post) => {
                 const title = language === 'en' ? post.title_en : post.title_cy;
                 const body = language === 'en' ? post.body_en : post.body_cy;
-                const plainBody = body.replace(/<[^>]*>?/gm, '');
+                // Paragraphs become spaces and &#39; becomes ' again ("pupils. Many thanks", not "pupils.Many thanks")
+                const plainBody = htmlToText(body).replace(/\s+/g, ' ');
                 return (
                   <RevealItem key={post.id}>
                     <Link href={`/news/${post.slug}`} className="group grid gap-1 py-5 sm:grid-cols-[7rem_1fr] sm:gap-6">
