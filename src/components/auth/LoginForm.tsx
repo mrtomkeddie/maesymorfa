@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import Link from "next/link";
 import { isFirebaseConfigured, isLocalDemo } from "@/lib/firebase/config";
 import { sendAdminPasswordReset, signInAdmin } from "@/lib/firebase/auth";
+import { ADMIN_HOME } from "@/lib/config/features";
 
 // Plain-English messages for the sign-in errors staff are likely to see
 function signInErrorMessage(error: unknown): string {
@@ -88,7 +89,7 @@ export function LoginForm({ userRole }: LoginFormProps) {
 
     let destination = '/dashboard';
     if (userRole === 'admin') {
-      destination = '/admin/dashboard';
+      destination = ADMIN_HOME;
     } else if (userRole === 'teacher') {
       destination = '/teacher/dashboard';
     }

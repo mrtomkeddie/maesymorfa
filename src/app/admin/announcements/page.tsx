@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2, FileText, Search, Megaphone, Calendar } from 'lucide-react';
+import { Pencil, Trash2, Loader2, Search, Megaphone, Calendar, ExternalLink } from 'lucide-react';
 import { db } from '@/lib/db';
 import type { NewsPostWithId, CalendarEventWithId } from '@/lib/db/firebase';
 import { deleteFile } from '@/lib/firebase/storage';
@@ -26,11 +26,9 @@ import { isFirebaseConfigured } from '@/lib/firebase/config';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Separator } from '@/components/ui/separator';
+import type { AnnouncementKind } from '@/components/admin/AnnouncementForm';
 
 const AnnouncementForm = dynamic(() => import('@/components/admin/AnnouncementForm').then(mod => mod.AnnouncementForm), {
   loading: () => <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin"/></div>,
@@ -39,10 +37,33 @@ const AnnouncementForm = dynamic(() => import('@/components/admin/AnnouncementFo
 
 type Announcement = (NewsPostWithId & { type: 'news' }) | (CalendarEventWithId & { type: 'event' });
 
+const DIALOG_TEXT: Record<'news' | 'event', { add: string; edit: string; description: string }> = {
+  news: {
+    add: 'Post news',
+    edit: 'Edit news post',
+    description: 'Shows on the News page straight away.',
+  },
+  event: {
+    add: 'Add a date',
+    edit: 'Edit date',
+    description: "Shows on the Events page and in parents' phone calendars straight away.",
+  },
+};
+
+const itemDate = (item: Announcement) => (item.type === 'news' ? item.date : item.start);
+const isValidDate = (date: unknown) => !!date && !isNaN(new Date(date as string).getTime());
+const showDate = (item: Announcement) => (isValidDate(itemDate(item)) ? format(new Date(itemDate(item)), 'dd MMM yyyy') : '-');
+
+// Where the item can be seen on the public site (hidden items and old posts without a web address have none)
+const siteLink = (item: Announcement) => {
+  if (item.published === false) return null;
+  return item.type === 'news' ? (item.slug ? `/news/${item.slug}` : null) : '/events';
+};
+
 export default function AnnouncementsAdminPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogKind, setDialogKind] = useState<AnnouncementKind | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [itemToDelete, setItemToDelete] = useState<Announcement | null>(null);
@@ -50,7 +71,6 @@ export default function AnnouncementsAdminPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   // Whether the school has added its own news / events yet (until then the site shows samples)
   const [started, setStarted] = useState({ news: true, events: true });
-  const isMobile = useIsMobile();
 
   const { toast } = useToast();
 
@@ -64,20 +84,20 @@ export default function AnnouncementsAdminPage() {
       setStarted(contentStarted);
     } catch (error) {
       console.error('Error loading announcements:', error);
-      toast({ title: 'Could not load announcements', description: 'Check your internet connection, then refresh the page.', variant: 'destructive' });
+      toast({ title: 'Could not load your posts', description: 'Check your internet connection, then refresh the page.', variant: 'destructive' });
     }
 
     const allAnnouncements: Announcement[] = [
         ...newsPosts.map(n => ({...n, type: 'news' as const })),
         ...calendarEvents.map(e => ({...e, type: 'event' as const })),
     ];
-    
+
     allAnnouncements.sort((a, b) => {
-        const dateA = new Date(a.type === 'news' ? a.date : a.start).getTime();
-        const dateB = new Date(b.type === 'news' ? b.date : b.start).getTime();
+        const dateA = new Date(itemDate(a)).getTime() || 0;
+        const dateB = new Date(itemDate(b)).getTime() || 0;
         return dateB - dateA;
     });
-    
+
     setAnnouncements(allAnnouncements);
     setIsLoading(false);
   };
@@ -89,28 +109,37 @@ export default function AnnouncementsAdminPage() {
 
   const filteredAnnouncements = useMemo(() => {
     let result = [...announcements];
-    
+
     if (typeFilter !== 'all') {
       result = result.filter(n => n.type === typeFilter);
     }
-    
+
     if (searchQuery) {
-      result = result.filter(n => n.title_en.toLowerCase().includes(searchQuery.toLowerCase()));
+      result = result.filter(n => (n.title_en || '').toLowerCase().includes(searchQuery.toLowerCase()));
     }
     return result;
   }, [announcements, searchQuery, typeFilter]);
 
-  const handleFormSuccess = () => {
-    setIsDialogOpen(false);
+  const closeDialog = () => {
+    setDialogKind(null);
     setSelectedAnnouncement(null);
+  };
+
+  const handleFormSuccess = () => {
+    closeDialog();
     fetchAnnouncements();
+  };
+
+  const openNew = (kind: AnnouncementKind) => {
+    setSelectedAnnouncement(null);
+    setDialogKind(kind);
   };
 
   const handleEdit = (item: Announcement) => {
     setSelectedAnnouncement(item);
-    setIsDialogOpen(true);
+    setDialogKind(item.type);
   };
-  
+
   const openDeleteAlert = (item: Announcement) => {
     setItemToDelete(item);
     setIsDeleteAlertOpen(true);
@@ -129,21 +158,17 @@ export default function AnnouncementsAdminPage() {
         // A news post and a calendar entry made together share one file; keep it while either uses it
         const fileStillUsed = announcements.some(a => a !== itemToDelete && a.attachmentUrl === itemToDelete.attachmentUrl);
         if (itemToDelete.attachmentUrl && !fileStillUsed) {
-           // The announcement is already gone; a file left behind is harmless
+           // The post is already gone; a file left behind is harmless
            await deleteFile(itemToDelete.attachmentUrl).catch((error) => console.error('Could not delete attachment:', error));
         }
 
-        toast({
-            title: "Success",
-            description: "Announcement deleted successfully.",
-            variant: "default",
-        });
+        toast({ title: 'Deleted', description: 'It is no longer on the website.' });
         fetchAnnouncements();
       } catch (error) {
         console.error("Error deleting announcement:", error);
         toast({
-            title: "Error",
-            description: "Failed to delete announcement. Please try again.",
+            title: 'Not deleted',
+            description: 'Something went wrong. Please try again.',
             variant: "destructive",
         });
       } finally {
@@ -151,69 +176,82 @@ export default function AnnouncementsAdminPage() {
         setItemToDelete(null);
       }
   };
-  
-  const isValidDate = (date: any) => {
-    return date && !isNaN(new Date(date).getTime());
-  }
 
+  const TypeBadge = ({ item }: { item: Announcement }) => (
+    <Badge variant="outline" className="gap-2">
+      {item.type === 'news' ? <Megaphone className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
+      <span>{item.type === 'news' ? 'News' : 'Date'}</span>
+    </Badge>
+  );
+
+  const StatusBadges = ({ item }: { item: Announcement }) => (
+    <div className="flex flex-wrap gap-2">
+      {item.published === false
+        ? <Badge variant="secondary">Hidden</Badge>
+        : <Badge className="bg-green-600 hover:bg-green-600 text-white">Live</Badge>}
+      {item.type === 'news' && item.isUrgent && <Badge variant="destructive">Homepage banner</Badge>}
+    </div>
+  );
+
+  // One line on desktop; on phones the buttons wrap under the post
+  const ItemActions = ({ item, oneLine = false }: { item: Announcement; oneLine?: boolean }) => {
+    const link = siteLink(item);
+    return (
+      <div className={oneLine ? 'flex flex-nowrap items-center justify-end gap-2' : 'grid grid-cols-3 gap-2 [&>*]:w-full'}>
+        {link && (
+          <Button variant="ghost" size="sm" className="px-2" asChild>
+            <a href={link} target="_blank" rel="noopener noreferrer" title="See it on the website">
+              <ExternalLink className="mr-2 h-4 w-4" /> View
+            </a>
+          </Button>
+        )}
+        <Button variant="outline" size="sm" className="px-2.5" onClick={() => handleEdit(item)}>
+          <Pencil className="mr-2 h-4 w-4" /> Edit
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => openDeleteAlert(item)} className="px-2.5 text-destructive hover:text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" /> Delete
+        </Button>
+      </div>
+    );
+  };
+
+  const EmptyState = () => (
+    <p className="py-8 text-center text-muted-foreground">
+      {announcements.length === 0 ? 'Nothing posted yet. Use "Post news" or "Add a date" above.' : 'Nothing matches your search.'}
+    </p>
+  );
+
+  // Wide screens get the table; anything narrower than 1440px gets cards, which never need sideways
+  // scrolling (a 1280px laptop with a scrollbar is just too narrow for the table)
   const DesktopView = () => (
-    <div className="overflow-x-auto">
+    <div className="hidden overflow-x-auto min-[1440px]:block">
         <Table>
             <TableHeader>
             <TableRow>
                 <TableHead>Title</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Type and date</TableHead>
+                <TableHead>On the website</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
             </TableRow>
             </TableHeader>
             <TableBody>
             {filteredAnnouncements.length > 0 ? (
-                filteredAnnouncements.map((item) => {
-                const itemDate = item.type === 'news' ? item.date : item.start;
-                return (
+                filteredAnnouncements.map((item) => (
                 <TableRow key={`${item.type}-${item.id}`}>
-                    <TableCell className="font-medium">{item.title_en}</TableCell>
+                    <TableCell className="font-medium">{item.title_en || '(no title)'}</TableCell>
                     <TableCell>
-                    <Badge variant="outline" className="gap-2">
-                        {item.type === 'news' ? <Megaphone className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
-                        <span className="capitalize">{item.type}</span>
-                    </Badge>
+                      <div className="flex flex-col items-start gap-1">
+                        <TypeBadge item={item} />
+                        <span className="whitespace-nowrap text-sm text-muted-foreground">{showDate(item)}</span>
+                      </div>
                     </TableCell>
-                    <TableCell>{isValidDate(itemDate) ? format(new Date(itemDate), 'dd MMM yyyy') : 'Invalid Date'}</TableCell>
-                    <TableCell>
-                    {item.isUrgent && <Badge variant="destructive">Urgent</Badge>}
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(item)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openDeleteAlert(item)} className="text-destructive focus:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    </TableCell>
+                    <TableCell><StatusBadges item={item} /></TableCell>
+                    <TableCell><ItemActions item={item} oneLine /></TableCell>
                 </TableRow>
-                )})
+                ))
             ) : (
                 <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                    No announcements found.
-                </TableCell>
+                  <TableCell colSpan={4}><EmptyState /></TableCell>
                 </TableRow>
             )}
             </TableBody>
@@ -222,66 +260,50 @@ export default function AnnouncementsAdminPage() {
   );
 
   const MobileView = () => (
-     <div className="space-y-4">
+     <div className="grid gap-4 md:grid-cols-2 min-[1440px]:hidden">
       {filteredAnnouncements.length > 0 ? (
-        filteredAnnouncements.map((item) => {
-          const itemDate = item.type === 'news' ? item.date : item.start;
-          return (
+        filteredAnnouncements.map((item) => (
             <Card key={`${item.type}-${item.id}`}>
               <CardContent className="p-4 space-y-3">
-                <p className="font-semibold">{item.title_en}</p>
+                <p className="font-semibold">{item.title_en || '(no title)'}</p>
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <Badge variant="outline" className="gap-2">
-                        {item.type === 'news' ? <Megaphone className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
-                        <span className="capitalize">{item.type}</span>
-                    </Badge>
-                    <span>{isValidDate(itemDate) ? format(new Date(itemDate), 'dd MMM yyyy') : 'Invalid Date'}</span>
+                    <TypeBadge item={item} />
+                    <span>{showDate(item)}</span>
                 </div>
-                 {item.isUrgent && <Badge variant="destructive">Urgent</Badge>}
-                <Separator />
-                <div className="flex items-center justify-end gap-2">
-                     <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => openDeleteAlert(item)}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </Button>
-                </div>
+                <StatusBadges item={item} />
+                <ItemActions item={item} />
               </CardContent>
             </Card>
-          )
-        })
+        ))
       ) : (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>No announcements found.</p>
-        </div>
+        <div className="md:col-span-2"><EmptyState /></div>
       )}
     </div>
   );
 
+  const dialogText = dialogKind ? DIALOG_TEXT[dialogKind] : null;
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={(isOpen) => {
-        setIsDialogOpen(isOpen);
-        if (!isOpen) setSelectedAnnouncement(null);
-    }}>
+    <Dialog open={dialogKind !== null} onOpenChange={(isOpen) => { if (!isOpen) closeDialog(); }}>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Announcements</h1>
-                <p className="text-muted-foreground">Create, edit, and manage all school announcements, news, and events.</p>
+                <h1 className="text-3xl font-bold tracking-tight">News and dates</h1>
+                <p className="text-muted-foreground">Anything you post here is on the website straight away.</p>
             </div>
-             <DialogTrigger asChild>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Announcement
+            <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button onClick={() => openNew('news')}>
+                    <Megaphone className="mr-2 h-4 w-4" /> Post news
                 </Button>
-            </DialogTrigger>
+                <Button variant="outline" onClick={() => openNew('event')}>
+                    <Calendar className="mr-2 h-4 w-4" /> Add a date
+                </Button>
+            </div>
         </div>
-        
 
         {isFirebaseConfigured && !isLoading && (!started.news || !started.events) && (
           <div className="rounded-lg border bg-secondary/40 p-4 text-sm text-muted-foreground">
-            Until you add your first {!started.news && !started.events ? 'news post and calendar entry' : !started.news ? 'news post' : 'calendar entry'},
+            Until you add your first {!started.news && !started.events ? 'news post and date' : !started.news ? 'news post' : 'date'},
             the website shows a few sample ones so the pages are not empty. They disappear for good as soon as you add your own.
           </div>
         )}
@@ -290,8 +312,8 @@ export default function AnnouncementsAdminPage() {
           <CardHeader>
             <div className="flex flex-col gap-4 md:flex-row md:justify-between">
                 <div>
-                    <CardTitle>Published Communications</CardTitle>
-                    <CardDescription>A list of all news posts and calendar events.</CardDescription>
+                    <CardTitle>Your posts</CardTitle>
+                    <CardDescription>Everything on the website&apos;s News and Events pages.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-2">
                     <div className="relative w-full sm:w-auto">
@@ -306,12 +328,12 @@ export default function AnnouncementsAdminPage() {
                     </div>
                      <Select value={typeFilter} onValueChange={setTypeFilter}>
                         <SelectTrigger className="w-full sm:w-[150px]">
-                            <SelectValue placeholder="Filter by type..." />
+                            <SelectValue placeholder="Show..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            <SelectItem value="news">News</SelectItem>
-                            <SelectItem value="event">Event</SelectItem>
+                            <SelectItem value="all">News and dates</SelectItem>
+                            <SelectItem value="news">News only</SelectItem>
+                            <SelectItem value="event">Dates only</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -323,17 +345,20 @@ export default function AnnouncementsAdminPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
-                isMobile ? <MobileView /> : <DesktopView />
+                <>
+                  <DesktopView />
+                  <MobileView />
+                </>
             )}
           </CardContent>
         </Card>
-        
+
         <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
           <AlertDialogContent>
               <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogTitle>Delete &quot;{itemToDelete?.title_en || 'this post'}&quot;?</AlertDialogTitle>
               <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the announcement.
+                  It will come off the website straight away. This cannot be undone.
               </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -345,16 +370,20 @@ export default function AnnouncementsAdminPage() {
       </div>
 
        <DialogContent className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedAnnouncement ? 'Edit' : 'Create'} Announcement</DialogTitle>
-            <DialogDescription>
-              Fill in the details below. Click save when you're done.
-            </DialogDescription>
-          </DialogHeader>
-          <AnnouncementForm
-            onSuccess={handleFormSuccess}
-            existingAnnouncement={selectedAnnouncement}
-          />
+          {dialogKind && dialogText && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedAnnouncement ? dialogText.edit : dialogText.add}</DialogTitle>
+                <DialogDescription>{dialogText.description}</DialogDescription>
+              </DialogHeader>
+              <AnnouncementForm
+                key={`${dialogKind}-${selectedAnnouncement?.id ?? 'new'}`}
+                kind={dialogKind}
+                onSuccess={handleFormSuccess}
+                existingAnnouncement={selectedAnnouncement}
+              />
+            </>
+          )}
         </DialogContent>
     </Dialog>
   );

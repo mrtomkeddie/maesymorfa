@@ -1,8 +1,6 @@
 
-
 'use client';
 
-import { FEATURES } from '@/lib/config/features';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,105 +12,40 @@ import {
   SidebarInset,
   SidebarFooter,
   SidebarTrigger,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarSeparator,
-  useSidebar,
-  SidebarMenuBadge,
 } from '@/components/ui/sidebar';
-import {
-  LayoutDashboard,
-  Newspaper,
-  Calendar,
-  Users,
-  FileText,
-  LogOut,
-  Loader2,
-  Users2,
-  BookUser,
-  HelpCircle,
-  Settings,
-  Mail,
-  Camera,
-  Utensils,
-  Megaphone,
-} from 'lucide-react';
+import { LogOut, Loader2, Megaphone, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useEffect, useState } from 'react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Image from 'next/image';
-import { db } from '@/lib/db';
 import { useLanguage } from '../(public)/LanguageProvider';
-import { Button } from '@/components/ui/button';
 import { LanguageToggle } from '../(portal)/layout';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { isFirebaseConfigured, isLocalDemo } from '@/lib/firebase/config';
 import { signOutAdmin, watchAdmin } from '@/lib/firebase/auth';
+import { ADMIN_HOME, LIVE_ADMIN_PAGES } from '@/lib/config/features';
 
 const content = {
   en: {
-    title: 'Admin Portal',
+    title: 'School website',
     menu: {
-      dashboard: 'Dashboard',
-      inbox: 'Inbox',
-    },
-    groups: {
-      content: 'Content',
-      users: 'Users',
-      system: 'System',
-    },
-    contentManagement: {
-      announcements: 'Announcements',
-      staff: 'Staff',
-      gallery: 'Photo Gallery',
-      documents: 'Documents',
-      menu: 'Lunch Menu',
-    },
-    userManagement: {
-      parents: 'Parents',
-      children: 'Children',
-      allUsers: 'All Users'
-    },
-    settings: {
-      site: 'Site Settings',
+      posts: 'News and dates',
+      viewSite: 'View the website',
     },
     account: {
-      title: 'My Account',
-      role: 'Administrator',
-      logout: 'Logout'
+      role: 'Can edit the website',
+      logout: 'Sign out'
     }
   },
   cy: {
-    title: 'Porth Gweinyddu',
+    title: 'Gwefan yr ysgol',
     menu: {
-      dashboard: 'Dangosfwrdd',
-      inbox: 'Mewnflwch',
-    },
-    groups: {
-      content: 'Cynnwys',
-      users: 'Defnyddwyr',
-      system: 'System',
-    },
-    contentManagement: {
-      announcements: 'Cyhoeddiadau',
-      staff: 'Staff',
-      gallery: 'Oriel Ffotograffau',
-      documents: 'Dogfennau',
-      menu: 'Bwydlen Ginio',
-    },
-    userManagement: {
-      parents: 'Rhieni',
-      children: 'Plant',
-      allUsers: 'Holl Ddefnyddwyr'
-    },
-    settings: {
-      site: 'Gosodiadau Gwefan',
+      posts: 'Newyddion a dyddiadau',
+      viewSite: 'Gweld y wefan',
     },
     account: {
-      title: 'Fy Nghyfrif',
-      role: 'Gweinyddwr',
+      role: "Yn gallu golygu'r wefan",
       logout: 'Allgofnodi'
     }
   }
@@ -124,7 +57,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
   const { language } = useLanguage();
   const t = content[language];
 
@@ -154,12 +86,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Demo pages (see LIVE_ADMIN_PAGES) are hidden: their addresses lead back to the live page
+  const isLivePage = LIVE_ADMIN_PAGES.some((page) => pathname.startsWith(page));
   useEffect(() => {
-    if (user) {
-      const userId = user.uid;
-      db.getUnreadMessageCount(userId, 'admin').then(setUnreadCount);
-    }
-  }, [user, pathname]); // Refetch on path change to update badge
+    if (user && !pathname.startsWith('/admin/login') && !isLivePage) router.replace(ADMIN_HOME);
+  }, [user, pathname, isLivePage, router]);
 
   const handleLogout = async () => {
     if (isFirebaseConfigured) {
@@ -171,35 +102,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.refresh();
   };
 
-  const menuItems = [
-    { href: '/admin/dashboard', label: t.menu.dashboard, icon: LayoutDashboard },
-    { href: '/admin/inbox', label: t.menu.inbox, icon: Mail, badge: unreadCount },
-  ];
-
-  const contentManagementItems = [
-    { href: '/admin/announcements', label: t.contentManagement.announcements, icon: Megaphone },
-    { href: '/admin/staff', label: t.contentManagement.staff, icon: Users },
-    ...(FEATURES.enablePhotoGallery ? [{ href: '/admin/gallery', label: t.contentManagement.gallery, icon: Camera }] : []),
-    { href: '/admin/documents', label: t.contentManagement.documents, icon: FileText },
-    { href: '/admin/menu', label: t.contentManagement.menu, icon: Utensils },
-  ];
-
-  const userManagementItems = [
-    { href: '/admin/parents', label: t.userManagement.parents, icon: Users2 },
-    { href: '/admin/children', label: t.userManagement.children, icon: BookUser },
-    { href: '/admin/users', label: t.userManagement.allUsers, icon: Users },
-  ];
-
-  const settingsItems = [
-    { href: '/admin/settings', label: t.settings.site, icon: Settings },
-    // { href: '/admin/help', label: 'Help', icon: HelpCircle },
-  ];
-
   if (pathname.startsWith('/admin/login')) {
     return <>{children}</>;
   }
 
-  if (isLoading || !user) {
+  if (isLoading || !user || !isLivePage) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -211,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader className="border-b p-4 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
-          <Link href="/admin/dashboard" className="flex items-center gap-2">
+          <Link href={ADMIN_HOME} className="flex items-center gap-2">
             <Image src="/icon.png" alt="School logo" width={28} height={28} className="w-7 h-7" />
             <span className="text-lg font-extrabold tracking-tighter text-foreground group-data-[collapsible=icon]:hidden">
               {t.title}
@@ -220,95 +127,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu className="p-2">
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href}
-                  tooltip={{ children: item.label }}
-                >
-                  <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                    {item.badge && item.badge > 0 ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-            <SidebarSeparator />
-            <SidebarGroup>
-              <SidebarGroupLabel>{t.groups.content}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                {contentManagementItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith(item.href)}
-                      tooltip={{ children: item.label }}
-                    >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarGroupContent>
-            </SidebarGroup>
-            {FEATURES.enableParentPortal && (
-              <>
-                <SidebarSeparator />
-                <SidebarGroup>
-                  <SidebarGroupLabel>{t.groups.users}</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    {userManagementItems.map((item) => (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname.startsWith(item.href)}
-                          tooltip={{ children: item.label }}
-                        >
-                          <Link href={item.href}>
-                            <item.icon />
-                            <span>{item.label}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </>
-            )}
-            <SidebarSeparator />
-            <SidebarGroup>
-              <SidebarGroupLabel>{t.groups.system}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                {settingsItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith(item.href)}
-                      tooltip={{ children: item.label }}
-                    >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarGroupContent>
-            </SidebarGroup>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith(ADMIN_HOME)} tooltip={{ children: t.menu.posts }}>
+                <Link href={ADMIN_HOME}>
+                  <Megaphone />
+                  <span>{t.menu.posts}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip={{ children: t.menu.viewSite }}>
+                <a href="/" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink />
+                  <span>{t.menu.viewSite}</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="p-2 flex flex-col gap-2">
           <div className="flex w-full items-center gap-3 p-2 group-data-[collapsible=icon]:justify-center rounded-md">
             <Avatar className="size-8">
-              <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="person avatar" />
-              <AvatarFallback>A</AvatarFallback>
+              <AvatarFallback>{(user?.email || 'A').charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden flex-grow text-left">
-              <span className="font-semibold">{user?.email || 'Admin'}</span>
+            <div className="flex min-w-0 flex-col text-sm group-data-[collapsible=icon]:hidden flex-grow text-left">
+              <span className="truncate font-semibold">{user?.email || 'Admin'}</span>
               <span className="text-muted-foreground">{t.account.role}</span>
             </div>
           </div>
@@ -318,8 +161,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
-        <main className="p-4 md:p-6 lg:p-8">
+      <SidebarInset className="min-w-0">
+        <main className="min-w-0 p-4 md:p-6 lg:p-8">
           <div className="mx-auto max-w-7xl">
             <div className="flex justify-between items-center mb-4">
               <div className="lg:hidden">
