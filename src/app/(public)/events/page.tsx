@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { cy as cyLocale } from 'date-fns/locale';
-import { CalendarDays, Clock } from 'lucide-react';
+import { ArrowRight, CalendarDays, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '../LanguageProvider';
 import { useCalendar } from '@/hooks/useCalendar';
@@ -16,6 +16,7 @@ const content = {
         subtitle: 'Dates for the whole school community',
         allDay: 'All day',
         none: 'No upcoming events scheduled.',
+        readMore: 'Read more',
         termDates: 'Looking for holidays? See the term dates',
     },
     cy: {
@@ -23,6 +24,7 @@ const content = {
         subtitle: 'Dyddiadau i gymuned gyfan yr ysgol',
         allDay: 'Drwy’r dydd',
         none: 'Dim digwyddiadau i ddod.',
+        readMore: 'Darllen mwy',
         termDates: 'Chwilio am wyliau? Gweler dyddiadau’r tymor',
     },
 };
@@ -88,7 +90,13 @@ export default function EventsPage() {
                                                 <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1 font-medium">
                                                     <Clock className="h-3 w-3" /> {event.allDay ? t.allDay : format(start, 'p')}
                                                 </p>
-                                                {description && <p className="mt-2 text-sm text-muted-foreground">{description}</p>}
+                                                {/* Events added with a news post carry the whole letter, so show the start and link to the rest */}
+                                                {description && <p className={`mt-2 text-sm text-muted-foreground ${event.newsSlug ? 'line-clamp-3' : ''}`}>{description}</p>}
+                                                {event.newsSlug && (
+                                                    <Link href={`/news/${encodeURIComponent(event.newsSlug)}`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                                                        {t.readMore} <ArrowRight className="h-4 w-4" />
+                                                    </Link>
+                                                )}
                                             </div>
                                         </li>
                                     );

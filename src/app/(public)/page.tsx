@@ -16,7 +16,7 @@ import { TodayAtSchool } from '@/components/home/TodayAtSchool';
 import { GamePreview } from '@/components/home/GamePreview';
 import { AddToCalendar } from '@/components/AddToCalendar';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/Reveal';
-import { htmlToText } from '@/lib/utils';
+import { eventDay, htmlToText } from '@/lib/utils';
 
 const content = {
   en: {
@@ -133,7 +133,8 @@ export default function HomePage() {
                 const title = language === 'en' ? post.title_en : post.title_cy;
                 const body = language === 'en' ? post.body_en : post.body_cy;
                 // Paragraphs become spaces and &#39; becomes ' again ("pupils. Many thanks", not "pupils.Many thanks")
-                const plainBody = htmlToText(body).replace(/\s+/g, ' ');
+                const plainBody = htmlToText(body).replace(/\s+/g, ' ')
+                  || (post.eventStart && !isNaN(new Date(post.eventStart).getTime()) ? eventDay(post.eventStart, language) : '');
                 return (
                   <RevealItem key={post.id}>
                     <Link href={`/news/${post.slug}`} className="group grid gap-1 py-5 sm:grid-cols-[7rem_1fr] sm:gap-6">
@@ -168,7 +169,7 @@ export default function HomePage() {
               <RevealGroup className="space-y-3">
                 {upcomingEvents.map((event) => (
                   <RevealItem key={event.id}>
-                    <Link href="/events" className="group flex items-center gap-4 rounded-2xl bg-secondary/60 p-4 transition-colors hover:bg-secondary">
+                    <Link href={event.newsSlug ? `/news/${encodeURIComponent(event.newsSlug)}` : '/events'} className="group flex items-center gap-4 rounded-2xl bg-secondary/60 p-4 transition-colors hover:bg-secondary">
                       <div className="shrink-0 w-14 rounded-xl bg-white py-2 text-center shadow-sm">
                         <span className="block font-headline text-2xl font-bold leading-none">{format(new Date(event.start), 'dd')}</span>
                         <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{format(new Date(event.start), 'MMM', locale)}</span>

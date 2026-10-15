@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 
-import { Pencil, Trash2, Loader2, Search, Megaphone, Calendar, ExternalLink } from 'lucide-react';
+import { Pencil, Trash2, Loader2, Search, Megaphone, Calendar, ExternalLink, Plus } from 'lucide-react';
 import { db } from '@/lib/db';
 import type { NewsPostWithId, CalendarEventWithId } from '@/lib/db/firebase';
 import { deleteFile } from '@/lib/firebase/storage';
@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { AnnouncementKind } from '@/components/admin/AnnouncementForm';
+import type { AdminItem } from '@/components/admin/AnnouncementForm';
 import { LunchMenuReminder } from '@/components/admin/LunchMenuReminder';
 import { useLunchMenus } from '@/hooks/useLunchMenus';
 
@@ -36,61 +36,42 @@ const AnnouncementForm = dynamic(() => import('@/components/admin/AnnouncementFo
   loading: () => <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin"/></div>,
 });
 
-
-type Announcement = (NewsPostWithId & { type: 'news' }) | (CalendarEventWithId & { type: 'event' });
-
-// Same words as the home page ("Latest News", "Upcoming Events"), so staff know where each one goes
-const CHOICES = [
-  {
-    kind: 'news' as const,
-    icon: Megaphone,
-    name: 'News',
-    when: 'Choose this for a message or story for parents.',
-    examples: 'For example: the school is closed today, a letter home, or how the Year 4 trip went.',
-    where: 'Goes under Latest News on the home page.',
-    button: 'Add news',
-  },
-  {
-    kind: 'event' as const,
-    icon: Calendar,
-    name: 'Event',
-    when: 'Choose this for something happening on a set day.',
-    examples: 'For example: an INSET day, Sports Day or a school trip.',
-    where: 'Goes under Upcoming Events on the home page.',
-    button: 'Add an event',
-  },
-];
-
-const DIALOG_TEXT: Record<'news' | 'event', { add: string; edit: string; description: string }> = {
-  news: {
-    add: 'Add news',
-    edit: 'Edit news',
-    description: 'Goes under Latest News on the home page straight away.',
-  },
-  event: {
-    add: 'Add an event',
-    edit: 'Edit event',
-    description: "Goes under Upcoming Events on the home page straight away. Parents who added the school dates to their phone get it too.",
-  },
-};
-
-const itemDate = (item: Announcement) => (item.type === 'news' ? item.date : item.start);
 const isValidDate = (date: unknown) => !!date && !isNaN(new Date(date as string).getTime());
-const showDate = (item: Announcement) => (isValidDate(itemDate(item)) ? format(new Date(itemDate(item)), 'dd MMM yyyy') : '-');
+const showDay = (iso: string | undefined, pattern: string) => (isValidDate(iso) ? format(new Date(iso as string), pattern) : '-');
+
+const itemKey = (item: AdminItem) => (item.news ? `news-${item.news.id}` : `event-${item.event?.id}`);
+const itemTitle = (item: AdminItem) => item.news?.title_en || item.event?.title_en || '(no title)';
+// Posts sort by the day they were posted; older calendar entries with no post by their day
+const itemDate = (item: AdminItem) => item.news?.date ?? item.event?.start ?? '';
+const isHidden = (item: AdminItem) => (item.news ?? item.event)?.published === false;
 
 // Where the item can be seen on the public site (hidden items and old posts without a web address have none)
-const siteLink = (item: Announcement) => {
-  if (item.published === false) return null;
-  return item.type === 'news' ? (item.slug ? `/news/${item.slug}` : null) : '/events';
+const siteLink = (item: AdminItem) => {
+  if (isHidden(item)) return null;
+  if (item.news) return item.news.slug ? `/news/${item.news.slug}` : null;
+  return '/events';
+};
+
+// Pairs each post with its calendar entry. They are linked both ways, so either link is enough.
+const toItems = (news: NewsPostWithId[], events: CalendarEventWithId[], bannerId: string | null): AdminItem[] => {
+  const eventsById = new Map(events.map((event) => [event.id, event]));
+  const paired = new Set<string>();
+  const items: AdminItem[] = news.map((post) => {
+    const event = (post.eventId ? eventsById.get(post.eventId) : undefined) ?? events.find((e) => e.newsId === post.id) ?? null;
+    if (event) paired.add(event.id);
+    return { news: post, event, isBanner: post.id === bannerId };
+  });
+  // Older calendar entries with no news post still show, so they can be edited or deleted
+  events.filter((event) => !paired.has(event.id)).forEach((event) => items.push({ news: null, event, isBanner: false }));
+  return items.sort((a, b) => (new Date(itemDate(b)).getTime() || 0) - (new Date(itemDate(a)).getTime() || 0));
 };
 
 export default function AnnouncementsAdminPage() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [items, setItems] = useState<AdminItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [dialogKind, setDialogKind] = useState<AnnouncementKind | null>(null);
-  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<Announcement | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<AdminItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<AdminItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   // Whether the school has added its own news / events yet (until then the site shows samples)
@@ -99,127 +80,119 @@ export default function AnnouncementsAdminPage() {
 
   const { toast } = useToast();
 
-  const fetchAnnouncements = async () => {
+  const fetchItems = async () => {
     setIsLoading(true);
     let newsPosts: NewsPostWithId[] = [];
     let calendarEvents: CalendarEventWithId[] = [];
+    let bannerId: string | null = null;
     try {
-      let contentStarted;
-      [newsPosts, calendarEvents, contentStarted] = await Promise.all([db.getAllNews(), db.getAllCalendarEvents(), db.getContentStarted()]);
-      setStarted(contentStarted);
+      let site;
+      [newsPosts, calendarEvents, site] = await Promise.all([db.getAllNews(), db.getAllCalendarEvents(), db.getSiteContent()]);
+      setStarted({ news: site.news, events: site.events });
+      bannerId = site.urgentNewsId;
     } catch (error) {
       console.error('Error loading announcements:', error);
       toast({ title: 'Could not load your posts', description: 'Check your internet connection, then refresh the page.', variant: 'destructive' });
     }
-
-    const allAnnouncements: Announcement[] = [
-        ...newsPosts.map(n => ({...n, type: 'news' as const })),
-        ...calendarEvents.map(e => ({...e, type: 'event' as const })),
-    ];
-
-    allAnnouncements.sort((a, b) => {
-        const dateA = new Date(itemDate(a)).getTime() || 0;
-        const dateB = new Date(itemDate(b)).getTime() || 0;
-        return dateB - dateA;
-    });
-
-    setAnnouncements(allAnnouncements);
+    setItems(toItems(newsPosts, calendarEvents, bannerId));
     setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchAnnouncements();
+    fetchItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredAnnouncements = useMemo(() => {
-    let result = [...announcements];
-
-    if (typeFilter !== 'all') {
-      result = result.filter(n => n.type === typeFilter);
-    }
-
+  const filteredItems = useMemo(() => {
+    let result = items;
+    if (typeFilter === 'event') result = result.filter((item) => item.event);
+    if (typeFilter === 'news') result = result.filter((item) => !item.event);
     if (searchQuery) {
-      result = result.filter(n => (n.title_en || '').toLowerCase().includes(searchQuery.toLowerCase()));
+      result = result.filter((item) => itemTitle(item).toLowerCase().includes(searchQuery.toLowerCase()));
     }
     return result;
-  }, [announcements, searchQuery, typeFilter]);
+  }, [items, searchQuery, typeFilter]);
 
-  const closeDialog = () => {
-    setDialogKind(null);
-    setSelectedAnnouncement(null);
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setSelectedItem(null);
   };
 
   const handleFormSuccess = () => {
-    closeDialog();
-    fetchAnnouncements();
+    closeForm();
+    fetchItems();
   };
 
-  const openNew = (kind: AnnouncementKind) => {
-    setSelectedAnnouncement(null);
-    setDialogKind(kind);
+  const openNew = () => {
+    setSelectedItem(null);
+    setIsFormOpen(true);
   };
 
-  const handleEdit = (item: Announcement) => {
-    setSelectedAnnouncement(item);
-    setDialogKind(item.type);
+  const handleEdit = (item: AdminItem) => {
+    setSelectedItem(item);
+    setIsFormOpen(true);
   };
-
-  const openDeleteAlert = (item: Announcement) => {
-    setItemToDelete(item);
-    setIsDeleteAlertOpen(true);
-  }
 
   const handleDelete = async () => {
       if (!itemToDelete) return;
 
       try {
-        if (itemToDelete.type === 'news') {
-            await db.deleteNews(itemToDelete.id);
-        } else {
-            await db.deleteCalendarEvent(itemToDelete.id);
-        }
+        const files = await db.deletePost({ newsId: itemToDelete.news?.id ?? null, eventId: itemToDelete.event?.id ?? null });
 
-        // A news post and a calendar entry made together share one file; keep it while either uses it
-        const fileStillUsed = announcements.some(a => a !== itemToDelete && a.attachmentUrl === itemToDelete.attachmentUrl);
-        if (itemToDelete.attachmentUrl && !fileStillUsed) {
-           // The post is already gone; a file left behind is harmless
-           await deleteFile(itemToDelete.attachmentUrl).catch((error) => console.error('Could not delete attachment:', error));
+        // A post and its calendar entry share one file. It is only removed when nothing else uses it,
+        // and kept if that cannot be checked (the post is already gone; a file left behind is harmless)
+        for (const url of files) {
+          const inUse = await db.isAttachmentInUse(url).catch(() => true);
+          if (!inUse) await deleteFile(url).catch((error) => console.error('Could not delete attachment:', error));
         }
 
         toast({ title: 'Deleted', description: 'It is no longer on the website.' });
-        fetchAnnouncements();
+        fetchItems();
       } catch (error) {
         console.error("Error deleting announcement:", error);
         toast({
             title: 'Not deleted',
-            description: 'Something went wrong. Please try again.',
+            description: 'Something went wrong, or someone else has just changed it. The list has been refreshed. Check it and try again.',
             variant: "destructive",
         });
+        fetchItems();
       } finally {
-        setIsDeleteAlertOpen(false);
         setItemToDelete(null);
       }
   };
 
-  const TypeBadge = ({ item }: { item: Announcement }) => (
-    <Badge variant="outline" className="gap-2">
-      {item.type === 'news' ? <Megaphone className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
-      <span>{item.type === 'news' ? 'News' : 'Event'}</span>
-    </Badge>
+  const WhereBadges = ({ item }: { item: AdminItem }) => (
+    <div className="flex flex-wrap gap-2">
+      {item.news && (
+        <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
+          <Megaphone className="h-3 w-3" /> Latest News
+        </Badge>
+      )}
+      {item.event && (
+        <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
+          <Calendar className="h-3 w-3" /> Event: {showDay(item.event.start, 'EEE d MMM yyyy')}
+        </Badge>
+      )}
+    </div>
   );
 
-  const StatusBadges = ({ item }: { item: Announcement }) => (
+  const Posted = ({ item }: { item: AdminItem }) => (
+    <span className="whitespace-nowrap text-sm text-muted-foreground">
+      {item.news ? `Posted ${showDay(item.news.date, 'd MMM yyyy')}` : 'Calendar only (older entry)'}
+    </span>
+  );
+
+  const StatusBadges = ({ item }: { item: AdminItem }) => (
     <div className="flex flex-wrap gap-2">
-      {item.published === false
+      {isHidden(item)
         ? <Badge variant="secondary">Hidden</Badge>
         : <Badge className="bg-green-600 hover:bg-green-600 text-white">Live</Badge>}
-      {item.type === 'news' && item.isUrgent && <Badge variant="destructive">Homepage banner</Badge>}
+      {item.isBanner && <Badge variant="destructive">Homepage banner</Badge>}
     </div>
   );
 
   // One line on desktop; on phones the buttons wrap under the post
-  const ItemActions = ({ item, oneLine = false }: { item: Announcement; oneLine?: boolean }) => {
+  const ItemActions = ({ item, oneLine = false }: { item: AdminItem; oneLine?: boolean }) => {
     const link = siteLink(item);
     return (
       <div className={oneLine ? 'flex flex-nowrap items-center justify-end gap-2' : 'grid grid-cols-3 gap-2 [&>*]:w-full'}>
@@ -233,7 +206,7 @@ export default function AnnouncementsAdminPage() {
         <Button variant="outline" size="sm" className="px-2.5" onClick={() => handleEdit(item)}>
           <Pencil className="mr-2 h-4 w-4" /> Edit
         </Button>
-        <Button variant="outline" size="sm" onClick={() => openDeleteAlert(item)} className="px-2.5 text-destructive hover:text-destructive">
+        <Button variant="outline" size="sm" onClick={() => setItemToDelete(item)} className="px-2.5 text-destructive hover:text-destructive">
           <Trash2 className="mr-2 h-4 w-4" /> Delete
         </Button>
       </div>
@@ -242,7 +215,7 @@ export default function AnnouncementsAdminPage() {
 
   const EmptyState = () => (
     <p className="py-8 text-center text-muted-foreground">
-      {announcements.length === 0 ? 'Nothing added yet. Use "Add news" or "Add an event" above.' : 'Nothing matches your search.'}
+      {items.length === 0 ? 'Nothing added yet. Use "Add news or an event" above.' : 'Nothing matches your search.'}
     </p>
   );
 
@@ -254,20 +227,20 @@ export default function AnnouncementsAdminPage() {
             <TableHeader>
             <TableRow>
                 <TableHead>Title</TableHead>
-                <TableHead>Type and date</TableHead>
+                <TableHead>Where it shows</TableHead>
                 <TableHead>On the website</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
             </TableRow>
             </TableHeader>
             <TableBody>
-            {filteredAnnouncements.length > 0 ? (
-                filteredAnnouncements.map((item) => (
-                <TableRow key={`${item.type}-${item.id}`}>
-                    <TableCell className="font-medium">{item.title_en || '(no title)'}</TableCell>
+            {filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                <TableRow key={itemKey(item)}>
+                    <TableCell className="font-medium">{itemTitle(item)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col items-start gap-1">
-                        <TypeBadge item={item} />
-                        <span className="whitespace-nowrap text-sm text-muted-foreground">{showDate(item)}</span>
+                        <WhereBadges item={item} />
+                        <Posted item={item} />
                       </div>
                     </TableCell>
                     <TableCell><StatusBadges item={item} /></TableCell>
@@ -286,15 +259,13 @@ export default function AnnouncementsAdminPage() {
 
   const MobileView = () => (
      <div className="grid gap-4 md:grid-cols-2 min-[1440px]:hidden">
-      {filteredAnnouncements.length > 0 ? (
-        filteredAnnouncements.map((item) => (
-            <Card key={`${item.type}-${item.id}`}>
+      {filteredItems.length > 0 ? (
+        filteredItems.map((item) => (
+            <Card key={itemKey(item)}>
               <CardContent className="p-4 space-y-3">
-                <p className="font-semibold">{item.title_en || '(no title)'}</p>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <TypeBadge item={item} />
-                    <span>{showDate(item)}</span>
-                </div>
+                <p className="font-semibold">{itemTitle(item)}</p>
+                <WhereBadges item={item} />
+                <Posted item={item} />
                 <StatusBadges item={item} />
                 <ItemActions item={item} />
               </CardContent>
@@ -306,42 +277,29 @@ export default function AnnouncementsAdminPage() {
     </div>
   );
 
-  const dialogText = dialogKind ? DIALOG_TEXT[dialogKind] : null;
-
   return (
-    <Dialog open={dialogKind !== null} onOpenChange={(isOpen) => { if (!isOpen) closeDialog(); }}>
+    <Dialog open={isFormOpen} onOpenChange={(isOpen) => { if (!isOpen) closeForm(); }}>
       <div className="space-y-6">
-        <div>
-            <h1 className="text-3xl font-bold tracking-tight">News and events</h1>
-            <p className="text-muted-foreground">Anything you add here goes on the website straight away.</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">News and events</h1>
+                <p className="text-muted-foreground">Anything you add here goes on the website straight away.</p>
+            </div>
+            <Button size="lg" onClick={openNew} className="w-full md:w-auto">
+                <Plus className="mr-2 h-5 w-5" /> Add news or an event
+            </Button>
         </div>
 
-        <section aria-labelledby="add-heading" className="space-y-3">
-          <h2 id="add-heading" className="text-xl font-semibold">What do you want to add?</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {CHOICES.map((choice) => (
-              <Card key={choice.kind} className="flex flex-col">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <choice.icon className="h-5 w-5 text-primary" /> {choice.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-2">
-                  <p className="font-medium">{choice.when}</p>
-                  <p className="text-sm text-muted-foreground">{choice.examples}</p>
-                  <p className="text-sm text-muted-foreground">{choice.where}</p>
-                  <Button className="mt-auto w-full sm:w-auto sm:self-start" onClick={() => openNew(choice.kind)}>
-                    <choice.icon className="mr-2 h-4 w-4" /> {choice.button}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            <strong className="font-semibold text-foreground">Not sure?</strong> If it happens on a set day, choose Event. Anything else, choose News.
-            {' '}<strong className="font-semibold text-foreground">Need both?</strong> Choose Event, then switch on &quot;Also put this under Latest News&quot;.
+        <div className="grid gap-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
+          <p className="flex gap-3">
+            <Megaphone className="h-5 w-5 shrink-0 text-primary" />
+            <span><strong>Every post</strong> goes under Latest News on the home page.</span>
           </p>
-        </section>
+          <p className="flex gap-3">
+            <Calendar className="h-5 w-5 shrink-0 text-primary" />
+            <span><strong>Give it a day</strong> and it also goes under Upcoming Events and onto parents&apos; phones.</span>
+          </p>
+        </div>
 
         {!lunchMenus.isLoading && !lunchMenus.loadFailed && <LunchMenuReminder menus={lunchMenus.menus} />}
 
@@ -375,9 +333,9 @@ export default function AnnouncementsAdminPage() {
                             <SelectValue placeholder="Show..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">News and events</SelectItem>
-                            <SelectItem value="news">News only</SelectItem>
-                            <SelectItem value="event">Events only</SelectItem>
+                            <SelectItem value="all">Everything</SelectItem>
+                            <SelectItem value="event">With a day</SelectItem>
+                            <SelectItem value="news">Without a day</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -397,12 +355,14 @@ export default function AnnouncementsAdminPage() {
           </CardContent>
         </Card>
 
-        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialog open={itemToDelete !== null} onOpenChange={(isOpen) => { if (!isOpen) setItemToDelete(null); }}>
           <AlertDialogContent>
               <AlertDialogHeader>
-              <AlertDialogTitle>Delete &quot;{itemToDelete?.title_en || 'this post'}&quot;?</AlertDialogTitle>
+              <AlertDialogTitle>Delete &quot;{itemToDelete ? itemTitle(itemToDelete) : 'this post'}&quot;?</AlertDialogTitle>
               <AlertDialogDescription>
-                  It will come off the website straight away. This cannot be undone.
+                  {itemToDelete?.news && itemToDelete?.event
+                    ? 'It comes off Latest News and Upcoming Events straight away. This cannot be undone.'
+                    : 'It comes off the website straight away. This cannot be undone.'}
               </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -414,17 +374,16 @@ export default function AnnouncementsAdminPage() {
       </div>
 
        <DialogContent className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
-          {dialogKind && dialogText && (
+          {isFormOpen && (
             <>
               <DialogHeader>
-                <DialogTitle>{selectedAnnouncement ? dialogText.edit : dialogText.add}</DialogTitle>
-                <DialogDescription>{dialogText.description}</DialogDescription>
+                <DialogTitle>{selectedItem ? 'Edit' : 'Add news or an event'}</DialogTitle>
+                <DialogDescription>It goes on the website as soon as you save.</DialogDescription>
               </DialogHeader>
               <AnnouncementForm
-                key={`${dialogKind}-${selectedAnnouncement?.id ?? 'new'}`}
-                kind={dialogKind}
+                key={selectedItem ? itemKey(selectedItem) : 'new'}
                 onSuccess={handleFormSuccess}
-                existingAnnouncement={selectedAnnouncement}
+                existing={selectedItem}
               />
             </>
           )}

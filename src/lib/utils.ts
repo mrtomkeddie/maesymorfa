@@ -1,4 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
+import { format } from 'date-fns';
+import { cy as cyLocale } from 'date-fns/locale';
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -7,6 +9,10 @@ export function cn(...inputs: ClassValue[]) {
 
 // The admin form takes plain text; news pages show it as HTML paragraphs.
 // Escaping first means nothing typed into the form can run as code on the site.
+// The day an event happens, in words: "Tuesday 20 October 2026" / "dydd Mawrth 20 Hydref 2026"
+export const eventDay = (iso: string, language: 'en' | 'cy') =>
+  format(new Date(iso), 'EEEE d MMMM yyyy', language === 'cy' ? { locale: cyLocale } : undefined);
+
 const escapeHtml = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 

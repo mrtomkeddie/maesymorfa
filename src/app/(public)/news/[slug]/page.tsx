@@ -3,7 +3,7 @@
 'use client';
 
 import { useLanguage } from '@/app/(public)/LanguageProvider';
-import { safeHtml } from '@/lib/utils';
+import { eventDay, safeHtml } from '@/lib/utils';
 import { notFound, useParams } from 'next/navigation';
 import { ArrowLeft, Calendar, Paperclip, Send, Loader2, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ const content = {
         loadFailed: "This story couldn't be loaded. Check your internet connection and refresh the page.",
         urgent: 'Urgent',
         by: 'Posted on',
+        when: 'When:',
         attachment: 'Attachment',
         questionTitle: "Have a question about this?",
         questionDesc: "Your message will be sent privately to the school office.",
@@ -39,6 +40,7 @@ const content = {
         loadFailed: "Doedd dim modd llwytho'r stori hon. Gwiriwch eich cysylltiad â'r rhyngrwyd ac adnewyddwch y dudalen.",
         urgent: 'Pwysig',
         by: 'Postiwyd ar',
+        when: 'Pryd:',
         attachment: 'Atodiad',
         questionTitle: "Oes cwestiwn gennych am hyn?",
         questionDesc: "Anfonir eich neges yn breifat at swyddfa'r ysgol.",
@@ -206,6 +208,12 @@ export default function NewsArticlePage() {
                                 <Calendar className="h-4 w-4" />
                                 <span>{t.by} {postDate}</span>
                             </div>
+                            {/* A post with a day says when it happens, separately from when it was posted */}
+                            {post.eventStart && !isNaN(new Date(post.eventStart).getTime()) && (
+                                <p className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 font-semibold text-primary">
+                                    <Calendar className="h-4 w-4" /> {t.when} {eventDay(post.eventStart, language)}
+                                </p>
+                            )}
                         </header>
                         
                         <div 

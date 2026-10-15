@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, CheckCircle, CalendarIcon } from 'lucide-react';
+import { Loader2, CheckCircle, CalendarIcon, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/db';
 import type { NewsPostWithId, CalendarEventWithId } from '@/lib/db/firebase';
@@ -31,52 +31,54 @@ import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Progress } from '../ui/progress';
 
-type Announcement = (NewsPostWithId & { type: 'news' }) | (CalendarEventWithId & { type: 'event' });
+// One thing on the admin list: a news post, its calendar entry (when it has a day), or both.
+// Older calendar entries may have no news post; saving one gives it one. isBanner comes from the
+// site's one banner record, which is what the homepage uses.
+export type AdminItem = { news: NewsPostWithId | null; event: CalendarEventWithId | null; isBanner: boolean };
 
-// 'news' posts go on the News page; 'event' dates go on the Events page and the phone calendar feed
-export type AnnouncementKind = 'news' | 'event';
+const DAY_FORMAT = 'EEEE d MMMM yyyy';
 
 const formSchema = z.object({
   title_en: z.string().trim().min(5, { message: 'Title must be at least 5 characters.' }).max(200, { message: 'Keep the title under 200 characters.' }),
   title_cy: z.string().trim().max(200, { message: 'Keep the title under 200 characters.' }).optional(),
   body_en: z.string().max(10000, { message: 'Keep the text under 10,000 characters.' }).optional(),
   body_cy: z.string().max(10000, { message: 'Keep the text under 10,000 characters.' }).optional(),
-  date: z.date().optional(),
+  // null means no day (an empty value would make the form show the day it was opened with)
+  date: z.date().nullable().optional(),
   isUrgent: z.boolean().default(false),
-  alsoNews: z.boolean().default(false),
   attachment: z.any().optional(),
 });
 
 type AnnouncementFormValues = z.infer<typeof formSchema>;
 
 interface AnnouncementFormProps {
-  kind: AnnouncementKind;
   onSuccess: () => void;
-  existingAnnouncement?: Announcement | null;
+  existing?: AdminItem | null;
 }
 
-export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: AnnouncementFormProps) {
+export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isDayPickerOpen, setIsDayPickerOpen] = useState(false);
 
-  const editingNews = existingAnnouncement?.type === 'news' ? existingAnnouncement : null;
-  const editingEvent = existingAnnouncement?.type === 'event' ? existingAnnouncement : null;
-  const isEvent = kind === 'event';
+  const news = existing?.news ?? null;
+  const event = existing?.event ?? null;
 
   const form = useForm<AnnouncementFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title_en: existingAnnouncement?.title_en || '',
-      title_cy: existingAnnouncement?.title_cy || '',
-      body_en: editingNews ? htmlToText(editingNews.body_en || '') : editingEvent?.description_en || '',
-      body_cy: editingNews ? htmlToText(editingNews.body_cy || '') : editingEvent?.description_cy || '',
-      date: editingEvent ? new Date(editingEvent.start) : undefined,
-      isUrgent: existingAnnouncement?.isUrgent || false,
-      alsoNews: false,
+      title_en: news?.title_en || event?.title_en || '',
+      title_cy: news?.title_cy || event?.title_cy || '',
+      body_en: news ? htmlToText(news.body_en || '') : event?.description_en || '',
+      body_cy: news ? htmlToText(news.body_cy || '') : event?.description_cy || '',
+      date: event ? new Date(event.start) : null,
+      isUrgent: existing?.isBanner ?? false,
       attachment: undefined,
     },
   });
+
+  const day = form.watch('date');
 
   const onSubmit = async (values: AnnouncementFormValues) => {
     const titleEn = values.title_en.trim();
@@ -85,81 +87,62 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
     // An empty Welsh box shows the English on the Welsh version of the site
     const bodyCy = values.body_cy?.trim() || bodyEn;
 
-    if (isEvent && !values.date) {
-      form.setError('date', { message: 'Pick the date.' });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      let attachmentUrl = existingAnnouncement?.attachmentUrl || '';
-      let attachmentName = existingAnnouncement?.attachmentName || '';
+      // Only a new upload is sent; otherwise the post keeps the file it has now (see savePost)
+      let attachment: { url: string; name: string } | null = null;
       const fileToUpload = values.attachment instanceof File ? values.attachment : null;
 
       if (fileToUpload) {
         setUploadProgress(0);
-        attachmentUrl = await uploadFile(fileToUpload, 'attachments', (progress) => {
+        const url = await uploadFile(fileToUpload, 'attachments', (progress) => {
           setUploadProgress(progress);
         });
-        attachmentName = fileToUpload.name;
+        attachment = { url, name: fileToUpload.name };
         setUploadProgress(100);
       }
 
       const now = new Date().toISOString();
       // All-day dates are saved at midday UK time, so the day stays the same in every time zone
       // (midnight in British Summer Time is still the day before in UTC, which phones would show)
-      const middayOfPickedDate = values.date ? new Date(new Date(values.date).setHours(12, 0, 0, 0)).toISOString() : null;
+      const middayOfDay = values.date ? new Date(new Date(values.date).setHours(12, 0, 0, 0)).toISOString() : null;
       const editor = isFirebaseConfigured ? getSchoolAuth().currentUser?.email || 'admin' : 'admin';
 
-      const eventPayload = isEvent && middayOfPickedDate ? {
-        title_en: titleEn,
-        title_cy: titleCy,
-        description_en: bodyEn,
-        description_cy: bodyCy,
-        start: middayOfPickedDate,
-        allDay: true,
-        // The homepage banner comes from news posts, so a date never sets it
-        isUrgent: editingEvent ? !!editingEvent.isUrgent : false,
-        showOnHomepage: true,
-        relevantTo: ['All'],
-        attachmentUrl,
-        attachmentName,
-        tags: [],
-        published: true,
-      } : null;
+      await db.savePost({
+        newsId: news?.id ?? null,
+        eventId: event?.id ?? null,
+        attachment,
+        editor,
+        news: {
+          title_en: titleEn,
+          title_cy: titleCy,
+          // The day is saved with the post separately (see savePost), so it is never stuck in the text
+          body_en: textToHtml(bodyEn),
+          body_cy: textToHtml(bodyCy),
+          isUrgent: values.isUrgent,
+          // The day it was posted; editing keeps the original
+          date: news?.date || now,
+          published: true,
+          category: values.isUrgent ? 'Urgent' : middayOfDay ? 'Event' : 'General',
+          lastEdited: now,
+        },
+        event: middayOfDay ? {
+          title_en: titleEn,
+          title_cy: titleCy,
+          description_en: bodyEn,
+          description_cy: bodyCy,
+          start: middayOfDay,
+          allDay: true,
+          isUrgent: false,
+          showOnHomepage: true,
+          relevantTo: ['All'],
+          tags: [],
+          published: true,
+        } : null,
+      });
 
-      // A date that is also posted as news gets a short line when there is no other text
-      const eventLineEn = values.date ? `Event: ${titleEn} on ${format(values.date, 'PPP')}` : '';
-      const eventLineCy = values.date ? `Digwyddiad: ${titleCy} ar ${format(values.date, 'PPP')}` : '';
-      const isUrgent = isEvent ? false : values.isUrgent;
-      const newsPayload = {
-        title_en: titleEn,
-        title_cy: titleCy,
-        body_en: textToHtml(bodyEn || eventLineEn),
-        body_cy: textToHtml(bodyCy || eventLineCy),
-        isUrgent,
-        attachmentUrl,
-        attachmentName,
-        date: editingNews ? editingNews.date : middayOfPickedDate || now,
-        published: true,
-        category: isUrgent ? 'Urgent' as const : isEvent ? 'Event' as const : 'General' as const,
-        lastEdited: now,
-      };
-
-      if (editingEvent && eventPayload) {
-        await db.updateCalendarEvent(editingEvent.id, eventPayload, false);
-      } else if (editingNews) {
-        await db.updateNews(editingNews.id, newsPayload);
-      } else {
-        // Saved together, so a date that is also posted as news never ends up half saved
-        await db.createAnnouncement({
-          event: eventPayload ?? undefined,
-          news: !isEvent || values.alsoNews ? { ...newsPayload, createdBy: editor } : undefined,
-        });
-      }
-
-      toast({ title: existingAnnouncement ? 'Changes saved' : 'Added', description: 'It is on the website now.' });
+      toast({ title: existing ? 'Changes saved' : 'Added', description: 'It is on the website now.' });
 
       form.reset();
       onSuccess();
@@ -173,8 +156,6 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
     }
   };
 
-  const submitLabel = existingAnnouncement ? 'Save changes' : isEvent ? 'Add event' : 'Add news';
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -185,35 +166,47 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
             <FormItem>
               <FormLabel>Title</FormLabel>
               <FormControl>
-                <Input placeholder={isEvent ? 'e.g., Sports Day' : 'e.g., School closed today'} {...field} />
+                <Input placeholder="e.g., Sports Day" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {isEvent && (
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Day of the event</FormLabel>
-                <Popover>
+        <FormField
+          control={form.control}
+          name="body_en"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>What do you want to say?</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Write your message to parents here." className="min-h-[120px]" {...field} />
+              </FormControl>
+              <FormDescription>Leave a blank line between paragraphs.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem className="flex flex-col rounded-lg border p-4">
+              <FormLabel>Day it happens (optional)</FormLabel>
+              <FormDescription>
+                Only fill this in if parents should put it in their diary. It then also goes under Upcoming Events
+                and onto parents&apos; phones. Several dates? Add each one on its own.
+              </FormDescription>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Popover open={isDayPickerOpen} onOpenChange={setIsDayPickerOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full md:w-[240px] pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
+                        variant="outline"
+                        className={cn('w-full sm:w-[280px] pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
                       >
-                        {field.value ? (
-                          format(field.value, 'PPP')
-                        ) : (
-                          <span>Pick the day</span>
-                        )}
+                        {field.value ? format(field.value, DAY_FORMAT) : <span>Pick the day</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -221,32 +214,18 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
+                      selected={field.value ?? undefined}
+                      onSelect={(picked) => { field.onChange(picked ?? null); setIsDayPickerOpen(false); }}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
-        <FormField
-          control={form.control}
-          name="body_en"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{isEvent ? 'Details (optional)' : 'What do you want to say?'}</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder={isEvent ? 'e.g., Bring a water bottle and sun cream.' : 'Write your news here.'}
-                  className="min-h-[120px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>Leave a blank line between paragraphs.</FormDescription>
+                {field.value && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => field.onChange(null)}>
+                    <X className="mr-1 h-4 w-4" /> Remove the day
+                  </Button>
+                )}
+              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -266,7 +245,7 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
               <FormItem>
                 <FormLabel>Title (Welsh)</FormLabel>
                 <FormControl>
-                  <Input placeholder={isEvent ? 'e.g., Diwrnod Chwaraeon' : 'e.g., Ysgol ar gau heddiw'} {...field} />
+                  <Input placeholder="e.g., Diwrnod Chwaraeon" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -277,7 +256,7 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
             name="body_cy"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{isEvent ? 'Details (Welsh)' : 'Text (Welsh)'}</FormLabel>
+                <FormLabel>Text (Welsh)</FormLabel>
                 <FormControl>
                   <Textarea className="min-h-[100px]" {...field} />
                 </FormControl>
@@ -287,33 +266,17 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
           />
         </div>
 
-        {!isEvent && (
-          <FormField control={form.control} name="isUrgent" render={({ field }) => (
-            <FormItem className="flex items-center justify-between gap-4 space-y-0 rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel>Red banner on the homepage</FormLabel>
-                <FormDescription>
-                  For anything parents must see today, like a closure. Only one post has the banner at a time.
-                </FormDescription>
-              </div>
-              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-            </FormItem>
-          )} />
-        )}
-
-        {isEvent && !existingAnnouncement && (
-          <FormField control={form.control} name="alsoNews" render={({ field }) => (
-            <FormItem className="flex items-center justify-between gap-4 space-y-0 rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel>Also put this under Latest News</FormLabel>
-                <FormDescription>
-                  Switch this on if parents need to read about it too, like a parents&apos; evening.
-                </FormDescription>
-              </div>
-              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-            </FormItem>
-          )} />
-        )}
+        <FormField control={form.control} name="isUrgent" render={({ field }) => (
+          <FormItem className="flex items-center justify-between gap-4 space-y-0 rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <FormLabel>Red banner on the homepage</FormLabel>
+              <FormDescription>
+                For anything parents must see today, like a closure. Only one post has the banner at a time.
+              </FormDescription>
+            </div>
+            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+          </FormItem>
+        )} />
 
         <FormField
           control={form.control}
@@ -346,10 +309,18 @@ export function AnnouncementForm({ kind, onSuccess, existingAnnouncement }: Anno
           )}
         />
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+        <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Says where it will show, so nobody has to guess */}
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {day ? (
+              <>Goes under <strong className="text-foreground">Latest News</strong> and <strong className="text-foreground">Upcoming Events</strong> ({format(day, DAY_FORMAT)}), and onto parents&apos; phones.</>
+            ) : (
+              <>Goes under <strong className="text-foreground">Latest News</strong>.</>
+            )}
+          </p>
+          <Button type="submit" disabled={isLoading} className="w-full shrink-0 sm:w-auto">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {submitLabel}
+            {existing ? 'Save changes' : 'Add to the website'}
           </Button>
         </div>
       </form>

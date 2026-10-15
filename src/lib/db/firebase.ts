@@ -1,5 +1,5 @@
 
-import { collection, addDoc, getDocs, getDocsFromServer, getDocFromServer, runTransaction, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc, writeBatch, where, getDoc, limit, startAfter, count, getCountFromServer } from "firebase/firestore";
+import { collection, addDoc, getDocs, getDocsFromServer, getDocFromServer, runTransaction, doc, updateDoc, deleteDoc, deleteField, query, orderBy, serverTimestamp, setDoc, writeBatch, where, getDoc, limit, startAfter, count, getCountFromServer } from "firebase/firestore";
 // News and calendar events use Firestore when a Firebase project is set up. The other
 // sections below still return mock data.
 import { db as firestoreDb, isFirebaseConfigured } from "../firebase/config";
@@ -64,12 +64,6 @@ export const getContentStarted = async () => {
     return { news, events };
 };
 
-// Only one post can carry the red homepage banner at a time
-async function clearOtherUrgentNews(batch: ReturnType<typeof writeBatch>, keepId: string) {
-    const snap = await getDocs(query(collection(firestoreDb, NEWS), where('isUrgent', '==', true)));
-    snap.docs.filter((d) => d.id !== keepId).forEach((d) => batch.update(d.ref, { isUrgent: false }));
-}
-
 // Published posts, for the public site. Reads from the server (never a stale or empty cache)
 // and lets errors through, so a failed read is never mistaken for "no news".
 export const getNews = async (): Promise<NewsPostWithId[]> => {
@@ -94,92 +88,149 @@ export const getAllNews = async (): Promise<NewsPostWithId[]> => {
     return newsFrom(await getDocsFromServer(collection(firestoreDb, NEWS)));
 };
 
-type NewNews = Omit<NewsPost, 'id' | 'attachments' | 'slug'>;
-type NewEvent = Omit<CalendarEvent, 'id' | 'attachments'>;
+type NewNews = Omit<NewsPost, 'id' | 'attachments' | 'attachmentUrl' | 'attachmentName' | 'slug' | 'createdBy' | 'eventId' | 'eventStart'>;
+type NewEvent = Omit<CalendarEvent, 'id' | 'attachments' | 'attachmentUrl' | 'attachmentName' | 'newsId' | 'newsSlug'>;
 
-// Saves a new announcement: a calendar event, a news post, or both. Everything (including the
-// banner rule and the "started" flags) is written in one go, so it either all saves or none of it does.
-export const createAnnouncement = async ({ event, news }: { event?: NewEvent; news?: NewNews }): Promise<void> => {
-    if (!isFirebaseConfigured) {
-        if (news) {
-            if (news.isUrgent) mockNewsStore.forEach(post => post.isUrgent = false);
-            mockNewsStore.unshift({ ...news, id: `mock_news_${Date.now()}`, slug: slugify(news.title_en), attachments: [] } as NewsPostWithId);
-        }
-        if (event) console.log("Mock addCalendarEvent:", event);
-        return;
-    }
-    const batch = writeBatch(firestoreDb);
-    let newsId: string | null = null;
-    if (event) {
-        batch.set(doc(collection(firestoreDb, CALENDAR)), withoutUndefined(event));
-    }
-    if (news) {
-        const ref = doc(collection(firestoreDb, NEWS));
-        if (news.isUrgent) await clearOtherUrgentNews(batch, ref.id);
-        // Ending with the post's own ID keeps every web address unique, even when two posts share a title
-        const slug = `${slugify(news.title_en) || 'news'}-${ref.id}`;
-        batch.set(ref, withoutUndefined({ ...news, slug, attachments: [] }));
-        newsId = ref.id;
-    }
-    batch.set(doc(firestoreDb, ...CONTENT_FLAGS), {
-        ...(news ? { newsStarted: true } : {}),
-        ...(event ? { eventsStarted: true } : {}),
-        ...(news?.isUrgent ? { urgentNewsId: newsId } : {}),
-    }, { merge: true });
-    await batch.commit();
+// === ONE FORM FOR NEWS AND EVENTS ===
+// The admin area has one form. Every post goes in "news". A post with a day also gets a calendar
+// entry, which shows under Upcoming Events and on parents' phones. The two are linked both ways
+// (news.eventId and event.newsId), and the post keeps a copy of the day (news.eventStart) so its
+// story page can say when it happens. They are always saved, changed and deleted together in one
+// transaction, with the banner and the "started" flags, so they never drift apart or half save.
+export type PostSave = {
+    newsId: string | null;  // null for a new post, or for an older calendar entry with no post yet
+    eventId: string | null; // the calendar entry the admin list showed with it, if any
+    news: NewNews;
+    event: NewEvent | null; // null when the post has no day
+    // A newly uploaded file; null keeps whatever file the post has now (read fresh, so an
+    // out-of-date form never puts back a file someone else has since replaced)
+    attachment: { url: string; name: string } | null;
+    editor: string;         // who added it (saved on new posts only)
 };
 
-export const addNews = (newsData: NewNews) => createAnnouncement({ news: newsData });
-
-export const updateNews = async (id: string, newsData: Partial<Omit<NewsPost, 'id' | 'attachments'>>) => {
-    // The web address stays the same when a title is edited, so shared links keep working
-    const { slug: _slug, ...changes } = newsData;
+export const savePost = async ({ newsId, eventId, news, event, attachment, editor }: PostSave): Promise<void> => {
     if (!isFirebaseConfigured) {
-        if (changes.isUrgent) {
-            mockNewsStore.forEach(post => {
-                if (post.id !== id) post.isUrgent = false;
-            });
-        }
-        const index = mockNewsStore.findIndex(p => p.id === id);
-        if (index !== -1) {
-            mockNewsStore[index] = { ...mockNewsStore[index], ...changes };
-        }
+        if (news.isUrgent) mockNewsStore.forEach(post => post.isUrgent = false);
+        const existing = newsId ? mockNewsStore.find(p => p.id === newsId) : undefined;
+        const file = attachment ? { attachmentUrl: attachment.url, attachmentName: attachment.name } : {};
+        if (existing) Object.assign(existing, news, file, { eventStart: event?.start });
+        else mockNewsStore.unshift({ ...news, ...file, eventStart: event?.start, id: `mock_news_${Date.now()}`, slug: slugify(news.title_en), attachments: [], createdBy: editor } as NewsPostWithId);
+        if (event) console.log("Mock calendar entry:", event);
         return;
     }
-    if (changes.isUrgent) {
-        const batch = writeBatch(firestoreDb);
-        await clearOtherUrgentNews(batch, id);
-        batch.set(doc(firestoreDb, ...CONTENT_FLAGS), { urgentNewsId: id }, { merge: true });
-        batch.update(doc(firestoreDb, NEWS, id), withoutUndefined(changes));
-        await batch.commit();
-        return;
-    }
-    // Clearing the banner checks and clears in one step; if another admin sets a new banner
-    // at the same moment, Firestore runs this again and leaves their banner alone
+    // A transaction cannot search, so the posts that had the banner are found first and re-read inside it
+    const bannerPosts = news.isUrgent
+        ? (await getDocs(query(collection(firestoreDb, NEWS), where('isUrgent', '==', true)))).docs.map((d) => d.ref)
+        : [];
+    const contentRef = doc(firestoreDb, ...CONTENT_FLAGS);
+
+    // Everything is re-read here, so if another admin changed this post after the form opened,
+    // Firestore runs this again against their version: no second calendar entry, no lost link
     await runTransaction(firestoreDb, async (tx) => {
-        const contentRef = doc(firestoreDb, ...CONTENT_FLAGS);
         const site = await tx.get(contentRef);
-        if (changes.isUrgent === false && site.data()?.urgentNewsId === id) {
-            tx.set(contentRef, { urgentNewsId: null }, { merge: true });
+        const listedEvent = eventId ? await tx.get(doc(firestoreDb, CALENDAR, eventId)) : null;
+        if (!newsId && eventId && !listedEvent?.exists()) throw new Error('This entry has been deleted.');
+        // An older calendar entry with no post may have been given one by another admin meanwhile
+        const postId = newsId ?? (listedEvent?.data()?.newsId as string | undefined) ?? null;
+        const post = postId ? await tx.get(doc(firestoreDb, NEWS, postId)) : null;
+        if (newsId && !post?.exists()) throw new Error('This post has been deleted.');
+        const saved = post?.exists() ? post.data() : undefined;
+        const newsRef = post?.exists() ? post.ref : doc(collection(firestoreDb, NEWS));
+
+        // The calendar entry this post has now
+        const linkedEventId = (saved?.eventId as string | undefined)
+            ?? (listedEvent?.exists() && (!newsId || listedEvent.data().newsId === newsId) ? listedEvent.id : null);
+        const linkedEvent = linkedEventId
+            ? (linkedEventId === listedEvent?.id ? listedEvent : await tx.get(doc(firestoreDb, CALENDAR, linkedEventId)))
+            : null;
+        // The post with the banner right now, which the search above may have missed if another
+        // admin set it a moment ago (this is re-read on every retry)
+        const bannerId = site.data()?.urgentNewsId;
+        const bannerRefs = news.isUrgent && typeof bannerId === 'string' && !bannerPosts.some((ref) => ref.id === bannerId)
+            ? [...bannerPosts, doc(firestoreDb, NEWS, bannerId)]
+            : bannerPosts;
+        const banners = await Promise.all(bannerRefs.map((ref) => tx.get(ref)));
+
+        // Ending with the post's own ID keeps every web address unique, even when two posts share a title.
+        // It is set once and never changed, so shared links keep working.
+        const slug = (saved?.slug as string | undefined) || `${slugify(news.title_en) || 'news'}-${newsRef.id}`;
+        const eventRef = event ? (linkedEventId ? doc(firestoreDb, CALENDAR, linkedEventId) : doc(collection(firestoreDb, CALENDAR))) : null;
+        const link = eventRef && event ? { eventId: eventRef.id, eventStart: event.start } : null;
+        // Post and calendar entry always carry the same file
+        const file = attachment
+            ? { attachmentUrl: attachment.url, attachmentName: attachment.name }
+            : {
+                attachmentUrl: (saved?.attachmentUrl ?? (linkedEvent?.exists() ? linkedEvent.data().attachmentUrl : undefined) ?? '') as string,
+                attachmentName: (saved?.attachmentName ?? (linkedEvent?.exists() ? linkedEvent.data().attachmentName : undefined) ?? '') as string,
+            };
+
+        if (saved) {
+            // The posting date never changes, even if an out-of-date form sends a new one
+            const date = typeof saved.date === 'string' ? saved.date : news.date;
+            tx.update(newsRef, { ...withoutUndefined(news), date, ...file, slug, ...(link ?? { eventId: deleteField(), eventStart: deleteField() }) });
+        } else {
+            tx.set(newsRef, withoutUndefined({ ...news, ...file, slug, attachments: [], createdBy: editor, ...(link ?? {}) }));
         }
-        tx.update(doc(firestoreDb, NEWS, id), withoutUndefined(changes));
+        if (eventRef && event) {
+            // Merging keeps fields this form does not show, such as an older entry's end date,
+            // unless that end date would now come before the new day
+            const end = linkedEvent?.exists() ? linkedEvent.data().end : undefined;
+            const dropEnd = typeof end === 'string' && end < event.start;
+            tx.set(eventRef, withoutUndefined({ ...event, ...file, newsId: newsRef.id, newsSlug: slug, ...(dropEnd ? { end: deleteField() } : {}) }), { merge: true });
+        } else if (linkedEventId && linkedEvent?.exists()) {
+            tx.delete(linkedEvent.ref);
+        }
+        // Only one post can carry the red homepage banner at a time
+        banners.filter((b) => b.exists() && b.id !== newsRef.id && b.data()?.isUrgent === true)
+            .forEach((b) => tx.update(b.ref, { isUrgent: false }));
+        tx.set(contentRef, {
+            newsStarted: true,
+            ...(event ? { eventsStarted: true } : {}),
+            ...(news.isUrgent ? { urgentNewsId: newsRef.id } : bannerId === newsRef.id ? { urgentNewsId: null } : {}),
+        }, { merge: true });
     });
 };
 
-export const deleteNews = async (id: string) => {
+// Deletes a post and its calendar entry together (older items may have only one of the two).
+// Links are re-read inside the transaction, so a day another admin added meanwhile goes too.
+// Returns the attachments the deleted documents used, for the caller to tidy up.
+export const deletePost = async ({ newsId, eventId }: { newsId: string | null; eventId: string | null }): Promise<string[]> => {
     if (!isFirebaseConfigured) {
-        mockNewsStore = mockNewsStore.filter(p => p.id !== id);
-        return;
+        mockNewsStore = mockNewsStore.filter(p => p.id !== newsId);
+        return [];
     }
-    // Same one-step check as updateNews, so a banner set by someone else meanwhile is kept
-    await runTransaction(firestoreDb, async (tx) => {
+    return runTransaction(firestoreDb, async (tx) => {
         const contentRef = doc(firestoreDb, ...CONTENT_FLAGS);
         const site = await tx.get(contentRef);
-        if (site.data()?.urgentNewsId === id) {
+        const listedEvent = eventId ? await tx.get(doc(firestoreDb, CALENDAR, eventId)) : null;
+        // A calendar-only row whose entry has gone may have been turned into a post meanwhile;
+        // its post cannot be found from here, so say so rather than report a delete that did not happen
+        if (!newsId && eventId && !listedEvent?.exists()) throw new Error('This entry was changed by someone else.');
+        const postId = newsId ?? (listedEvent?.data()?.newsId as string | undefined) ?? null;
+        const post = postId ? await tx.get(doc(firestoreDb, NEWS, postId)) : null;
+        const linkedId = post?.exists() ? (post.data().eventId as string | undefined) : undefined;
+        const linkedEvent = linkedId && linkedId !== listedEvent?.id ? await tx.get(doc(firestoreDb, CALENDAR, linkedId)) : null;
+        // The listed entry goes when it is the row itself (no post) or belongs to this post
+        const ownsListed = listedEvent?.exists() && (!newsId || listedEvent.data().newsId === newsId || listedEvent.id === linkedId);
+
+        const gone = [post, ownsListed ? listedEvent : null, linkedEvent].filter((snap) => snap?.exists());
+        if (post?.exists() && site.data()?.urgentNewsId === post.id) {
             tx.set(contentRef, { urgentNewsId: null }, { merge: true });
         }
-        tx.delete(doc(firestoreDb, NEWS, id));
+        gone.forEach((snap) => tx.delete(snap!.ref));
+        return [...new Set(gone.map((snap) => snap!.data()?.attachmentUrl).filter((url): url is string => typeof url === 'string' && url !== ''))];
     });
+};
+
+// Whether any post or calendar entry still uses a file (checked on the server, so another admin's
+// recent change counts). Only signed-in school admins can run this.
+export const isAttachmentInUse = async (url: string): Promise<boolean> => {
+    if (!isFirebaseConfigured) return false;
+    const [inNews, inEvents] = await Promise.all([
+        getDocsFromServer(query(collection(firestoreDb, NEWS), where('attachmentUrl', '==', url), limit(1))),
+        getDocsFromServer(query(collection(firestoreDb, CALENDAR), where('attachmentUrl', '==', url), limit(1))),
+    ]);
+    return !inNews.empty || !inEvents.empty;
 };
 
 export const getPaginatedNews = async (limitNum = 20, lastDoc?: any): Promise<{ data: NewsPostWithId[], lastDoc?: any }> => {
@@ -218,24 +269,6 @@ export const getCalendarEvents = async (): Promise<CalendarEventWithId[]> => {
 export const getAllCalendarEvents = async (): Promise<CalendarEventWithId[]> => {
     if (!isFirebaseConfigured) return generateMockCalendarEvents();
     return eventsFrom(await getDocsFromServer(collection(firestoreDb, CALENDAR)));
-};
-
-export const addCalendarEvent = (eventData: NewEvent, _crossPost?: boolean) => createAnnouncement({ event: eventData });
-
-export const updateCalendarEvent = async (id: string, eventData: Partial<Omit<CalendarEvent, 'id' | 'attachments'>>, crossPost: boolean) => {
-    if (!isFirebaseConfigured) {
-        console.log(`Mock updateCalendarEvent (id: ${id}):`, eventData, `Cross-post: ${crossPost}`);
-        return;
-    }
-    await updateDoc(doc(firestoreDb, CALENDAR, id), withoutUndefined(eventData));
-};
-
-export const deleteCalendarEvent = async (id: string) => {
-    if (!isFirebaseConfigured) {
-        console.log(`Mock deleteCalendarEvent (id: ${id})`);
-        return;
-    }
-    await deleteDoc(doc(firestoreDb, CALENDAR, id));
 };
 
 export const getPaginatedCalendarEvents = async (limitNum = 20, lastDoc?: any): Promise<{ data: CalendarEventWithId[], lastDoc?: any }> => {

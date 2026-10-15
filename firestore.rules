@@ -130,7 +130,7 @@ service cloud.firestore {
       let d = request.resource.data;
       return d.keys().hasOnly(['title_en', 'title_cy', 'body_en', 'body_cy', 'date', 'category',
           'attachments', 'attachmentUrl', 'attachmentName', 'image', 'isUrgent', 'published',
-          'createdBy', 'lastEdited', 'slug'])
+          'createdBy', 'lastEdited', 'slug', 'eventId', 'eventStart'])
         && d.title_en is string && d.title_en.size() > 0 && d.title_en.size() <= 200
         && d.title_cy is string && d.title_cy.size() <= 200
         // The form takes up to 10,000 characters; escaping can make the saved HTML up to 6 times longer
@@ -140,14 +140,17 @@ service cloud.firestore {
         && d.slug is string && d.slug.matches('^[a-zA-Z0-9_-]{1,120}$')
         && d.isUrgent is bool
         && d.published is bool
-        && d.category in ['Urgent', 'Event', 'General'];
+        && d.category in ['Urgent', 'Event', 'General']
+        // The post's calendar entry, when it has a day
+        && (!('eventId' in d) || (d.eventId is string && d.eventId.size() > 0 && d.eventId.size() <= 100))
+        && (!('eventStart' in d) || isIsoDate(d.eventStart));
     }
 
     function validEvent() {
       let d = request.resource.data;
       return d.keys().hasOnly(['title_en', 'title_cy', 'description_en', 'description_cy', 'start',
           'end', 'allDay', 'isUrgent', 'showOnHomepage', 'relevantTo', 'yearGroups', 'tags',
-          'attachments', 'attachmentUrl', 'attachmentName', 'published'])
+          'attachments', 'attachmentUrl', 'attachmentName', 'published', 'newsId', 'newsSlug'])
         && d.title_en is string && d.title_en.size() > 0 && d.title_en.size() <= 200
         && d.title_cy is string && d.title_cy.size() <= 200
         && (!('description_en' in d) || (d.description_en is string && d.description_en.size() <= 20000))
@@ -159,7 +162,10 @@ service cloud.firestore {
         && (!('relevantTo' in d) || d.relevantTo is list)
         && (!('tags' in d) || d.tags is list)
         && (!('yearGroups' in d) || d.yearGroups is list)
-        && d.published is bool;
+        && d.published is bool
+        // The news post this entry belongs to, and its web address for the "Read more" link
+        && (!('newsId' in d) || (d.newsId is string && d.newsId.size() > 0 && d.newsId.size() <= 100))
+        && (!('newsSlug' in d) || (d.newsSlug is string && d.newsSlug.matches('^[a-zA-Z0-9_-]{1,120}$')));
     }
 
     function isClass(classId) {

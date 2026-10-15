@@ -17,6 +17,8 @@ export type CalendarEvent = {
     attachmentName?: string;
     attachments?: unknown[];
     published?: boolean;
+    newsId?: string;   // the news post this entry belongs to (see savePost)
+    newsSlug?: string; // that post's web address, so the event can link to the full story
 };
 
 export const calendarEvents: CalendarEvent[] = [

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { CalendarDays, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
-import { safeHtml } from '@/lib/utils';
+import { eventDay, safeHtml } from '@/lib/utils';
 import { useNews } from '@/hooks/useNews';
 
 const content = {
@@ -15,6 +15,7 @@ const content = {
         title: "News & Announcements",
         subtitle: "Latest updates from Ysgol Maes Y Morfa",
         readMore: "Read full story",
+        when: "When:",
         urgent: "Urgent",
         noNews: "No news at the moment."
     },
@@ -22,6 +23,7 @@ const content = {
         title: "Newyddion a Chyhoeddiadau",
         subtitle: "Diweddariadau diweddaraf o Ysgol Maes Y Morfa",
         readMore: "Darllen stori lawn",
+        when: "Pryd:",
         urgent: "Ar Frys",
         noNews: "Dim newyddion ar hyn o bryd."
     }
@@ -62,6 +64,9 @@ export default function NewsPage() {
                                     <CardTitle className="line-clamp-2 leading-tight group-hover:text-primary transition-colors">
                                         {title}
                                     </CardTitle>
+                                    {post.eventStart && !isNaN(new Date(post.eventStart).getTime()) && (
+                                        <p className="text-sm font-semibold text-primary">{t.when} {eventDay(post.eventStart, language)}</p>
+                                    )}
                                 </CardHeader>
                                 <CardContent className="flex-grow flex flex-col justify-between space-y-4">
                                     <div
