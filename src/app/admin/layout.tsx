@@ -13,7 +13,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { LogOut, Loader2, Megaphone, ExternalLink } from 'lucide-react';
+import { LogOut, Loader2, Megaphone, ExternalLink, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -24,13 +24,14 @@ import { LanguageToggle } from '../(portal)/layout';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { isFirebaseConfigured, isLocalDemo } from '@/lib/firebase/config';
 import { signOutAdmin, watchAdmin } from '@/lib/firebase/auth';
-import { ADMIN_HOME, LIVE_ADMIN_PAGES } from '@/lib/config/features';
+import { ADMIN_HOME, ADMIN_LUNCH_MENU, LIVE_ADMIN_PAGES } from '@/lib/config/features';
 
 const content = {
   en: {
     title: 'School website',
     menu: {
       posts: 'News and dates',
+      lunch: 'Lunch menu',
       viewSite: 'View the website',
     },
     account: {
@@ -42,6 +43,7 @@ const content = {
     title: 'Gwefan yr ysgol',
     menu: {
       posts: 'Newyddion a dyddiadau',
+      lunch: 'Bwydlen ginio',
       viewSite: 'Gweld y wefan',
     },
     account: {
@@ -132,6 +134,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <Link href={ADMIN_HOME}>
                   <Megaphone />
                   <span>{t.menu.posts}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith(ADMIN_LUNCH_MENU)} tooltip={{ children: t.menu.lunch }}>
+                <Link href={ADMIN_LUNCH_MENU}>
+                  <Utensils />
+                  <span>{t.menu.lunch}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

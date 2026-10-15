@@ -7,6 +7,7 @@ import { cy as cyLocale } from 'date-fns/locale';
 import { ArrowRight, BellRing, CalendarDays, ExternalLink, Utensils } from 'lucide-react';
 import { db } from '@/lib/db';
 import { weekMenuFor, WEEK_DAYS } from '@/lib/lunchMenu';
+import { useLunchMenus } from '@/hooks/useLunchMenus';
 import { PARENTPAY_URL } from '@/lib/links';
 import { useCalendar } from '@/hooks/useCalendar';
 import { useNews } from '@/hooks/useNews';
@@ -74,6 +75,7 @@ export function TodayAtSchool() {
     const t = content[language];
     const { events } = useCalendar();
     const { urgentNews, latestNews } = useNews();
+    const { menus: savedMenus } = useLunchMenus();
     const [now, setNow] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -83,7 +85,7 @@ export function TodayAtSchool() {
     // Weekends show next Monday's lunch, so the card is never empty.
     const dayIndex = now?.getDay() ?? 1;
     const isWeekend = dayIndex === 0 || dayIndex === 6;
-    const week = now ? weekMenuFor(now) : null;
+    const week = now ? weekMenuFor(now, savedMenus) : null;
     const lunch = week ? week.days[WEEK_DAYS[isWeekend ? 0 : dayIndex - 1]] : null;
 
     const startOfToday = now ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) : null;

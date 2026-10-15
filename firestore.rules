@@ -65,6 +65,48 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Lunch menus: the council's 3-week menu, added in the admin area twice a year.
+    // Anyone may read them; school admins may add, change and delete them.
+    match /lunchMenus/{menuId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && validLunchMenu();
+      allow delete: if isAdmin();
+    }
+
+    // A real calendar date as YYYY-MM-DD (isRealDay refuses 31 February and the like)
+    function isDay(value) {
+      return value is string && value.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+        && isRealDay(int(value.split('-')[0]), int(value.split('-')[1]), int(value.split('-')[2]));
+    }
+
+    function validLunchMenu() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'startsOn', 'endsOn', 'weeks', 'updatedAt'])
+        && d.keys().hasAll(['name', 'startsOn', 'endsOn', 'weeks'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && isDay(d.startsOn) && isDay(d.endsOn) && d.startsOn <= d.endsOn
+        && d.weeks is map && d.weeks.keys().hasOnly(['1', '2', '3']) && d.weeks.keys().hasAll(['1', '2', '3'])
+        && validLunchWeek(d.weeks['1']) && validLunchWeek(d.weeks['2']) && validLunchWeek(d.weeks['3'])
+        && (!('updatedAt' in d) || d.updatedAt is string);
+    }
+
+    // Monday to Friday, each with all six dishes
+    function validLunchWeek(w) {
+      return w is map
+        && w.keys().hasOnly(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
+        && w.keys().hasAll(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
+        && validLunchDay(w.monday) && validLunchDay(w.tuesday) && validLunchDay(w.wednesday)
+        && validLunchDay(w.thursday) && validLunchDay(w.friday);
+    }
+
+    // Checking each of the 90 dishes as well goes over Firestore's limit on checks per save, so the
+    // site turns any dish that is not text into empty text when it reads a menu (cleanLunchMenu)
+    function validLunchDay(d) {
+      return d is map
+        && d.keys().hasOnly(['main', 'vegetarian', 'alternative', 'sides', 'salad', 'dessert'])
+        && d.keys().hasAll(['main', 'vegetarian', 'alternative', 'sides', 'salad', 'dessert']);
+    }
+
     function isAdmin() {
       return request.auth != null
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));

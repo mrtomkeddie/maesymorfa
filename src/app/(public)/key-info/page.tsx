@@ -12,6 +12,7 @@ import { enGB, cy as cyLocale } from 'date-fns/locale';
 import { db } from '@/lib/db';
 import type { DocumentWithId } from '@/lib/types';
 import { weekMenuFor, WEEK_DAYS, COUNCIL_MENU_URL } from '@/lib/lunchMenu';
+import { useLunchMenus } from '@/hooks/useLunchMenus';
 import { PARENTPAY_URL } from '@/lib/links';
 import { AddToCalendar } from '@/components/AddToCalendar';
 import { TERMS, SCHOOL_YEAR } from '@/lib/termDates';
@@ -107,7 +108,8 @@ export default function KeyInfoPage() {
 
     // The real council menu, same source as the homepage's "Today at school" card.
     // At the weekend it shows next week.
-    const week = weekMenuFor(today);
+    const { menus: savedMenus } = useLunchMenus();
+    const week = weekMenuFor(today, savedMenus);
     const menuDays = week
         ? WEEK_DAYS.map((key, i) => ({ day: formatDate(addDays(week.weekStart, i), language), ...week.days[key], veg: week.days[key].vegetarian }))
         : [];

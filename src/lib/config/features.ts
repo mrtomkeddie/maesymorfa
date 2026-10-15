@@ -10,7 +10,8 @@ export const FEATURES = {
 } as const;
 
 // The admin area shows only pages that really save to the website. The rest (staff, documents,
-// lunch menu, settings, inbox, parents, children, users, gallery, dashboard) are still demos with
-// sample data, so they are hidden and their addresses lead back to ADMIN_HOME.
+// settings, inbox, parents, children, users, gallery, dashboard) are still demos with sample data,
+// so they are hidden and their addresses lead back to ADMIN_HOME.
 export const ADMIN_HOME = '/admin/announcements';
-export const LIVE_ADMIN_PAGES = [ADMIN_HOME];
+export const ADMIN_LUNCH_MENU = '/admin/menu';
+export const LIVE_ADMIN_PAGES = [ADMIN_HOME, ADMIN_LUNCH_MENU];

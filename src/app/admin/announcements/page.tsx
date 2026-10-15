@@ -29,6 +29,8 @@ import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { AnnouncementKind } from '@/components/admin/AnnouncementForm';
+import { LunchMenuReminder } from '@/components/admin/LunchMenuReminder';
+import { useLunchMenus } from '@/hooks/useLunchMenus';
 
 const AnnouncementForm = dynamic(() => import('@/components/admin/AnnouncementForm').then(mod => mod.AnnouncementForm), {
   loading: () => <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin"/></div>,
@@ -71,6 +73,7 @@ export default function AnnouncementsAdminPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   // Whether the school has added its own news / events yet (until then the site shows samples)
   const [started, setStarted] = useState({ news: true, events: true });
+  const lunchMenus = useLunchMenus();
 
   const { toast } = useToast();
 
@@ -300,6 +303,8 @@ export default function AnnouncementsAdminPage() {
                 </Button>
             </div>
         </div>
+
+        {!lunchMenus.isLoading && !lunchMenus.loadFailed && <LunchMenuReminder menus={lunchMenus.menus} />}
 
         {isFirebaseConfigured && !isLoading && (!started.news || !started.events) && (
           <div className="rounded-lg border bg-secondary/40 p-4 text-sm text-muted-foreground">

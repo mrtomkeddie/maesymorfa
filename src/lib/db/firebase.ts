@@ -11,7 +11,7 @@ import { QueryDocumentSnapshot } from "firebase/firestore";
 import { news as mockNewsData } from '@/lib/mockNews';
 import { calendarEvents as mockCalendarEvents } from '@/lib/mockCalendar';
 import { generateMockData, parentChildren } from '@/lib/mockData';
-import { weekMenuFor } from '@/lib/lunchMenu';
+import { cleanLunchMenu, weekMenuFor, type LunchMenu, type LunchMenuWithId } from '@/lib/lunchMenu';
 
 // === NEWS ===
 // Real posts live in the "news" collection in Firestore and are added in the admin area.
@@ -362,10 +362,43 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => Promise
 export const updateSiteSettings = async (settings: SiteSettings) => console.log("Mock updateSiteSettings", settings);
 
 
+// === LUNCH MENUS ===
+// Each council menu the school adds in the admin area is one document in "lunchMenus"
+// (see src/lib/lunchMenu.ts for how the site picks this week's menu). Anyone may read them.
+const LUNCH_MENUS = 'lunchMenus';
+
+export const getLunchMenus = async (): Promise<LunchMenuWithId[]> => {
+    if (!isFirebaseConfigured) return [];
+    const snap = await getDocsFromServer(collection(firestoreDb, LUNCH_MENUS));
+    // A malformed menu is left out rather than allowed to break the public pages
+    return snap.docs.flatMap((d) => {
+        const menu = cleanLunchMenu(d.data());
+        return menu ? [{ ...menu, id: d.id }] : [];
+    });
+};
+
+export const saveLunchMenu = async (id: string | null, menu: LunchMenu) => {
+    if (!isFirebaseConfigured) {
+        console.log('Mock saveLunchMenu:', id, menu.name);
+        return;
+    }
+    const data = { name: menu.name, startsOn: menu.startsOn, endsOn: menu.endsOn, weeks: menu.weeks, updatedAt: new Date().toISOString() };
+    if (id) {
+        await setDoc(doc(firestoreDb, LUNCH_MENUS, id), data);
+    } else {
+        await addDoc(collection(firestoreDb, LUNCH_MENUS), data);
+    }
+};
+
+export const deleteLunchMenu = async (id: string) => {
+    if (!isFirebaseConfigured) return;
+    await deleteDoc(doc(firestoreDb, LUNCH_MENUS, id));
+};
+
 // === LUNCH MENU SETTINGS ===
 // The real council menu for this school week (see src/lib/lunchMenu.ts)
 export const getWeeklyMenu = async (): Promise<WeeklyMenu | null> => {
-    const week = weekMenuFor(new Date());
+    const week = weekMenuFor(new Date(), await getLunchMenus().catch(() => []));
     if (!week) return null;
     return Object.fromEntries(
         Object.entries(week.days).map(([day, d]) => [day, { main: d.main, alt: d.vegetarian, dessert: d.dessert }])
