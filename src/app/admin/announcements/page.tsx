@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { AdminItem } from '@/components/admin/AnnouncementForm';
 import { LunchMenuReminder } from '@/components/admin/LunchMenuReminder';
 import { useLunchMenus } from '@/hooks/useLunchMenus';
+import { lastDayOf, ukDay } from '@/lib/utils';
 
 const AnnouncementForm = dynamic(() => import('@/components/admin/AnnouncementForm').then(mod => mod.AnnouncementForm), {
   loading: () => <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin"/></div>,
@@ -170,7 +171,9 @@ export default function AnnouncementsAdminPage() {
       )}
       {item.event && (
         <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
-          <Calendar className="h-3 w-3" /> Event: {showDay(item.event.start, 'EEE d MMM yyyy')}
+          {/* Event days are UK days, wherever the admin is */}
+          <Calendar className="h-3 w-3" /> Event: {isValidDate(item.event.start) ? format(ukDay(item.event.start), 'EEE d MMM yyyy') : '-'}
+          {(() => { const last = lastDayOf(item.event.start, item.event.end); return last && <> to {format(last, 'EEE d MMM yyyy')}</>; })()}
         </Badge>
       )}
     </div>

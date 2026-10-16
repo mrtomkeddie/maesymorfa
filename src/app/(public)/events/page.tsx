@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useLanguage } from '../LanguageProvider';
 import { useCalendar } from '@/hooks/useCalendar';
 import { AddToCalendar } from '@/components/AddToCalendar';
+import { eventDays, isStillOn, lastDayOf, ukDay, ukTime } from '@/lib/utils';
 
 // Public list of upcoming whole-school events. The full /calendar lives in the parent portal,
 // which is switched off for the public site, so homepage links come here instead.
@@ -38,17 +39,16 @@ export default function EventsPage() {
     const locale = language === 'cy' ? { locale: cyLocale } : undefined;
     const { events } = useCalendar();
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const upcoming = events.filter((event) => {
         const relevantTo = (event as { relevantTo?: string[] }).relevantTo;
-        return new Date(event.start) >= today && (!relevantTo || relevantTo.includes('All'));
+        // An event over several days stays listed until its last day
+        return isStillOn(event) && (!relevantTo || relevantTo.includes('All'));
     }).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
     // Group by month, in date order
     const months: { key: string; label: string; items: typeof upcoming }[] = [];
     upcoming.forEach((event) => {
-        const d = new Date(event.start);
+        const d = ukDay(event.start);
         const key = format(d, 'yyyy-MM');
         let group = months.find((m) => m.key === key);
         if (!group) {
@@ -80,18 +80,20 @@ export default function EventsPage() {
                             <h2 className="font-headline text-2xl font-bold mb-4 capitalize">{month.label}</h2>
                             <ul className="space-y-3">
                                 {month.items.map((event) => {
-                                    const start = new Date(event.start);
                                     const description = language === 'en' ? event.description_en : event.description_cy;
                                     return (
                                         <li key={event.id} className="flex items-start gap-4 rounded-2xl bg-secondary/60 p-4">
                                             <div className="shrink-0 w-14 rounded-xl bg-white py-2 text-center shadow-sm">
-                                                <span className="block font-headline text-2xl font-bold leading-none">{format(start, 'd')}</span>
-                                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{format(start, 'EEE', locale)}</span>
+                                                <span className="block font-headline text-2xl font-bold leading-none">{format(ukDay(event.start), 'd')}</span>
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{format(ukDay(event.start), 'EEE', locale)}</span>
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="font-semibold leading-tight">{language === 'en' ? event.title_en : event.title_cy}</p>
                                                 <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1 font-medium">
-                                                    <Clock className="h-3 w-3" /> {event.allDay ? t.allDay : format(start, 'p')}
+                                                    <Clock className="h-3 w-3" />
+                                                    {lastDayOf(event.start, event.end)
+                                                        ? `${eventDays(event.start, event.end, language)}${event.allDay ? '' : `, ${ukTime(event.start)}`}`
+                                                        : event.allDay ? t.allDay : ukTime(event.start)}
                                                 </p>
                                                 {/* Keeps the line breaks staff type. Short details show in full; a long letter
                                                     with a full story to link to shows its start and "Read more" */}

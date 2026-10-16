@@ -1,5 +1,6 @@
 'use client';
 
+import { isStillOn, lastDayOf, shortEventDays, ukDay, ukTime } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -88,8 +89,8 @@ export function TodayAtSchool() {
     const week = now ? weekMenuFor(now, savedMenus) : null;
     const lunch = week ? week.days[WEEK_DAYS[isWeekend ? 0 : dayIndex - 1]] : null;
 
-    const startOfToday = now ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) : null;
-    const nextEvent = startOfToday ? events.find((e) => new Date(e.start) >= startOfToday) : undefined;
+    // An event over several days counts until its last day
+    const nextEvent = now ? events.find((e) => isStillOn(e, now)) : undefined;
 
     const notice = urgentNews ?? latestNews[0];
     const locale = language === 'cy' ? { locale: cyLocale } : undefined;
@@ -140,9 +141,9 @@ export function TodayAtSchool() {
                             {nextEvent ? (
                                 <div className="mt-3 flex items-start gap-4">
                                     <div className="shrink-0 rounded-xl bg-white px-3 py-2 text-center shadow-sm">
-                                        <span className="block font-headline text-2xl font-bold leading-none">{format(new Date(nextEvent.start), 'd')}</span>
+                                        <span className="block font-headline text-2xl font-bold leading-none">{format(ukDay(nextEvent.start), 'd')}</span>
                                         <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            {format(new Date(nextEvent.start), 'MMM', locale)}
+                                            {format(ukDay(nextEvent.start), 'MMM', locale)}
                                         </span>
                                     </div>
                                     <div>
@@ -150,7 +151,10 @@ export function TodayAtSchool() {
                                             {language === 'en' ? nextEvent.title_en : nextEvent.title_cy}
                                         </p>
                                         <p className="text-sm text-muted-foreground">
-                                            {nextEvent.allDay ? t.allDay : format(new Date(nextEvent.start), 'p')}
+                                            {/* An event over several days shows all of them, so it is clear it is still on */}
+                                            {lastDayOf(nextEvent.start, nextEvent.end)
+                                                ? `${shortEventDays(nextEvent.start, nextEvent.end, language)}${nextEvent.allDay ? '' : `, ${ukTime(nextEvent.start)}`}`
+                                                : nextEvent.allDay ? t.allDay : ukTime(nextEvent.start)}
                                         </p>
                                     </div>
                                 </div>

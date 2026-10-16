@@ -88,20 +88,20 @@ export const getAllNews = async (): Promise<NewsPostWithId[]> => {
     return newsFrom(await getDocsFromServer(collection(firestoreDb, NEWS)));
 };
 
-type NewNews = Omit<NewsPost, 'id' | 'attachments' | 'attachmentUrl' | 'attachmentName' | 'slug' | 'createdBy' | 'eventId' | 'eventStart'>;
+type NewNews = Omit<NewsPost, 'id' | 'attachments' | 'attachmentUrl' | 'attachmentName' | 'slug' | 'createdBy' | 'eventId' | 'eventStart' | 'eventEnd'>;
 type NewEvent = Omit<CalendarEvent, 'id' | 'attachments' | 'attachmentUrl' | 'attachmentName' | 'newsId' | 'newsSlug'>;
 
 // === ONE FORM FOR NEWS AND EVENTS ===
 // The admin area has one form. Every post goes in "news". A post with a day also gets a calendar
 // entry, which shows under Upcoming Events and on parents' phones. The two are linked both ways
-// (news.eventId and event.newsId), and the post keeps a copy of the day (news.eventStart) so its
-// story page can say when it happens. They are always saved, changed and deleted together in one
+// (news.eventId and event.newsId), and the post keeps a copy of the day or days (news.eventStart,
+// news.eventEnd for a last day) so its story page can say when it happens. They are always saved, changed and deleted together in one
 // transaction, with the banner and the "started" flags, so they never drift apart or half save.
 export type PostSave = {
     newsId: string | null;  // null for a new post, or for an older calendar entry with no post yet
     eventId: string | null; // the calendar entry the admin list showed with it, if any
     news: NewNews;
-    event: NewEvent | null; // null when the post has no day
+    event: NewEvent | null; // null when the post has no day; event.end is its last day, if it runs over several
     // A newly uploaded file; null keeps whatever file the post has now (read fresh, so an
     // out-of-date form never puts back a file someone else has since replaced)
     attachment: { url: string; name: string } | null;
@@ -113,8 +113,8 @@ export const savePost = async ({ newsId, eventId, news, event, attachment, edito
         if (news.isUrgent) mockNewsStore.forEach(post => post.isUrgent = false);
         const existing = newsId ? mockNewsStore.find(p => p.id === newsId) : undefined;
         const file = attachment ? { attachmentUrl: attachment.url, attachmentName: attachment.name } : {};
-        if (existing) Object.assign(existing, news, file, { eventStart: event?.start });
-        else mockNewsStore.unshift({ ...news, ...file, eventStart: event?.start, id: `mock_news_${Date.now()}`, slug: slugify(news.title_en), attachments: [], createdBy: editor } as NewsPostWithId);
+        if (existing) Object.assign(existing, news, file, { eventStart: event?.start, eventEnd: event?.end });
+        else mockNewsStore.unshift({ ...news, ...file, eventStart: event?.start, eventEnd: event?.end, id: `mock_news_${Date.now()}`, slug: slugify(news.title_en), attachments: [], createdBy: editor } as NewsPostWithId);
         if (event) console.log("Mock calendar entry:", event);
         return;
     }
@@ -155,7 +155,7 @@ export const savePost = async ({ newsId, eventId, news, event, attachment, edito
         // It is set once and never changed, so shared links keep working.
         const slug = (saved?.slug as string | undefined) || `${slugify(news.title_en) || 'news'}-${newsRef.id}`;
         const eventRef = event ? (linkedEventId ? doc(firestoreDb, CALENDAR, linkedEventId) : doc(collection(firestoreDb, CALENDAR))) : null;
-        const link = eventRef && event ? { eventId: eventRef.id, eventStart: event.start } : null;
+        const link = eventRef && event ? { eventId: eventRef.id, eventStart: event.start, ...(event.end ? { eventEnd: event.end } : {}) } : null;
         // Post and calendar entry always carry the same file
         const file = attachment
             ? { attachmentUrl: attachment.url, attachmentName: attachment.name }
@@ -167,16 +167,17 @@ export const savePost = async ({ newsId, eventId, news, event, attachment, edito
         if (saved) {
             // The posting date never changes, even if an out-of-date form sends a new one
             const date = typeof saved.date === 'string' ? saved.date : news.date;
-            tx.update(newsRef, { ...withoutUndefined(news), date, ...file, slug, ...(link ?? { eventId: deleteField(), eventStart: deleteField() }) });
+            tx.update(newsRef, {
+                ...withoutUndefined(news), date, ...file, slug,
+                ...(link ? { eventEnd: deleteField(), ...link } : { eventId: deleteField(), eventStart: deleteField(), eventEnd: deleteField() }),
+            });
         } else {
             tx.set(newsRef, withoutUndefined({ ...news, ...file, slug, attachments: [], createdBy: editor, ...(link ?? {}) }));
         }
         if (eventRef && event) {
-            // Merging keeps fields this form does not show, such as an older entry's end date,
-            // unless that end date would now come before the new day
-            const end = linkedEvent?.exists() ? linkedEvent.data().end : undefined;
-            const dropEnd = typeof end === 'string' && end < event.start;
-            tx.set(eventRef, withoutUndefined({ ...event, ...file, newsId: newsRef.id, newsSlug: slug, ...(dropEnd ? { end: deleteField() } : {}) }), { merge: true });
+            // Merging keeps fields this form does not show (an older entry's year groups); the last
+            // day is on the form, so a removed one is deleted
+            tx.set(eventRef, withoutUndefined({ ...event, ...file, newsId: newsRef.id, newsSlug: slug, ...(event.end ? {} : { end: deleteField() }) }), { merge: true });
         } else if (linkedEventId && linkedEvent?.exists()) {
             tx.delete(linkedEvent.ref);
         }

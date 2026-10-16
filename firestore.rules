@@ -130,7 +130,7 @@ service cloud.firestore {
       let d = request.resource.data;
       return d.keys().hasOnly(['title_en', 'title_cy', 'body_en', 'body_cy', 'date', 'category',
           'attachments', 'attachmentUrl', 'attachmentName', 'image', 'isUrgent', 'published',
-          'createdBy', 'lastEdited', 'slug', 'eventId', 'eventStart'])
+          'createdBy', 'lastEdited', 'slug', 'eventId', 'eventStart', 'eventEnd'])
         && d.title_en is string && d.title_en.size() > 0 && d.title_en.size() <= 200
         && d.title_cy is string && d.title_cy.size() <= 200
         // The form takes up to 10,000 characters; escaping can make the saved HTML up to 6 times longer
@@ -143,7 +143,8 @@ service cloud.firestore {
         && d.category in ['Urgent', 'Event', 'General']
         // The post's calendar entry, when it has a day
         && (!('eventId' in d) || (d.eventId is string && d.eventId.size() > 0 && d.eventId.size() <= 100))
-        && (!('eventStart' in d) || isIsoDate(d.eventStart));
+        && (!('eventStart' in d) || isIsoDate(d.eventStart))
+        && (!('eventEnd' in d) || isIsoDate(d.eventEnd));
     }
 
     function validEvent() {

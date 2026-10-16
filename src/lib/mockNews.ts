@@ -24,6 +24,7 @@ export type NewsPost = {
     lastEdited: string;
     eventId?: string; // the post's calendar entry, when it has a day (see savePost)
     eventStart?: string; // that entry's day, so the story can say when it happens
+    eventEnd?: string;   // its last day, when it runs over several days
 };
 
 export type UrgentNewsPost = NewsPost & { isUrgent: true };

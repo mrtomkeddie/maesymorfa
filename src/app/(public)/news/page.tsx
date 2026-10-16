@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { CalendarDays, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
-import { eventDay, safeHtml } from '@/lib/utils';
+import { eventDays, safeHtml } from '@/lib/utils';
 import { useNews } from '@/hooks/useNews';
 
 const content = {
@@ -65,7 +65,7 @@ export default function NewsPage() {
                                         {title}
                                     </CardTitle>
                                     {post.eventStart && !isNaN(new Date(post.eventStart).getTime()) && (
-                                        <p className="text-sm font-semibold text-primary">{t.when} {eventDay(post.eventStart, language)}</p>
+                                        <p className="text-sm font-semibold text-primary">{t.when} {eventDays(post.eventStart, post.eventEnd, language)}</p>
                                     )}
                                 </CardHeader>
                                 <CardContent className="flex-grow flex flex-col justify-between space-y-4">

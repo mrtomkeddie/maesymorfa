@@ -3,7 +3,7 @@
 'use client';
 
 import { useLanguage } from '@/app/(public)/LanguageProvider';
-import { eventDay, safeHtml } from '@/lib/utils';
+import { eventDays, safeHtml } from '@/lib/utils';
 import { notFound, useParams } from 'next/navigation';
 import { ArrowLeft, Calendar, Paperclip, Send, Loader2, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -211,7 +211,7 @@ export default function NewsArticlePage() {
                             {/* A post with a day says when it happens, separately from when it was posted */}
                             {post.eventStart && !isNaN(new Date(post.eventStart).getTime()) && (
                                 <p className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 font-semibold text-primary">
-                                    <Calendar className="h-4 w-4" /> {t.when} {eventDay(post.eventStart, language)}
+                                    <Calendar className="h-4 w-4" /> {t.when} {eventDays(post.eventStart, post.eventEnd, language)}
                                 </p>
                             )}
                         </header>

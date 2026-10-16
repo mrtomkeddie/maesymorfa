@@ -16,7 +16,7 @@ import { TodayAtSchool } from '@/components/home/TodayAtSchool';
 import { GamePreview } from '@/components/home/GamePreview';
 import { AddToCalendar } from '@/components/AddToCalendar';
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/Reveal';
-import { eventDay, htmlToText } from '@/lib/utils';
+import { eventDays, htmlToText, isStillOn, lastDayOf, shortEventDays, ukDay, ukTime } from '@/lib/utils';
 
 const content = {
   en: {
@@ -97,14 +97,12 @@ export default function HomePage() {
   const { latestNews, urgentNews } = useNews();
   const { events: allEvents } = useCalendar();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   // Upcoming events for the whole school (events with no audience list count as whole-school)
   const upcomingEvents = allEvents
     .filter((event) => {
       const relevantTo = (event as { relevantTo?: string[] }).relevantTo;
-      return new Date(event.start) >= today && (!relevantTo || relevantTo.includes('All'));
+      // An event over several days stays listed until its last day
+      return isStillOn(event) && (!relevantTo || relevantTo.includes('All'));
     })
     .slice(0, 4);
 
@@ -134,7 +132,7 @@ export default function HomePage() {
                 const body = language === 'en' ? post.body_en : post.body_cy;
                 // Paragraphs become spaces and &#39; becomes ' again ("pupils. Many thanks", not "pupils.Many thanks")
                 const plainBody = htmlToText(body).replace(/\s+/g, ' ')
-                  || (post.eventStart && !isNaN(new Date(post.eventStart).getTime()) ? eventDay(post.eventStart, language) : '');
+                  || (post.eventStart && !isNaN(new Date(post.eventStart).getTime()) ? eventDays(post.eventStart, post.eventEnd, language) : '');
                 return (
                   <RevealItem key={post.id}>
                     <Link href={`/news/${post.slug}`} className="group grid gap-1 py-5 sm:grid-cols-[7rem_1fr] sm:gap-6">
@@ -171,14 +169,19 @@ export default function HomePage() {
                   <RevealItem key={event.id}>
                     <Link href={event.newsSlug ? `/news/${encodeURIComponent(event.newsSlug)}` : '/events'} className="group flex items-center gap-4 rounded-2xl bg-secondary/60 p-4 transition-colors hover:bg-secondary">
                       <div className="shrink-0 w-14 rounded-xl bg-white py-2 text-center shadow-sm">
-                        <span className="block font-headline text-2xl font-bold leading-none">{format(new Date(event.start), 'dd')}</span>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{format(new Date(event.start), 'MMM', locale)}</span>
+                        <span className="block font-headline text-2xl font-bold leading-none">{format(ukDay(event.start), 'dd')}</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{format(ukDay(event.start), 'MMM', locale)}</span>
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold leading-tight">{language === 'en' ? event.title_en : event.title_cy}</p>
+                        {lastDayOf(event.start, event.end) && (
+                          <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                            <Calendar className="h-3 w-3" /> {shortEventDays(event.start, event.end, language)}
+                          </p>
+                        )}
                         {!event.allDay && (
                           <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1 font-medium">
-                            <Clock className="h-3 w-3" /> {format(new Date(event.start), 'p')}
+                            <Clock className="h-3 w-3" /> {ukTime(event.start)}
                           </p>
                         )}
                       </div>

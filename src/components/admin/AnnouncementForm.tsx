@@ -26,8 +26,8 @@ import { uploadFile } from '@/lib/firebase/storage';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
 import { getSchoolAuth } from '@/lib/firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { cn, htmlToText, textToHtml } from '@/lib/utils';
-import { format } from 'date-fns';
+import { cn, eventDays, htmlToText, lastDayOf, textToHtml, ukDay, ukMidday } from '@/lib/utils';
+import { addDays, differenceInCalendarDays, format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Progress } from '../ui/progress';
 
@@ -45,11 +45,54 @@ const formSchema = z.object({
   body_cy: z.string().max(10000, { message: 'Keep the text under 10,000 characters.' }).optional(),
   // null means no day (an empty value would make the form show the day it was opened with)
   date: z.date().nullable().optional(),
+  // The last day, for something over several days in a row (parents' evenings)
+  endDate: z.date().nullable().optional(),
   isUrgent: z.boolean().default(false),
   attachment: z.any().optional(),
 });
 
 type AnnouncementFormValues = z.infer<typeof formSchema>;
+
+// One day box: the button opens a calendar, and a second button clears it. "after" allows only
+// days later than it (for the last day).
+function DayBox({ value, onChange, placeholder, removeLabel, after }: {
+  value: Date | null | undefined;
+  onChange: (day: Date | null) => void;
+  placeholder: string;
+  removeLabel: string;
+  after?: Date | null;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-1">
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Button variant="outline" className={cn('w-full sm:w-[280px] pl-3 text-left font-normal', !value && 'text-muted-foreground')}>
+              {value ? format(value, DAY_FORMAT) : <span>{placeholder}</span>}
+              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+            </Button>
+          </FormControl>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={value ?? undefined}
+            defaultMonth={value ?? after ?? undefined}
+            disabled={after ? { before: addDays(after, 1) } : undefined}
+            onSelect={(picked) => { onChange(picked ?? null); setIsOpen(false); }}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+      {value && (
+        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
+          <X className="mr-1 h-4 w-4" /> {removeLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 interface AnnouncementFormProps {
   onSuccess: () => void;
@@ -60,7 +103,6 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [isDayPickerOpen, setIsDayPickerOpen] = useState(false);
 
   const news = existing?.news ?? null;
   const event = existing?.event ?? null;
@@ -72,13 +114,15 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
       title_cy: news?.title_cy || event?.title_cy || '',
       body_en: news ? htmlToText(news.body_en || '') : event?.description_en || '',
       body_cy: news ? htmlToText(news.body_cy || '') : event?.description_cy || '',
-      date: event ? new Date(event.start) : null,
+      date: event ? ukDay(event.start) : null,
+      endDate: event ? lastDayOf(event.start, event.end) : null,
       isUrgent: existing?.isBanner ?? false,
       attachment: undefined,
     },
   });
 
   const day = form.watch('date');
+  const lastDay = form.watch('endDate');
 
   const onSubmit = async (values: AnnouncementFormValues) => {
     const titleEn = values.title_en.trim();
@@ -86,6 +130,11 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
     const bodyEn = values.body_en?.trim() || '';
     // An empty Welsh box shows the English on the Welsh version of the site
     const bodyCy = values.body_cy?.trim() || bodyEn;
+
+    if (values.endDate && (!values.date || differenceInCalendarDays(values.endDate, values.date) <= 0)) {
+      form.setError('endDate', { message: 'The last day must be after the first day.' });
+      return;
+    }
 
     setIsLoading(true);
 
@@ -104,9 +153,11 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
       }
 
       const now = new Date().toISOString();
-      // All-day dates are saved at midday UK time, so the day stays the same in every time zone
-      // (midnight in British Summer Time is still the day before in UTC, which phones would show)
-      const middayOfDay = values.date ? new Date(new Date(values.date).setHours(12, 0, 0, 0)).toISOString() : null;
+      // All-day dates are saved at midday UK time, whatever the device's time zone, so the day stays
+      // the same for phones (midnight in British Summer Time is still the day before in UTC)
+      const middayOf = (day: Date | null | undefined) => (day ? ukMidday(day) : null);
+      const middayOfDay = middayOf(values.date);
+      const middayOfLastDay = values.date ? middayOf(values.endDate) : null;
       const editor = isFirebaseConfigured ? getSchoolAuth().currentUser?.email || 'admin' : 'admin';
 
       await db.savePost({
@@ -133,6 +184,7 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
           description_en: bodyEn,
           description_cy: bodyCy,
           start: middayOfDay,
+          ...(middayOfLastDay ? { end: middayOfLastDay } : {}),
           allDay: true,
           isUrgent: false,
           showOnHomepage: true,
@@ -188,48 +240,52 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col rounded-lg border p-4">
-              <FormLabel>Day it happens (optional)</FormLabel>
-              <FormDescription>
-                Only fill this in if parents should put it in their diary. It then also goes under Upcoming Events
-                and onto parents&apos; phones. Several dates? Add each one on its own.
-              </FormDescription>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Popover open={isDayPickerOpen} onOpenChange={setIsDayPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn('w-full sm:w-[280px] pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                      >
-                        {field.value ? format(field.value, DAY_FORMAT) : <span>Pick the day</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value ?? undefined}
-                      onSelect={(picked) => { field.onChange(picked ?? null); setIsDayPickerOpen(false); }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                {field.value && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => field.onChange(null)}>
-                    <X className="mr-1 h-4 w-4" /> Remove the day
-                  </Button>
-                )}
-              </div>
-              <FormMessage />
-            </FormItem>
+        <div className="space-y-5 rounded-lg border p-4">
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Day it happens (optional)</FormLabel>
+                <FormDescription>
+                  Only fill this in if parents should put it in their diary. It then also goes under Upcoming Events
+                  and onto parents&apos; phones.
+                </FormDescription>
+                <DayBox
+                  value={field.value}
+                  onChange={(picked) => { field.onChange(picked); if (!picked) form.setValue('endDate', null); }}
+                  placeholder="Pick the day"
+                  removeLabel="Remove the day"
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {day && (
+            <FormField
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Last day (optional)</FormLabel>
+                  <FormDescription>
+                    Only if it runs over several days in a row, like parents&apos; evenings. Say which day is for
+                    which year group in the message. Days far apart? Add each one on its own.
+                  </FormDescription>
+                  <DayBox
+                    value={field.value}
+                    onChange={(picked) => { field.onChange(picked); form.clearErrors('endDate'); }}
+                    placeholder="Pick the last day"
+                    removeLabel="Remove the last day"
+                    after={day}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
-        />
+        </div>
 
         <div className="space-y-4 rounded-lg border p-4">
           <div className="space-y-0.5">
@@ -313,7 +369,7 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
           {/* Says where it will show, so nobody has to guess */}
           <p className="text-sm text-muted-foreground" aria-live="polite">
             {day ? (
-              <>Goes under <strong className="text-foreground">Latest News</strong> and <strong className="text-foreground">Upcoming Events</strong> ({format(day, DAY_FORMAT)}), and onto parents&apos; phones.</>
+              <>Goes under <strong className="text-foreground">Latest News</strong> and <strong className="text-foreground">Upcoming Events</strong> ({eventDays(ukMidday(day), lastDay ? ukMidday(lastDay) : undefined, 'en')}), and onto parents&apos; phones.</>
             ) : (
               <>Goes under <strong className="text-foreground">Latest News</strong>.</>
             )}
