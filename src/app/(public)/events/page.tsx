@@ -29,6 +29,9 @@ const content = {
     },
 };
 
+// Event details longer than this (in characters) are cut to 8 lines when the full story is a link away
+const LONG_DETAILS = 500;
+
 export default function EventsPage() {
     const { language } = useLanguage();
     const t = content[language];
@@ -90,8 +93,13 @@ export default function EventsPage() {
                                                 <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1 font-medium">
                                                     <Clock className="h-3 w-3" /> {event.allDay ? t.allDay : format(start, 'p')}
                                                 </p>
-                                                {/* Events added with a news post carry the whole letter, so show the start and link to the rest */}
-                                                {description && <p className={`mt-2 text-sm text-muted-foreground ${event.newsSlug ? 'line-clamp-3' : ''}`}>{description}</p>}
+                                                {/* Keeps the line breaks staff type. Short details show in full; a long letter
+                                                    with a full story to link to shows its start and "Read more" */}
+                                                {description && (
+                                                    <p className={`mt-2 whitespace-pre-line text-sm text-muted-foreground ${event.newsSlug && description.length > LONG_DETAILS ? 'line-clamp-[8]' : ''}`}>
+                                                        {description.trim()}
+                                                    </p>
+                                                )}
                                                 {event.newsSlug && (
                                                     <Link href={`/news/${encodeURIComponent(event.newsSlug)}`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
                                                         {t.readMore} <ArrowRight className="h-4 w-4" />
