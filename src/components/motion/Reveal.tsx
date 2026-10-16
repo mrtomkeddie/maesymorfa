@@ -1,7 +1,7 @@
 'use client';
 
-import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import type { ReactNode } from 'react';
+import { motion, useInView, useReducedMotion, type Variants } from 'framer-motion';
+import { useRef, type ReactNode } from 'react';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -30,16 +30,21 @@ export function Reveal({ children, className, delay = 0, x = 0 }: { children: Re
 }
 
 // Parent for a row of cards: each RevealItem enters 0.1s after the one before.
+// It uses useInView + animate rather than whileInView: with whileInView, items that arrive after
+// the group is already on screen (news loading from the database while the reader is scrolled
+// there) never got the "show" signal and stayed invisible. With animate, late items fade in too.
 export function RevealGroup({ children, className, stagger = 0.1 }: { children: ReactNode; className?: string; stagger?: number }) {
     const reduce = useReducedMotion();
+    const ref = useRef<HTMLDivElement>(null);
+    const inView = useInView(ref, { once: true, margin: '-60px' });
     if (reduce) return <div className={className}>{children}</div>;
     return (
         <motion.div
+            ref={ref}
             data-reveal
             className={className}
             initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
+            animate={inView ? 'show' : 'hidden'}
             variants={{ hidden: {}, show: { transition: { staggerChildren: stagger } } }}
         >
             {children}
