@@ -205,7 +205,7 @@ export default function ContactPage() {
                     <SectionHeading>{t.mapTitle}</SectionHeading>
                     <div className="aspect-[4/3] w-full overflow-hidden rounded-3xl bg-muted ring-1 ring-black/5 md:aspect-video">
                         <iframe
-                            src="https://maps.google.com/maps?q=Ysgol%20Maes%20Y%20Morfa%2C%20Olive%20St%2C%20Llanelli%20SA15%202PZ&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                            src="https://maps.google.com/maps?q=Ysgol%20Maes%20Y%20Morfa%2C%20Olive%20St%2C%20Llanelli%20SA15%202AP&t=&z=15&ie=UTF8&iwloc=&output=embed"
                             width="100%"
                             height="100%"
                             style={{ border: 0 }}

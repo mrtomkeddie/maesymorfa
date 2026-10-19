@@ -4,7 +4,8 @@ import { useLanguage } from './../LanguageProvider';
 import { Phone, Mail, Download, ExternalLink, School, CalendarCheck, FileText, Sparkles } from "lucide-react";
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
-import type { SiteSettings } from '@/lib/types';
+import type { DocumentWithId, SiteSettings } from '@/lib/types';
+import { LA_ADMISSIONS_URL } from '@/lib/links';
 import { PageHeader } from '@/components/public/PageHeader';
 import { SectionHeading, Tile, TileLabel, TileTitle, pillLink } from '@/components/public/Tiles';
 
@@ -22,6 +23,7 @@ const content = {
     step1Body: "Phone the school office or email us to arrange a visit or request an admissions pack.",
     step2Title: "Complete an application form",
     step2Body: "Download our application form below or collect one from the school office. Fill it in and return it to us—either by email, post, or in person.",
+    step2BodyNoForm: "Collect an application form from the school office. Fill it in and return it to us—either by email, post, or in person.",
     downloadButton: "Download Application Form",
     step3Title: "Arrange a school visit",
     step3Body: "We strongly encourage prospective parents and children to visit. You’ll meet staff, see our facilities, and ask any questions.",
@@ -44,6 +46,7 @@ const content = {
     step1Body: "Ffoniwch swyddfa'r ysgol neu anfonwch e-bost atom i drefnu ymweliad neu ofyn am becyn derbyn.",
     step2Title: "Cwblhewch Ffurflen Gais",
     step2Body: "Lawrlwythwch ein ffurflen gais isod neu casglwch un o swyddfa'r ysgol. Llenwch hi a'i dychwelyd atom—naill ai drwy e-bost, post, neu'n bersonol.",
+    step2BodyNoForm: "Casglwch ffurflen gais o swyddfa'r ysgol. Llenwch hi a'i dychwelyd atom—naill ai drwy e-bost, post, neu'n bersonol.",
     downloadButton: "Lawrlwytho'r Ffurflen Gais",
     step3Title: "Trefnwch Ymweliad ag Ysgol",
     step3Body: "Rydym yn annog darpar rieni a phlant i ymweld. Byddwch yn cwrdd â staff, yn gweld ein cyfleusterau, ac yn gofyn unrhyw gwestiynau.",
@@ -65,10 +68,19 @@ export default function AdmissionsPage() {
     const t = content[language];
     // The office phone and email come from the school's settings, the same place as the footer and Contact page
     const [office, setOffice] = useState(OFFICE);
+    // The application form, once the school uploads one in Admin > Documents with "admission" or
+    // "application" in its title or category. Until then the download button stays hidden.
+    const [formUrl, setFormUrl] = useState<string | null>(null);
 
     useEffect(() => {
         db.getSiteSettings()
             .then((s: SiteSettings | null) => s && setOffice({ phone: s.phone || OFFICE.phone, email: s.email || OFFICE.email }))
+            .catch(console.error);
+        db.getDocuments()
+            .then((docs: DocumentWithId[]) => {
+                const form = docs.find(d => /admission|application/i.test(`${d.category} ${d.title}`) && d.fileUrl && d.fileUrl !== '#');
+                setFormUrl(form?.fileUrl ?? null);
+            })
             .catch(console.error);
     }, []);
 
@@ -99,10 +111,12 @@ export default function AdmissionsPage() {
                             <Tile tone="sky" className="h-full">
                                 <TileLabel tone="sky" icon={FileText}>{t.step(2)}</TileLabel>
                                 <TileTitle as="h3">{t.step2Title}</TileTitle>
-                                <p className="mt-2 text-sm text-muted-foreground">{t.step2Body}</p>
-                                <div className="mt-auto pt-4">
-                                    <button type="button" className={pillLink}><Download className="h-4 w-4" />{t.downloadButton}</button>
-                                </div>
+                                <p className="mt-2 text-sm text-muted-foreground">{formUrl ? t.step2Body : t.step2BodyNoForm}</p>
+                                {formUrl && (
+                                    <div className="mt-auto pt-4">
+                                        <a href={formUrl} download target="_blank" rel="noopener noreferrer" className={pillLink}><Download className="h-4 w-4" />{t.downloadButton}</a>
+                                    </div>
+                                )}
                             </Tile>
                         </li>
                         <li className="h-full">
@@ -120,7 +134,7 @@ export default function AdmissionsPage() {
                         <TileLabel tone="violet" icon={School}>{t.policyTitle}</TileLabel>
                         <p className="mt-3 text-sm text-muted-foreground">{t.policyBody}</p>
                         <div className="mt-auto pt-4">
-                            <a href="#" target="_blank" rel="noopener noreferrer" className={pillLink}>
+                            <a href={LA_ADMISSIONS_URL[language]} target="_blank" rel="noopener noreferrer" className={pillLink}>
                                 {t.policyLink} <ExternalLink className="h-3.5 w-3.5" />
                             </a>
                         </div>
