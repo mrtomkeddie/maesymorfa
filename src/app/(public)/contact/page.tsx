@@ -3,7 +3,8 @@
 'use client';
 
 import { useLanguage } from './../LanguageProvider';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from '@/components/public/PageHeader';
+import { CardCue, Panel, SectionHeading, Tile, TileLabel, TileTitle, TONES } from '@/components/public/Tiles';
 import { Button } from "@/components/ui/button";
 import { Phone, Mail, MapPin, Loader2 } from "lucide-react";
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,8 @@ const content = {
         intro: "We’re here to help. Reach out with any questions or to arrange a visit.",
         addressTitle: "School Address",
         phoneTitle: "Phone",
+        callUs: "Call the school office",
+        emailUs: "Send us an email",
         emailTitle: "Email",
         formTitle: "Send us a Message",
         formName: "Your Name",
@@ -40,6 +43,8 @@ const content = {
         intro: "Rydym yma i helpu. Cysylltwch ag unrhyw gwestiynau neu i drefnu ymweliad.",
         addressTitle: "Cyfeiriad yr Ysgol",
         phoneTitle: "Ffôn",
+        callUs: "Ffoniwch swyddfa'r ysgol",
+        emailUs: "Anfonwch e-bost atom",
         emailTitle: "E-bost",
         formTitle: "Anfonwch neges atom",
         formName: "Eich Enw",
@@ -136,113 +141,82 @@ export default function ContactPage() {
         )
     }
 
+    const phone = settings?.phone || '';
+    const email = settings?.email || '';
+
     return (
         <div className="bg-background">
-            <section className="w-full py-16 md:py-24">
-                <div className="container mx-auto max-w-6xl px-8">
+            <PageHeader title={t.title} intro={t.intro} />
 
-                    <div className="text-center mb-12">
-                        <h1 className="font-headline text-5xl font-extrabold tracking-tighter text-foreground md:text-6xl">
-                            {t.title}
-                        </h1>
-                        <p className="mt-4 max-w-2xl mx-auto text-lg text-foreground/80">
-                            {t.intro}
-                        </p>
+            <div className="container mx-auto max-w-6xl px-6 pb-20 pt-4 md:px-8">
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
+                    <div className="grid content-start gap-4">
+                        <Tile tone="rose" as="a" hover href={`tel:${phone.replace(/\s/g, '')}`}>
+                            <TileLabel tone="rose" icon={Phone}>{t.phoneTitle}</TileLabel>
+                            <TileTitle className="text-2xl">{phone || 'Phone not available'}</TileTitle>
+                            <CardCue label={t.callUs} className={TONES.rose.cue} />
+                        </Tile>
+                        <Tile tone="sky" as="a" hover href={`mailto:${email}`}>
+                            <TileLabel tone="sky" icon={Mail}>{t.emailTitle}</TileLabel>
+                            <TileTitle className="break-all">{email || 'Email not available'}</TileTitle>
+                            <CardCue label={t.emailUs} className={TONES.sky.cue} />
+                        </Tile>
+                        <Tile tone="emerald">
+                            <TileLabel tone="emerald" icon={MapPin}>{t.addressTitle}</TileLabel>
+                            <p className="mt-3 whitespace-pre-line font-medium leading-relaxed">{settings?.address || 'Address not available'}</p>
+                        </Tile>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                        <div className="space-y-8">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-3">
-                                        <MapPin className="h-6 w-6 text-primary" /> {t.addressTitle}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground whitespace-pre-line">{settings?.address || 'Address not available'}</p>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-3">
-                                        <Phone className="h-6 w-6 text-primary" /> {t.phoneTitle}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <a href={`tel:${settings?.phone}`} className="text-muted-foreground hover:underline">{settings?.phone || 'Phone not available'}</a>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-3">
-                                        <Mail className="h-6 w-6 text-primary" /> {t.emailTitle}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <a href={`mailto:${settings?.email}`} className="text-muted-foreground hover:underline">{settings?.email || 'Email not available'}</a>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="font-headline text-2xl">{t.formTitle}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Form {...form}>
-                                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                            <FormField control={form.control} name="name" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>{t.formName}</FormLabel>
-                                                    <FormControl><Input {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="email" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>{t.formEmail}</FormLabel>
-                                                    <FormControl><Input type="email" {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="message" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>{t.formMessage}</FormLabel>
-                                                    <FormControl><Textarea rows={5} {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )} />
-                                            <Button type="submit" className="w-full" disabled={isLoading}>
-                                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                {t.formSend}
-                                            </Button>
-                                        </form>
-                                    </Form>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-
-                    <div className="mt-16">
-                        <h2 className="font-headline text-3xl font-extrabold tracking-tighter text-foreground text-center mb-6">
-                            {t.mapTitle}
-                        </h2>
-                        <div className="aspect-video w-full bg-muted rounded-lg overflow-hidden shadow-lg">
-                            <iframe
-                                src="https://maps.google.com/maps?q=Ysgol%20Maes%20Y%20Morfa%2C%20Olive%20St%2C%20Llanelli%20SA15%202PZ&t=&z=15&ie=UTF8&iwloc=&output=embed"
-                                width="100%"
-                                height="100%"
-                                style={{ border: 0 }}
-                                allowFullScreen={true}
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                            ></iframe>
-                        </div>
-                    </div>
-
+                    <Panel>
+                        <h2 className="font-headline text-2xl font-bold md:text-3xl">{t.formTitle}</h2>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-5">
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t.formName}</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="email" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t.formEmail}</FormLabel>
+                                        <FormControl><Input type="email" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="message" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t.formMessage}</FormLabel>
+                                        <FormControl><Textarea rows={5} {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <Button type="submit" className="w-full rounded-full" size="lg" disabled={isLoading}>
+                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {t.formSend}
+                                </Button>
+                            </form>
+                        </Form>
+                    </Panel>
                 </div>
-            </section>
+
+                <div className="mt-16">
+                    <SectionHeading>{t.mapTitle}</SectionHeading>
+                    <div className="aspect-[4/3] w-full overflow-hidden rounded-3xl bg-muted ring-1 ring-black/5 md:aspect-video">
+                        <iframe
+                            src="https://maps.google.com/maps?q=Ysgol%20Maes%20Y%20Morfa%2C%20Olive%20St%2C%20Llanelli%20SA15%202PZ&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen={true}
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            title={t.mapTitle}
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

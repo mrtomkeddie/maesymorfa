@@ -1,20 +1,20 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { CalendarDays, ArrowRight, AlertTriangle } from 'lucide-react';
+import { cy as cyLocale, enGB } from 'date-fns/locale';
+import { AlertTriangle, BellRing, CalendarDays } from 'lucide-react';
 import { useLanguage } from '../LanguageProvider';
 import { eventDays, safeHtml } from '@/lib/utils';
 import { useNews } from '@/hooks/useNews';
+import { PageHeader } from '@/components/public/PageHeader';
+import { CardCue, Tile, TileLabel, TileTitle, TONES, type Tone } from '@/components/public/Tiles';
 
 const content = {
     en: {
         title: "News & Announcements",
         subtitle: "Latest updates from Ysgol Maes Y Morfa",
-        readMore: "Read full story",
+        readMore: "Read more",
         when: "When:",
         urgent: "Urgent",
         noNews: "No news at the moment."
@@ -22,7 +22,7 @@ const content = {
     cy: {
         title: "Newyddion a Chyhoeddiadau",
         subtitle: "Diweddariadau diweddaraf o Ysgol Maes Y Morfa",
-        readMore: "Darllen stori lawn",
+        readMore: "Darllen mwy",
         when: "Pryd:",
         urgent: "Ar Frys",
         noNews: "Dim newyddion ar hyn o bryd."
@@ -32,61 +32,48 @@ const content = {
 export default function NewsPage() {
     const { language } = useLanguage();
     const t = content[language];
+    const locale = language === 'cy' ? cyLocale : enGB;
     const { news: publishedNews } = useNews();
 
     return (
-        <div className="container py-12 space-y-8">
-            <div className="text-center space-y-4 max-w-2xl mx-auto">
-                <h1 className="text-4xl font-bold font-headline tracking-tight">{t.title}</h1>
-                <p className="text-xl text-muted-foreground">{t.subtitle}</p>
-            </div>
+        <div className="bg-background">
+            <PageHeader title={t.title} intro={t.subtitle} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="container mx-auto max-w-7xl px-6 pb-20 pt-4 md:px-8">
                 {publishedNews.length > 0 ? (
-                    publishedNews.map(post => {
-                        const title = language === 'en' ? post.title_en : post.title_cy;
-                        const body = language === 'en' ? post.body_en : post.body_cy;
+                    <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {publishedNews.map(post => {
+                            const title = language === 'en' ? post.title_en : post.title_cy;
+                            const body = language === 'en' ? post.body_en : post.body_cy;
+                            const urgent = post.isUrgent || post.category === 'Urgent';
+                            const isEvent = !!post.eventStart && !isNaN(new Date(post.eventStart).getTime());
+                            // Same colours as the homepage: rose for notices, sky for dates, red when urgent
+                            const tone: Tone = urgent ? 'red' : isEvent ? 'sky' : 'rose';
 
-                        return (
-                            <Card key={post.id} className="hover:shadow-lg transition-shadow flex flex-col h-full group">
-
-                                <CardHeader>
-                                    <div className="flex justify-between items-start gap-4 mb-2">
-                                        <Badge variant={post.category === 'Urgent' ? 'destructive' : 'secondary'}>
-                                            {post.category === 'Urgent' && <AlertTriangle className="w-3 h-3 mr-1" />}
-                                            {post.category}
-                                        </Badge>
-                                        <span className="text-xs text-muted-foreground flex items-center shrink-0">
-                                            <CalendarDays className="w-3 h-3 mr-1" />
-                                            {format(new Date(post.date), 'MMM d, yyyy')}
-                                        </span>
-                                    </div>
-                                    <CardTitle className="line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                                        {title}
-                                    </CardTitle>
-                                    {post.eventStart && !isNaN(new Date(post.eventStart).getTime()) && (
-                                        <p className="text-sm font-semibold text-primary">{t.when} {eventDays(post.eventStart, post.eventEnd, language)}</p>
-                                    )}
-                                </CardHeader>
-                                <CardContent className="flex-grow flex flex-col justify-between space-y-4">
-                                    <div
-                                        className="text-muted-foreground line-clamp-3 text-sm"
-                                        dangerouslySetInnerHTML={{ __html: safeHtml(body) }}
-                                    />
-                                    <Button variant="ghost" className="w-full group/btn justify-between hover:bg-primary/5" asChild>
-                                        <Link href={`/news/${post.slug}`}>
-                                            {t.readMore}
-                                            <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
-                                        </Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        )
-                    })
+                            return (
+                                <li key={post.id} className="h-full">
+                                    <Tile tone={tone} as={Link} hover href={`/news/${post.slug}`} className="h-full">
+                                        <TileLabel tone={tone} icon={urgent ? AlertTriangle : isEvent ? CalendarDays : BellRing}>
+                                            {urgent && `${t.urgent} · `}{format(new Date(post.date), 'd MMM yyyy', { locale })}
+                                        </TileLabel>
+                                        <TileTitle className="line-clamp-3">{title}</TileTitle>
+                                        {isEvent && (
+                                            <p className={`mt-1 text-sm font-semibold ${TONES.sky.cue}`}>{t.when} {eventDays(post.eventStart!, post.eventEnd, language)}</p>
+                                        )}
+                                        <div
+                                            className="mt-2 line-clamp-3 text-sm text-muted-foreground"
+                                            dangerouslySetInnerHTML={{ __html: safeHtml(body) }}
+                                        />
+                                        <CardCue label={t.readMore} className={TONES[tone].cue} />
+                                    </Tile>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 ) : (
-                    <div className="col-span-full text-center py-12 text-muted-foreground">
-                        {t.noNews}
-                    </div>
+                    <Tile tone="rose" className="items-center py-12 text-center">
+                        <p className="text-muted-foreground">{t.noNews}</p>
+                    </Tile>
                 )}
             </div>
         </div>

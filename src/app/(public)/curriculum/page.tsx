@@ -1,13 +1,13 @@
-
-
 'use client';
 
 import { useLanguage } from './../LanguageProvider';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Mail, BookOpen, Leaf, Puzzle, Users } from "lucide-react";
+import { Mail, BookOpen, Leaf, Puzzle, Users } from "lucide-react";
 import Link from 'next/link';
-import { Suspense } from "react";
+import { PageHeader } from '@/components/public/PageHeader';
+import { CardCue, Tile, TileLabel, TileTitle, TONES, type Tone } from '@/components/public/Tiles';
+
+// Each stage keeps its own colour, so the overview and the stage pages match
+const STAGE_TONES: Tone[] = ['amber', 'sky', 'violet', 'emerald'];
 
 const content = {
   en: {
@@ -16,33 +16,34 @@ const content = {
     stages: [
       {
         icon: Puzzle,
-        title: "Progression Step 1 (Nursery & Reception)",
+        label: "Nursery & Reception",
+        title: "Progression Step 1",
         summary: "Learning through play, building strong foundations in literacy and numeracy in a nurturing environment.",
-        details: "View Details",
         href: "/curriculum/early-years"
       },
       {
         icon: BookOpen,
-        title: "Progression Step 2 (Years 1, 2 & 3)",
+        label: "Years 1, 2 & 3",
+        title: "Progression Step 2",
         summary: "Developing core skills in reading, writing, and maths while exploring a broad and balanced range of subjects.",
-        details: "View Details",
         href: "/curriculum/key-stage-1"
       },
       {
         icon: Users,
-        title: "Progression Step 3 (Years 4, 5 & 6)",
+        label: "Years 4, 5 & 6",
+        title: "Progression Step 3",
         summary: "Fostering independent learning and deeper subject knowledge to prepare pupils for their transition to secondary school.",
-        details: "View Details",
         href: "/curriculum/key-stage-2"
       },
       {
         icon: Leaf,
+        label: "Trips, clubs & outdoor learning",
         title: "Beyond the Classroom",
         summary: "Enriching the curriculum through outdoor learning, educational trips, and a wide variety of after-school clubs.",
-        details: "View Details",
         href: "/curriculum/beyond-the-classroom"
       }
     ],
+    details: "What we learn",
     learnMoreTitle: "Learn More",
     learnMoreBody: "Have a question about our curriculum? We'd love to hear from you. Please contact the school office to speak to a member of staff.",
     contactUs: "Contact Us"
@@ -53,33 +54,34 @@ const content = {
     stages: [
       {
         icon: Puzzle,
-        title: "Cam Cynnydd 1 (Meithrin a Derbyn)",
+        label: "Meithrin a Derbyn",
+        title: "Cam Cynnydd 1",
         summary: "Dysgu drwy chwarae, adeiladu sylfeini cryf mewn llythrennedd a rhifedd mewn amgylchedd meithringar.",
-        details: "Gweld Manylion",
         href: "/curriculum/early-years"
       },
       {
         icon: BookOpen,
-        title: "Cam Cynnydd 2 (Blynyddoedd 1, 2 a 3)",
+        label: "Blynyddoedd 1, 2 a 3",
+        title: "Cam Cynnydd 2",
         summary: "Datblygu sgiliau craidd mewn darllen, ysgrifennu, a mathemateg wrth archwilio ystod eang a chytbwys o bynciau.",
-        details: "Gweld Manylion",
         href: "/curriculum/key-stage-1"
       },
       {
         icon: Users,
-        title: "Cam Cynnydd 3 (Blynyddoedd 4, 5 a 6)",
+        label: "Blynyddoedd 4, 5 a 6",
+        title: "Cam Cynnydd 3",
         summary: "Meithrin dysgu annibynnol a gwybodaeth bwnc ddyfnach i baratoi disgyblion ar gyfer eu trosglwyddiad i'r ysgol uwchradd.",
-        details: "Gweld Manylion",
         href: "/curriculum/key-stage-2"
       },
       {
         icon: Leaf,
+        label: "Teithiau, clybiau a dysgu awyr agored",
         title: "Y Tu Hwnt i'r Ystafell Ddosbarth",
         summary: "Cyfoethogi'r cwricwlwm drwy ddysgu yn yr awyr agored, teithiau addysgol, ac amrywiaeth eang o glybiau ar ôl ysgol.",
-        details: "Gweld Manylion",
         href: "/curriculum/beyond-the-classroom"
       }
     ],
+    details: "Beth rydym yn ei ddysgu",
     learnMoreTitle: "Dysgu Mwy",
     learnMoreBody: "Oes gennych chi gwestiwn am ein cwricwlwm? Byddem wrth ein bodd yn clywed gennych. Cysylltwch â swyddfa'r ysgol i siarad ag aelod o staff.",
     contactUs: "Cysylltu â Ni"
@@ -93,58 +95,33 @@ export default function CurriculumPage() {
 
   return (
     <div className="bg-background">
-      <section className="w-full py-16 md:py-24">
-        <div className="container mx-auto max-w-4xl px-8 space-y-12">
+      <PageHeader title={t.title} intro={t.intro} />
 
-          <div className="text-center">
-            <h1 className="font-headline text-5xl font-extrabold tracking-tighter text-foreground md:text-6xl">
-              {t.title}
-            </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg text-foreground/80">
-              {t.intro}
-            </p>
-          </div>
+      <div className="container mx-auto max-w-5xl px-6 pb-20 pt-4 md:px-8">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {t.stages.map((stage, index) => {
+            const tone = STAGE_TONES[index];
+            return (
+              <li key={stage.href} className="h-full">
+                <Tile tone={tone} as={Link} hover href={stage.href} className="h-full">
+                  <TileLabel tone={tone} icon={stage.icon}>{stage.label}</TileLabel>
+                  <TileTitle as="h2" className="text-2xl">{stage.title}</TileTitle>
+                  <p className="mt-2 text-sm text-muted-foreground">{stage.summary}</p>
+                  <CardCue label={t.details} className={TONES[tone].cue} />
+                </Tile>
+              </li>
+            );
+          })}
+        </ul>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {t.stages.map((stage, index) => {
-              const Icon = stage.icon;
-              return (
-                <Card key={index} className="flex flex-col">
-                  <CardHeader>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary shadow-inner">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <CardTitle className="font-headline text-xl">{stage.title}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <CardDescription>{stage.summary}</CardDescription>
-                  </CardContent>
-                  <div className="p-6 pt-0">
-                    <Button variant="outline" className="w-full" asChild>
-                      <Link href={stage.href}>
-                        {stage.details} <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </Card>
-              )
-            })}
-          </div>
-
-          <div className="text-center border-t pt-12">
-            <h3 className="font-headline text-3xl font-bold">{t.learnMoreTitle}</h3>
-            <p className="text-muted-foreground mt-2 max-w-xl mx-auto">{t.learnMoreBody}</p>
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <Button asChild>
-                <a href="/contact"><Mail className="mr-2 h-4 w-4" />{t.contactUs}</a>
-              </Button>
-            </div>
-          </div>
-
+        <div className="mt-16 text-center">
+          <h2 className="font-headline text-2xl font-bold md:text-3xl">{t.learnMoreTitle}</h2>
+          <p className="mx-auto mt-2 max-w-xl text-muted-foreground">{t.learnMoreBody}</p>
+          <Link href="/contact" className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-colors hover:bg-primary/90">
+            <Mail className="h-4 w-4" />{t.contactUs}
+          </Link>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -2,8 +2,9 @@
 'use client';
 
 import { useLanguage } from '../LanguageProvider';
-import { Gamepad2, Recycle, Languages, MonitorPlay } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Gamepad2, MonitorPlay, Star } from 'lucide-react';
+import { PageHeader } from '@/components/public/PageHeader';
+import { Panel, SectionHeading, Tile, TileLabel } from '@/components/public/Tiles';
 import Image from 'next/image';
 
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -85,72 +86,58 @@ export default function KidsCornerPage() {
 
     return (
         <div className="bg-background">
-            <section className="w-full py-16 md:py-24">
-                <div className="container mx-auto max-w-4xl px-8 space-y-12">
-
-                    <div className="text-center">
-                        <div className="flex justify-center mb-6">
-                            <div className="p-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                                <Gamepad2 className="h-12 w-12" />
-                            </div>
+            <PageHeader
+                title={t.title}
+                intro={t.intro}
+                before={
+                    <div className="mb-6 flex justify-center">
+                        <div className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-4 text-white">
+                            <Gamepad2 className="h-10 w-10" />
                         </div>
-                        <h1 className="font-headline text-5xl font-extrabold tracking-tighter text-foreground md:text-6xl">
-                            {t.title}
-                        </h1>
-                        <p className="mt-4 max-w-2xl mx-auto text-lg text-foreground/80">
-                            {t.intro}
-                        </p>
                     </div>
+                }
+            />
 
-                    {isMobile ? (
-                        <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
-                            <MonitorPlay className="h-12 w-12 text-muted-foreground mb-4" />
-                            <h2 className="text-xl font-semibold">{t.desktopOnly.title}</h2>
-                            <p className="mt-2 text-muted-foreground">{t.desktopOnly.description}</p>
-                        </Card>
-                    ) : (
-                        <>
-
-
-                            {/* Morfa Runner Game */}
-                            <Card className="bg-secondary/30">
-                                <CardHeader>
-                                    <CardTitle>{tRunner.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid md:grid-cols-2 gap-8 mb-6">
-                                        <div>
-                                            <h3 className="font-bold text-lg mb-2">{tRunner.howToPlay}</h3>
-                                            <p className="text-muted-foreground">{tRunner.instructions}</p>
-                                            <p className="text-muted-foreground mt-2"><strong>{tRunner.controls}</strong></p>
-                                        </div>
-                                        <div className="border-t md:border-t-0 md:border-l pl-0 md:pl-8 pt-6 md:pt-0">
-                                            <h3 className="font-bold text-lg mb-3">{tRunner.gameElements}</h3>
-                                            <div className="space-y-3">
-                                                {tRunner.elements.map(item => (
-                                                    <div key={item.name} className="flex items-center gap-4">
-                                                        <Image src={`/morfa-runner/images/${item.image}`} alt={item.name} width={40} height={40} className="object-contain" />
-                                                        <span className="text-muted-foreground font-medium">{item.name}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="aspect-[900/400] w-full bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                                        <iframe
-                                            src="/morfa-runner/index.html"
-                                            className="w-full h-full border-0"
-                                            title="Morfa Runner Game"
-                                            allow="fullscreen"
-                                        ></iframe>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </>
-                    )}
-
-                </div>
-            </section>
+            <div className="container mx-auto max-w-5xl px-6 pb-20 pt-4 md:px-8">
+                {isMobile ? (
+                    <Tile tone="violet" className="items-center p-10 text-center">
+                        <MonitorPlay className="mb-4 h-12 w-12 text-violet-700" />
+                        <h2 className="font-headline text-xl font-semibold">{t.desktopOnly.title}</h2>
+                        <p className="mt-2 text-muted-foreground">{t.desktopOnly.description}</p>
+                    </Tile>
+                ) : (
+                    /* Morfa Runner Game */
+                    <Panel>
+                        <SectionHeading>{tRunner.title}</SectionHeading>
+                        <div className="mb-6 grid gap-4 md:grid-cols-2">
+                            <Tile tone="violet">
+                                <TileLabel tone="violet" icon={Gamepad2}>{tRunner.howToPlay}</TileLabel>
+                                <p className="mt-3 text-sm text-muted-foreground">{tRunner.instructions}</p>
+                                <p className="mt-3 text-sm font-semibold">{tRunner.controls}</p>
+                            </Tile>
+                            <Tile tone="amber">
+                                <TileLabel tone="amber" icon={Star}>{tRunner.gameElements}</TileLabel>
+                                <ul className="mt-3 space-y-2">
+                                    {tRunner.elements.map(item => (
+                                        <li key={item.name} className="flex items-center gap-3">
+                                            <Image src={`/morfa-runner/images/${item.image}`} alt="" width={32} height={32} className="h-8 w-8 object-contain" />
+                                            <span className="text-sm font-medium">{item.name}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </Tile>
+                        </div>
+                        <div className="aspect-[900/400] w-full overflow-hidden rounded-2xl bg-muted">
+                            <iframe
+                                src="/morfa-runner/index.html"
+                                className="h-full w-full border-0"
+                                title="Morfa Runner Game"
+                                allow="fullscreen"
+                            ></iframe>
+                        </div>
+                    </Panel>
+                )}
+            </div>
         </div>
     );
 }

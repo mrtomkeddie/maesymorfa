@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useLanguage } from '../LanguageProvider';
 import { useCalendar } from '@/hooks/useCalendar';
 import { AddToCalendar } from '@/components/AddToCalendar';
+import { PageHeader } from '@/components/public/PageHeader';
 import { eventDays, isStillOn, lastDayOf, ukDay, ukTime } from '@/lib/utils';
 
 // Public list of upcoming whole-school events. The full /calendar lives in the parent portal,
@@ -59,17 +60,16 @@ export default function EventsPage() {
     });
 
     return (
-        <div className="container mx-auto max-w-3xl px-6 md:px-8 py-12 md:py-16">
-            <div className="text-center space-y-3 mb-10">
-                <h1 className="text-4xl md:text-5xl font-bold font-headline tracking-tight">{t.title}</h1>
-                <p className="text-lg text-muted-foreground">{t.subtitle}</p>
-                <div className="pt-2">
-                    <AddToCalendar variant="default" />
-                </div>
+        <div className="bg-background">
+        <PageHeader title={t.title} intro={t.subtitle}>
+            <div className="pt-6">
+                <AddToCalendar variant="default" />
             </div>
+        </PageHeader>
+        <div className="container mx-auto max-w-3xl px-6 md:px-8 pb-16 pt-4">
 
             {months.length === 0 ? (
-                <div className="rounded-2xl bg-secondary/60 py-12 text-center text-muted-foreground">
+                <div className="rounded-2xl bg-sky-50 py-12 text-center text-muted-foreground">
                     <CalendarDays className="h-10 w-10 mx-auto mb-3 opacity-30" />
                     <p>{t.none}</p>
                 </div>
@@ -82,15 +82,15 @@ export default function EventsPage() {
                                 {month.items.map((event) => {
                                     const description = language === 'en' ? event.description_en : event.description_cy;
                                     return (
-                                        <li key={event.id} className="flex items-start gap-4 rounded-2xl bg-secondary/60 p-4">
+                                        <li key={event.id} className="flex items-start gap-4 rounded-2xl bg-sky-50 p-5">
                                             <div className="shrink-0 w-14 rounded-xl bg-white py-2 text-center shadow-sm">
                                                 <span className="block font-headline text-2xl font-bold leading-none">{format(ukDay(event.start), 'd')}</span>
                                                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{format(ukDay(event.start), 'EEE', locale)}</span>
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="font-semibold leading-tight">{language === 'en' ? event.title_en : event.title_cy}</p>
-                                                <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1 font-medium">
-                                                    <Clock className="h-3 w-3" />
+                                                <p className="font-headline text-xl font-semibold leading-snug">{language === 'en' ? event.title_en : event.title_cy}</p>
+                                                <p className="mt-1 text-sm text-sky-800 flex items-center gap-1 font-semibold">
+                                                    <Clock className="h-3.5 w-3.5" />
                                                     {lastDayOf(event.start, event.end)
                                                         ? `${eventDays(event.start, event.end, language)}${event.allDay ? '' : `, ${ukTime(event.start)}`}`
                                                         : event.allDay ? t.allDay : ukTime(event.start)}
@@ -103,7 +103,7 @@ export default function EventsPage() {
                                                     </p>
                                                 )}
                                                 {event.newsSlug && (
-                                                    <Link href={`/news/${encodeURIComponent(event.newsSlug)}`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                                                    <Link href={`/news/${encodeURIComponent(event.newsSlug)}`} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-sky-800 hover:underline">
                                                         {t.readMore} <ArrowRight className="h-4 w-4" />
                                                     </Link>
                                                 )}
@@ -122,6 +122,7 @@ export default function EventsPage() {
                     {t.termDates}
                 </Link>
             </p>
+        </div>
         </div>
     );
 }

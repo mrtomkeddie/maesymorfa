@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { cy as cyLocale } from 'date-fns/locale';
-import { ArrowRight, BellRing, CalendarDays, ExternalLink, Utensils } from 'lucide-react';
+import { BellRing, CalendarDays, ExternalLink, Utensils } from 'lucide-react';
+import { CardCue } from '@/components/public/Tiles';
 import { db } from '@/lib/db';
 import { weekMenuFor, WEEK_DAYS } from '@/lib/lunchMenu';
 import { useLunchMenus } from '@/hooks/useLunchMenus';
@@ -59,16 +60,6 @@ const content = {
         ],
     },
 };
-
-// The "this card opens something" line at the foot of each card.
-function CardCue({ label, className }: { label: string; className: string }) {
-    return (
-        <span className={`mt-auto inline-flex items-center gap-1 pt-3 text-sm font-semibold ${className}`}>
-            {label}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-        </span>
-    );
-}
 
 // Sits under the hero: the three things a parent checks most, without leaving the homepage.
 export function TodayAtSchool() {
