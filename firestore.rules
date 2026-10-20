@@ -65,6 +65,18 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // School alerts: alertDevices holds one document per phone that turned alerts on, and alertLog
+    // records when each urgent post's alert last went out. Both are closed to everyone, admins
+    // included. Only the site's server uses them, with the school's service account, which these
+    // rules do not apply to (src/lib/pushServer.ts). Phones sign up through /api/alerts/devices,
+    // which checks each token with Firebase first, so nobody can fill the list with made-up phones.
+    match /alertDevices/{id} {
+      allow read, write: if false;
+    }
+    match /alertLog/{id} {
+      allow read, write: if false;
+    }
+
     // Lunch menus: the council's 3-week menu, added in the admin area twice a year.
     // Anyone may read them; school admins may add, change and delete them.
     match /lunchMenus/{menuId} {

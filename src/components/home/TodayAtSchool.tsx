@@ -15,6 +15,7 @@ import { useCalendar } from '@/hooks/useCalendar';
 import { useNews } from '@/hooks/useNews';
 import { useLanguage } from '@/app/(public)/LanguageProvider';
 import { RevealGroup, RevealItem } from '@/components/motion/Reveal';
+import { SchoolAlerts } from '@/components/SchoolAlerts';
 
 
 const content = {
@@ -174,22 +175,26 @@ export function TodayAtSchool() {
                     </RevealItem>
                 </RevealGroup>
 
-                <nav className="mt-5 flex flex-wrap gap-2" aria-label={t.heading}>
-                    {t.links.map((link) => {
-                        const external = link.href.startsWith('http');
-                        return (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                                className="inline-flex items-center gap-1 rounded-full border px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                            >
-                                {link.label}
-                                {external && <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />}
-                            </Link>
-                        );
-                    })}
-                </nav>
+                {/* Alerts first: it is the one action here, the rest are links */}
+                <div className="mt-5 flex flex-wrap gap-2">
+                    <SchoolAlerts />
+                    <nav className="flex flex-wrap gap-2" aria-label={t.heading}>
+                        {t.links.map((link) => {
+                            const external = link.href.startsWith('http');
+                            return (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                    className="inline-flex items-center gap-1 rounded-full border px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                                >
+                                    {link.label}
+                                    {external && <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />}
+                                </Link>
+                            );
+                        })}
+                    </nav>
+                </div>
             </div>
         </section>
     );

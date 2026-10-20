@@ -48,6 +48,8 @@ const formSchema = z.object({
   // The last day, for something over several days in a row (parents' evenings)
   endDate: z.date().nullable().optional(),
   isUrgent: z.boolean().default(false),
+  // With the banner only: a notification on the phones that turned on school alerts
+  sendAlert: z.boolean().default(false),
   attachment: z.any().optional(),
 });
 
@@ -94,6 +96,26 @@ function DayBox({ value, onChange, placeholder, removeLabel, after }: {
   );
 }
 
+// Asks the server to send the alert for a saved post (src/app/api/alerts/route.ts). The post is
+// already on the website by now, so a failure here only means the alert did not go.
+type AlertOutcome = { devices: number; sent: number; failed: number } | { failed: 'not-set-up' | 'already-sent' | 'in-progress' | 'changed' | 'error' };
+async function alertPhones(newsId: string): Promise<AlertOutcome> {
+  try {
+    const idToken = await getSchoolAuth().currentUser?.getIdToken();
+    if (!idToken) return { failed: 'error' };
+    const res = await fetch('/api/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ newsId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && typeof data.sent === 'number') return { devices: Number(data.devices) || 0, sent: data.sent, failed: Number(data.failed) || 0 };
+    return { failed: ['not-set-up', 'already-sent', 'in-progress', 'changed'].includes(data.error) ? data.error : 'error' };
+  } catch {
+    return { failed: 'error' };
+  }
+}
+
 interface AnnouncementFormProps {
   onSuccess: () => void;
   existing?: AdminItem | null;
@@ -117,12 +139,17 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
       date: event ? ukDay(event.start) : null,
       endDate: event ? lastDayOf(event.start, event.end) : null,
       isUrgent: existing?.isBanner ?? false,
+      // On for a new banner; off when editing a post that already has one, so fixing a typo
+      // does not alert every phone a second time
+      sendAlert: !existing?.isBanner,
       attachment: undefined,
     },
   });
 
   const day = form.watch('date');
   const lastDay = form.watch('endDate');
+  const isUrgent = form.watch('isUrgent');
+  const sendAlert = form.watch('sendAlert');
 
   const onSubmit = async (values: AnnouncementFormValues) => {
     const titleEn = values.title_en.trim();
@@ -160,7 +187,7 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
       const middayOfLastDay = values.date ? middayOf(values.endDate) : null;
       const editor = isFirebaseConfigured ? getSchoolAuth().currentUser?.email || 'admin' : 'admin';
 
-      await db.savePost({
+      const savedId = await db.savePost({
         newsId: news?.id ?? null,
         eventId: event?.id ?? null,
         attachment,
@@ -194,7 +221,39 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
         } : null,
       });
 
-      toast({ title: existing ? 'Changes saved' : 'Added', description: 'It is on the website now.' });
+      const title = existing ? 'Changes saved' : 'Added';
+      if (values.isUrgent && values.sendAlert && isFirebaseConfigured) {
+        const alert = await alertPhones(savedId);
+        const phones = (n: number) => `${n} ${n === 1 ? 'phone' : 'phones'}`;
+        const retryHint = 'To try again, open the post, turn on "Send an alert to phones" and save.';
+        if ('sent' in alert) {
+          toast({
+            title,
+            description: alert.devices === 0
+              ? 'It is on the website now. No phones have turned on school alerts yet.'
+              : alert.sent === 0
+                ? 'It is on the website now. None of the phones on the list take alerts any more, so no alert went out.'
+                : `It is on the website now, and the alert was sent to ${phones(alert.sent)}.`
+                  + (alert.failed > 0 ? ` It could not reach ${phones(alert.failed)}. ${retryHint}` : ''),
+          });
+        } else if (alert.failed === 'not-set-up') {
+          toast({ title, description: 'It is on the website now. Phone alerts are not set up yet, so no alert went out.' });
+        } else if (alert.failed === 'already-sent') {
+          toast({ title, description: 'It is on the website now. This alert reached every phone a few minutes ago, so it was not sent again.' });
+        } else if (alert.failed === 'changed') {
+          toast({ title, description: 'It is on the website now. Someone changed this post while the alert was getting ready, so this alert was not sent. Check the post, then try again if it still needs one.' });
+        } else if (alert.failed === 'in-progress') {
+          toast({ title, description: 'It is on the website now. An alert for this post is still going out. Wait a minute before sending another.' });
+        } else {
+          toast({
+            title: 'Saved, but the alert did not go',
+            description: `It is on the website now. ${retryHint}`,
+            variant: 'destructive',
+          });
+        }
+      } else {
+        toast({ title, description: 'It is on the website now.' });
+      }
 
       form.reset();
       onSuccess();
@@ -322,17 +381,34 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
           />
         </div>
 
-        <FormField control={form.control} name="isUrgent" render={({ field }) => (
-          <FormItem className="flex items-center justify-between gap-4 space-y-0 rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <FormLabel>Red banner on the homepage</FormLabel>
-              <FormDescription>
-                For anything parents must see today, like a closure. Only one post has the banner at a time.
-              </FormDescription>
-            </div>
-            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-          </FormItem>
-        )} />
+        <div className="space-y-4 rounded-lg border p-4">
+          <FormField control={form.control} name="isUrgent" render={({ field }) => (
+            <FormItem className="flex items-center justify-between gap-4 space-y-0">
+              <div className="space-y-0.5">
+                <FormLabel>Red banner on the homepage</FormLabel>
+                <FormDescription>
+                  For anything parents must see today, like a closure. Only one post has the banner at a time.
+                </FormDescription>
+              </div>
+              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+            </FormItem>
+          )} />
+
+          {isUrgent && (
+            <FormField control={form.control} name="sendAlert" render={({ field }) => (
+              <FormItem className="flex items-center justify-between gap-4 space-y-0 border-t pt-4">
+                <div className="space-y-0.5">
+                  <FormLabel>Send an alert to phones</FormLabel>
+                  <FormDescription>
+                    Parents who turned on school alerts get a notification with the title, straight away.
+                    Leave this off if you are only fixing a mistake.
+                  </FormDescription>
+                </div>
+                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+              </FormItem>
+            )} />
+          )}
+        </div>
 
         <FormField
           control={form.control}
@@ -373,6 +449,7 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
             ) : (
               <>Goes under <strong className="text-foreground">Latest News</strong>.</>
             )}
+            {isUrgent && sendAlert && <> Also sends an alert to phones.</>}
           </p>
           <Button type="submit" disabled={isLoading} className="w-full shrink-0 sm:w-auto">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

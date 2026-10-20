@@ -108,15 +108,17 @@ export type PostSave = {
     editor: string;         // who added it (saved on new posts only)
 };
 
-export const savePost = async ({ newsId, eventId, news, event, attachment, editor }: PostSave): Promise<void> => {
+// Returns the post's ID (new posts get theirs here), so the admin form can send its alert
+export const savePost = async ({ newsId, eventId, news, event, attachment, editor }: PostSave): Promise<string> => {
     if (!isFirebaseConfigured) {
         if (news.isUrgent) mockNewsStore.forEach(post => post.isUrgent = false);
         const existing = newsId ? mockNewsStore.find(p => p.id === newsId) : undefined;
         const file = attachment ? { attachmentUrl: attachment.url, attachmentName: attachment.name } : {};
+        const id = existing?.id ?? `mock_news_${Date.now()}`;
         if (existing) Object.assign(existing, news, file, { eventStart: event?.start, eventEnd: event?.end });
-        else mockNewsStore.unshift({ ...news, ...file, eventStart: event?.start, eventEnd: event?.end, id: `mock_news_${Date.now()}`, slug: slugify(news.title_en), attachments: [], createdBy: editor } as NewsPostWithId);
+        else mockNewsStore.unshift({ ...news, ...file, eventStart: event?.start, eventEnd: event?.end, id, slug: slugify(news.title_en), attachments: [], createdBy: editor } as NewsPostWithId);
         if (event) console.log("Mock calendar entry:", event);
-        return;
+        return id;
     }
     // A transaction cannot search, so the posts that had the banner are found first and re-read inside it
     const bannerPosts = news.isUrgent
@@ -126,7 +128,7 @@ export const savePost = async ({ newsId, eventId, news, event, attachment, edito
 
     // Everything is re-read here, so if another admin changed this post after the form opened,
     // Firestore runs this again against their version: no second calendar entry, no lost link
-    await runTransaction(firestoreDb, async (tx) => {
+    return runTransaction(firestoreDb, async (tx) => {
         const site = await tx.get(contentRef);
         const listedEvent = eventId ? await tx.get(doc(firestoreDb, CALENDAR, eventId)) : null;
         if (!newsId && eventId && !listedEvent?.exists()) throw new Error('This entry has been deleted.');
@@ -189,6 +191,7 @@ export const savePost = async ({ newsId, eventId, news, event, attachment, edito
             ...(event ? { eventsStarted: true } : {}),
             ...(news.isUrgent ? { urgentNewsId: newsRef.id } : bannerId === newsRef.id ? { urgentNewsId: null } : {}),
         }, { merge: true });
+        return newsRef.id;
     });
 };
 
