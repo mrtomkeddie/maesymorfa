@@ -1,0 +1,24 @@
+{
+  "name": "Icon test B",
+  "short_name": "Test B",
+  "id": "/icon-test/b",
+  "start_url": "/icon-test/b.html",
+  "scope": "/icon-test/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e11d48",
+  "icons": [
+    {
+      "src": "/icon-test/b-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-test/b-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
