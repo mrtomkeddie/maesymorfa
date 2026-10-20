@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Users, Heart, Sparkles } from "lucide-react";
 import { useLanguage } from './../LanguageProvider';
+import { storyText } from '@/components/public/Tiles';
 import Image from "next/image";
 import { STAFF_GROUPS } from "@/lib/staff";
 import { SCHOOL_CLASSES } from "@/lib/schoolClasses";
@@ -87,7 +88,7 @@ export default function AboutPage() {
                         <h1 className="font-headline text-5xl font-extrabold tracking-tighter text-foreground md:text-6xl">
                             {t.title}
                         </h1>
-                        <div className="mt-6 prose prose-lg max-w-none text-foreground/90 mx-auto">
+                        <div className={`mx-auto mt-6 ${storyText}`}>
                             <p>{t.intro1}</p>
                             <p>{t.intro2}</p>
                         </div>
