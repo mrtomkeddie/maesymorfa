@@ -77,5 +77,10 @@ export function SectionHeading({ children, note, as: As = 'h2', className }: { c
     );
 }
 
+// Long text saved from the admin form (a news story): space between the paragraphs staff typed,
+// and bullets on lists. Written out here because the site has no typography plugin, so Tailwind's
+// `prose` classes do nothing and every paragraph ran into the next. Kept to about 70 characters a line.
+export const storyText = 'max-w-[70ch] space-y-5 text-base leading-relaxed text-foreground/90 md:text-lg [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6';
+
 // Pill links, as under the homepage's "Today at school" tiles
 export const pillLink = 'inline-flex items-center gap-1.5 rounded-full border bg-white px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary';

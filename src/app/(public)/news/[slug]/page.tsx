@@ -7,6 +7,7 @@ import { eventDays, safeHtml } from '@/lib/utils';
 import { notFound, useParams } from 'next/navigation';
 import { ArrowLeft, Calendar, Paperclip, Send, Loader2, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { storyText } from '@/components/public/Tiles';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import React, { useEffect, useState } from 'react';
@@ -216,8 +217,8 @@ export default function NewsArticlePage() {
                             )}
                         </header>
                         
-                        <div 
-                            className="prose prose-lg max-w-none dark:prose-invert text-foreground/90" 
+                        <div
+                            className={storyText}
                             dangerouslySetInnerHTML={{ __html: safeHtml(pageBody) }}
                         />
 
