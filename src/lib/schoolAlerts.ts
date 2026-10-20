@@ -27,7 +27,7 @@ const available = process.env.NODE_ENV === 'production' && isFirebaseConfigured 
 export const isIPhone = () =>
     /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-const isInstalled = () =>
+export const isInstalled = () =>
     window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
 
 // iPhones before iOS 16.4 cannot get web alerts at all, even from the Home Screen
@@ -74,9 +74,17 @@ export function alertState(): AlertState {
 }
 
 async function phoneToken(saved: Saved | null): Promise<string> {
-    // The site's own service worker (public/sw.js) shows the alerts, so Firebase does not add a second one
-    await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
-    const registration = await navigator.serviceWorker.ready;
+    // The site's own service worker (public/sw.js) shows the alerts, so Firebase does not add a second one.
+    // ServiceWorkerRegister has normally registered it already. Registering again would wait behind its
+    // update check, which can take a long time, so that only happens when there is none.
+    if (!(await navigator.serviceWorker.getRegistration('/'))) {
+        await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+    }
+    // Never leave the parent watching a spinner: give up after 20 seconds and say so
+    const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('The service worker did not start')), 20_000)),
+    ]);
     // Emulator test builds have no real push service to ask
     if (useEmulators) return saved?.token ?? `emulator-${crypto.randomUUID()}`;
     const { getMessaging, getToken } = await import('firebase/messaging');

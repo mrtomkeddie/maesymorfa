@@ -42,7 +42,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/icon.png',
-    apple: '/mobile-icon.png',
+    // iPhones want a solid 180 x 180 icon; the same file at /apple-touch-icon.png is where they look
+    // when a page gives none
+    apple: { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
   }
 };
 
