@@ -1,8 +1,8 @@
 // Self-updating service worker. Bump CACHE on EVERY deploy, or phones keep the old version.
-const CACHE = 'maesymorfa-v5';
+const CACHE = 'maesymorfa-v6';
 // Alerts this phone has shown (see the push handler). Kept across versions, never bumped.
 const SEEN_CACHE = 'maesymorfa-alerts-seen';
-const ASSETS = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/logo-header.png'];
+const ASSETS = ['/', '/manifest.webmanifest', '/logo-header.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -47,7 +47,8 @@ self.addEventListener('fetch', (e) => {
   }
 
   // 3. Build files and images: cache-first is safe, Next gives them new names when they change.
-  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/_next/image') || url.pathname.startsWith('/icons/')) {
+  //    App icons are left to the network: the phone reads them when it adds the app to the Home Screen.
+  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/_next/image')) {
     e.respondWith(
       caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
         keep(e.request, res);
