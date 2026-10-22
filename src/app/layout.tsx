@@ -7,6 +7,7 @@ import { Inter, VT323 } from 'next/font/google';
 import localFont from 'next/font/local';
 import { LanguageProvider } from './(public)/LanguageProvider';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
+import { LiveWelsh } from '@/components/LiveWelsh';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -72,6 +73,7 @@ export default function RootLayout({
           {children}
           <Toaster />
           <ServiceWorkerRegister />
+          <LiveWelsh />
         </LanguageProvider>
       </body>
     </html>

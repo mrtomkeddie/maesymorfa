@@ -1,6 +1,8 @@
 rules_version = '2';
 
 // Locked down by default: nothing can be read or written unless a rule below allows it.
+// welshCache (the live Welsh for each piece of English) and welshUsage (the daily count) have no rule
+// on purpose: only the site's /api/welsh route uses them, with the school's service account.
 // News and calendar events are stored for real (below). When the site starts storing other
 // real data (parents, children, staff), add a rule for that collection here.
 // Never go back to "allow read, write: if true".

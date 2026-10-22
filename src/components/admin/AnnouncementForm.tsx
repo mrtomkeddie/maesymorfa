@@ -18,14 +18,25 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, CheckCircle, CalendarIcon, X } from 'lucide-react';
+import { Loader2, CheckCircle, CalendarIcon, X, Languages } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/db';
 import type { NewsPostWithId, CalendarEventWithId } from '@/lib/db/firebase';
 import { uploadFile } from '@/lib/firebase/storage';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
+import { FEATURES } from '@/lib/config/features';
 import { getSchoolAuth } from '@/lib/firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { cn, eventDays, htmlToText, lastDayOf, textToHtml, ukDay, ukMidday } from '@/lib/utils';
 import { addDays, differenceInCalendarDays, format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
@@ -116,6 +127,27 @@ async function alertPhones(newsId: string): Promise<AlertOutcome> {
   }
 }
 
+// Asks the server for a Welsh version of the English boxes (src/app/api/translate/route.ts)
+type WelshOutcome = { title: string; body: string } | { failed: 'not-set-up' | 'signed-out' | 'error' };
+async function askForWelsh(title: string, body: string): Promise<WelshOutcome> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (isFirebaseConfigured) {
+      const idToken = await getSchoolAuth().currentUser?.getIdToken();
+      if (!idToken) return { failed: 'signed-out' };
+      headers.Authorization = `Bearer ${idToken}`;
+    }
+    const res = await fetch('/api/translate', { method: 'POST', headers, body: JSON.stringify({ title, body }) });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && typeof data.title === 'string' && typeof data.body === 'string') return { title: data.title, body: data.body };
+    if (data.error === 'not-set-up') return { failed: 'not-set-up' };
+    if (data.error === 'not-signed-in' || data.error === 'not-admin') return { failed: 'signed-out' };
+    return { failed: 'error' };
+  } catch {
+    return { failed: 'error' };
+  }
+}
+
 interface AnnouncementFormProps {
   onSuccess: () => void;
   existing?: AdminItem | null;
@@ -125,6 +157,9 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  // Open while asking whether to replace Welsh that someone already typed
+  const [confirmReplace, setConfirmReplace] = useState(false);
 
   const news = existing?.news ?? null;
   const event = existing?.event ?? null;
@@ -150,6 +185,39 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
   const lastDay = form.watch('endDate');
   const isUrgent = form.watch('isUrgent');
   const sendAlert = form.watch('sendAlert');
+
+  const translate = async () => {
+    const titleEn = form.getValues('title_en').trim();
+    const bodyEn = form.getValues('body_en')?.trim() || '';
+    setIsTranslating(true);
+    const welsh = await askForWelsh(titleEn, bodyEn);
+    setIsTranslating(false);
+
+    if ('title' in welsh) {
+      form.setValue('title_cy', welsh.title, { shouldDirty: true, shouldValidate: true });
+      form.setValue('body_cy', welsh.body, { shouldDirty: true, shouldValidate: true });
+      toast({ title: 'Welsh added', description: 'Read it through before you save. A computer translated it, so it can get words wrong.' });
+    } else if (welsh.failed === 'not-set-up') {
+      toast({ title: 'Translation is not set up yet', description: 'Type the Welsh yourself, or leave the boxes blank to show the English.' });
+    } else if (welsh.failed === 'signed-out') {
+      toast({ title: 'Not translated', description: 'Sign out and back in, then try again.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Not translated', description: 'Something went wrong. Try again in a minute, or type the Welsh yourself.', variant: 'destructive' });
+    }
+  };
+
+  const onTranslateClick = () => {
+    if (form.getValues('title_en').trim().length < 5) {
+      form.setError('title_en', { type: 'manual', message: 'Write the English title first, then press Translate to Welsh.' });
+      return;
+    }
+    // Never write over Welsh that someone typed without asking first
+    if (form.getValues('title_cy')?.trim() || form.getValues('body_cy')?.trim()) {
+      setConfirmReplace(true);
+      return;
+    }
+    translate();
+  };
 
   const onSubmit = async (values: AnnouncementFormValues) => {
     const titleEn = values.title_en.trim();
@@ -277,7 +345,12 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
             <FormItem>
               <FormLabel>Title</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Sports Day" {...field} />
+                <Input
+                  placeholder="e.g., Sports Day"
+                  {...field}
+                  // The "write the title first" note from Translate to Welsh goes once they start typing
+                  onChange={(e) => { field.onChange(e); if (form.formState.errors.title_en?.type === 'manual') form.clearErrors('title_en'); }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -346,12 +419,21 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
           )}
         </div>
 
+        {/* With Welsh turned off the boxes are hidden; a post being edited keeps the Welsh it has */}
+        {FEATURES.enableWelsh && (
         <div className="space-y-4 rounded-lg border p-4">
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium">Welsh version (Cymraeg, optional)</p>
-            <p className="text-sm text-muted-foreground">
-              Shown when visitors switch the site to Cymraeg. Leave blank to show the English.
-            </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium">Welsh version (Cymraeg, optional)</p>
+              <p className="text-sm text-muted-foreground">
+                Shown when visitors switch the site to Cymraeg. Leave blank to show the English, or press
+                Translate to Welsh and read the result before you save.
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={onTranslateClick} disabled={isTranslating || isLoading} className="w-full shrink-0 sm:w-auto">
+              {isTranslating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Languages className="mr-2 h-4 w-4" />}
+              {isTranslating ? 'Translating…' : 'Translate to Welsh'}
+            </Button>
           </div>
           <FormField
             control={form.control}
@@ -380,6 +462,7 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
             )}
           />
         </div>
+        )}
 
         <div className="space-y-4 rounded-lg border p-4">
           <FormField control={form.control} name="isUrgent" render={({ field }) => (
@@ -451,12 +534,27 @@ export function AnnouncementForm({ onSuccess, existing }: AnnouncementFormProps)
             )}
             {isUrgent && sendAlert && <> Also sends an alert to phones.</>}
           </p>
-          <Button type="submit" disabled={isLoading} className="w-full shrink-0 sm:w-auto">
+          <Button type="submit" disabled={isLoading || isTranslating} className="w-full shrink-0 sm:w-auto">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {existing ? 'Save changes' : 'Add to the website'}
           </Button>
         </div>
       </form>
+
+      <AlertDialog open={confirmReplace} onOpenChange={setConfirmReplace}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace the Welsh?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The Welsh boxes already have words in them. A new translation of the English will take their place.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep my Welsh</AlertDialogCancel>
+            <AlertDialogAction onClick={translate}>Replace it</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Form>
   );
 }

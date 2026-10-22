@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
+import { FEATURES } from '@/lib/config/features';
 import { LanguageToggle } from '@/app/(portal)/layout'; // Re-exporting or moving this might be cleaner later, but importing for now is fine if it's exported.
 // actually, let's redefine LanguageToggle locally or import it if compatible. 
 // To avoid circular dependency issues if (portal)/layout imports this, we should redefine it OR extract it.
@@ -53,8 +54,12 @@ export const PortalLanguageToggle = () => {
         });
     };
 
+    // The parent portal, teacher area and admin area all use this button
+    if (!FEATURES.enableWelsh) return null;
+
     return (
-        <div className="flex items-center gap-1 border rounded-full p-1 text-sm bg-background">
+        // translate="no": live Welsh must leave "English" as it is
+        <div translate="no" className="flex items-center gap-1 border rounded-full p-1 text-sm bg-background">
             <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs portal-lang-toggle ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => handleLanguageChange('cy')} disabled={isPending}>{t.lang1}</Button>
             <div className="w-px h-4 bg-border"></div>
             <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs portal-lang-toggle ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => handleLanguageChange('en')} disabled={isPending}>{t.lang2}</Button>

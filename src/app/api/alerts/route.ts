@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
 import { htmlToText } from '@/lib/utils';
-import { canPush, commit, DOCUMENTS, firestore, FIRESTORE, push, serverPass, type PushResult } from '@/lib/pushServer';
+import { canPush, commit, DOCUMENTS, firestore, FIRESTORE, push, serverPass, uidFrom, type PushResult } from '@/lib/pushServer';
 
 // Sends a school alert to every phone that turned alerts on (src/lib/schoolAlerts.ts). The admin form
 // calls this right after staff save a post with the red banner and "Send an alert to phones" on. The
@@ -23,17 +23,6 @@ type Alert = { title: string; body: string; url: string; tag: string };
 type Value = { stringValue?: string; booleanValue?: boolean; timestampValue?: string; arrayValue?: { values?: { stringValue?: string }[] } };
 type Fields = Record<string, Value>;
 type FirestoreDoc = { name: string; updateTime?: string; fields?: Fields };
-
-// The user ID inside a Firebase sign-in token. Not trusted on its own: Firestore checks the token.
-function uidFrom(idToken: string): string | null {
-    try {
-        const payload = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64url').toString());
-        const uid = payload.user_id ?? payload.sub;
-        return typeof uid === 'string' && /^[A-Za-z0-9]{1,128}$/.test(uid) ? uid : null;
-    } catch {
-        return null;
-    }
-}
 
 const plain = (html: string) => htmlToText(html).replace(/\s+/g, ' ').trim();
 const shorten = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);

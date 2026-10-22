@@ -7,6 +7,10 @@ export const FEATURES = {
     enablePortalFooterSections: process.env.NEXT_PUBLIC_ENABLE_PORTAL_FOOTER_SECTIONS === 'true',
     enableMorfaRunner: process.env.NEXT_PUBLIC_ENABLE_MORFA_RUNNER !== 'false', // Default true
     enableSchoolDinnersPage: process.env.NEXT_PUBLIC_ENABLE_SCHOOL_DINNERS_PAGE === 'true',
+    // Default true. 'false' makes the whole site English only: no Cymraeg/English buttons, no Welsh
+    // boxes in the news form, no live Welsh. The Welsh stays in the code and the database, so setting
+    // it back brings everything back. Read at build time, so redeploy after changing it on Vercel.
+    enableWelsh: process.env.NEXT_PUBLIC_ENABLE_WELSH !== 'false',
 } as const;
 
 // The admin area shows only pages that really save to the website. The rest (staff, documents,

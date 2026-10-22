@@ -93,12 +93,14 @@ export function PublicHeader() {
         </nav>
 
         <div className="flex items-center gap-4">
-          {/* Language Switcher - Desktop */}
-          <div className="hidden sm:flex items-center gap-1 border rounded-full p-1 text-sm bg-background">
-            <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('cy')}>{t.lang1}</Button>
-            <div className="w-px h-4 bg-border"></div>
-            <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
-          </div>
+          {/* Language Switcher - Desktop. translate="no": live Welsh must leave "English" as it is */}
+          {FEATURES.enableWelsh && (
+            <div translate="no" className="hidden sm:flex items-center gap-1 border rounded-full p-1 text-sm bg-background">
+              <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('cy')}>{t.lang1}</Button>
+              <div className="w-px h-4 bg-border"></div>
+              <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`rounded-full px-3 py-1 h-auto text-xs ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
+            </div>
+          )}
 
           {/* Desktop Action Button */}
           <div className="hidden xl:block">
@@ -140,11 +142,13 @@ export function PublicHeader() {
                   <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
 
                   {/* Mobile Language Switcher */}
-                  <div className="flex items-center justify-center gap-1 border rounded-full p-1 text-sm bg-background m-6 mx-4">
-                    <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('cy')}>{t.lang1}</Button>
-                    <div className="w-px h-4 bg-border"></div>
-                    <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
-                  </div>
+                  {FEATURES.enableWelsh && (
+                    <div translate="no" className="flex items-center justify-center gap-1 border rounded-full p-1 text-sm bg-background m-6 mx-4">
+                      <Button variant={language === 'cy' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'cy' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('cy')}>{t.lang1}</Button>
+                      <div className="w-px h-4 bg-border"></div>
+                      <Button variant={language === 'en' ? 'default' : 'ghost'} size="sm" className={`flex-1 rounded-full px-3 py-1 h-auto text-xs ${language === 'en' ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : ''}`} onClick={() => setLanguage('en')}>{t.lang2}</Button>
+                    </div>
+                  )}
 
                   <nav className="flex flex-col p-4 pt-0 space-y-1">
                     {navLinks.map((link) => {

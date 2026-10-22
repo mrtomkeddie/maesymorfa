@@ -19,6 +19,18 @@ const SCOPES = 'https://www.googleapis.com/auth/firebase.messaging https://www.g
 export const isPushToken = (value: unknown): value is string =>
     typeof value === 'string' && /^[A-Za-z0-9_:-]{20,500}$/.test(value);
 
+// The user ID inside a Firebase sign-in token. Not trusted on its own: Firestore checks the token.
+// Also used by /api/translate for its admin check.
+export function uidFrom(idToken: string): string | null {
+    try {
+        const payload = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64url').toString());
+        const uid = payload.user_id ?? payload.sub;
+        return typeof uid === 'string' && /^[A-Za-z0-9]{1,128}$/.test(uid) ? uid : null;
+    } catch {
+        return null;
+    }
+}
+
 // Each phone's document is named with a fingerprint of its token: tokens contain ":", which
 // Google's REST addresses read as a command
 export const deviceId = (token: string) => createHash('sha256').update(token).digest('hex');
