@@ -1,8 +1,8 @@
 // School lunches: the Carmarthenshire School Catering Service primary menu, copied from the
 // council's PDF (shared with parents on ParentPay). The council runs a 3-week cycle and
 // publishes a new menu twice a year (May and October). The school adds each new menu in the
-// admin area (/admin/menu, saved in Firestore's lunchMenus). BUILT_IN_MENU is the menu that was
-// typed in before the editor existed; it still shows for the weeks it covers.
+// admin area (/admin/menu, saved in Firestore's lunchMenus). BUILT_IN_MENU is a menu typed into
+// the code (now the autumn 2026 one); it shows for the weeks it covers when no saved menu does.
 import { TERMS } from './termDates';
 
 export type LunchDay = {
@@ -35,31 +35,33 @@ export type LunchMenuWithId = LunchMenu & { id: string };
 const JACKET = 'Jacket Potato with Choice of Filling';
 const PASTA = 'Tomato & Basil Pasta Bake';
 
+// Copied from the council's autumn PDF (carmarthenshire.gov.wales/media/n3tjovhl/autumn-menu-2026_.pdf,
+// page updated 28 Oct 2026). The autumn menu has no salad row, so salad is left empty.
 export const BUILT_IN_MENU: LunchMenu = {
-    name: 'Primary Summer Menu 2026',
-    startsOn: '2026-08-31',
-    endsOn: '2026-10-23',
+    name: 'Primary Autumn Menu 2026',
+    startsOn: '2026-11-02',
+    endsOn: '2026-12-18',
     weeks: {
         '1': {
-            monday: { main: 'Welsh Pork Sausage/Sausage Pattie', vegetarian: 'Vegetable Sausage', alternative: PASTA, sides: 'Omelette, Brunch Fries, Baked Beans and Tomatoes', salad: 'Sweetcorn', dessert: 'Ice Cream and Peaches' },
-            tuesday: { main: 'Chicken Korma', vegetarian: 'Vegetable Korma', alternative: JACKET, sides: 'Mixed Rice, Seasonal Vegetables and Peas', salad: 'Mixed Salad', dessert: 'Oat Biscuit and Orange Wedges' },
-            wednesday: { main: 'Welsh Beef Cottage Pie', vegetarian: 'Lentil and Vegetable Cottage Pie', alternative: PASTA, sides: 'Carrots, Broccoli and Gravy', salad: 'Mixed Salad', dessert: 'Cheese, Crackers and Sliced Apple' },
-            thursday: { main: 'Turkey Pasta Bake', vegetarian: 'Cheese & Tomato Pasta Bake', alternative: JACKET, sides: 'Garlic Bread, Coleslaw and Peas', salad: 'Mixed Salad', dessert: 'Lemon Drizzle Muffin and Fruit Wedges' },
-            friday: { main: 'Fish Finger Wrap', vegetarian: 'Hot Pizza Wrap', alternative: PASTA, sides: 'Potato Wedges or Mashed Potato, Cucumber and Baked Beans', salad: 'Mixed Salad', dessert: 'Chocolate Banana Cake and Sliced Banana' },
+            monday: { main: 'Welsh Pork Sausage', vegetarian: 'Vegetable Sausage', alternative: PASTA, sides: 'Omelette, Brunch Fries, Baked Beans and Tomatoes', salad: '', dessert: 'Ice Cream and Peaches' },
+            tuesday: { main: 'Chicken Korma', vegetarian: 'Vegetable Korma', alternative: JACKET, sides: 'Mixed Rice, Seasonal Vegetables and Peas', salad: '', dessert: 'Oat Biscuit and Orange Wedges' },
+            wednesday: { main: 'Welsh Beef Cottage Pie', vegetarian: 'Lentil and Vegetable Cottage Pie', alternative: PASTA, sides: 'Carrots, Broccoli and Gravy', salad: '', dessert: 'Cheese, Crackers and Sliced Apple' },
+            thursday: { main: 'Turkey Pasta Bake', vegetarian: 'Cheese & Tomato Pasta Bake', alternative: JACKET, sides: 'Garlic Bread, Coleslaw and Peas', salad: '', dessert: 'Lemon Drizzle Muffin and Fruit Wedges' },
+            friday: { main: 'Fish Finger Wrap', vegetarian: 'Hot Pizza Wrap', alternative: PASTA, sides: 'Potato Wedges or Mashed Potato, Cucumber and Baked Beans', salad: '', dessert: 'Chocolate Banana Cake and Sliced Banana' },
         },
         '2': {
-            monday: { main: 'Welsh Sausage Ragu Pasta Bake', vegetarian: 'Mac & Cheese', alternative: JACKET, sides: 'Garlic Bread, Carrots and Broccoli', salad: 'Beetroot', dessert: 'Chocolate Brownie and Fruit Coulis' },
-            tuesday: { main: 'Summer Pizza', vegetarian: 'Summer Pizza', alternative: PASTA, sides: 'Chips or Half Jacket Potato, Baked Beans and Peas', salad: 'Mixed Salad', dessert: 'Cheese, Crackers and Sliced Apple' },
-            wednesday: { main: 'Peri Peri Chicken Wrap', vegetarian: 'Halloumi Hot Wrap', alternative: JACKET, sides: 'Diced Potatoes, Coleslaw and Cucumber Salad, Tomato Salsa', salad: 'Sweetcorn', dessert: 'Apple Cake and Custard' },
-            thursday: { main: 'Welsh Beef Chilli', vegetarian: 'Vegetarian Chilli', alternative: PASTA, sides: 'Mixed Rice, Tortilla Triangles, Sweetcorn and Diced Cucumber', salad: 'Mixed Salad', dessert: 'Yoghurt and Peaches' },
-            friday: { main: 'Fish Bites', vegetarian: 'Quorn Nuggets', alternative: JACKET, sides: 'Jacket Potato, Peas and Baked Beans', salad: 'Mixed Salad', dessert: 'Chocolate Flapjack and Fruit Wedges' },
+            monday: { main: 'Welsh Sausage Ragu Pasta Bake', vegetarian: 'Mac & Cheese', alternative: JACKET, sides: 'Garlic Bread, Carrots and Broccoli', salad: '', dessert: 'Chocolate Brownie and Fruit Coulis' },
+            tuesday: { main: 'Summer Pizza', vegetarian: 'Summer Pizza', alternative: PASTA, sides: 'Chips or Half Jacket Potato, Baked Beans and Peas', salad: '', dessert: 'Cheese, Crackers and Sliced Apple' },
+            wednesday: { main: 'Peri Peri Chicken Wrap', vegetarian: 'Halloumi Hot Wrap', alternative: JACKET, sides: 'Diced Potatoes, Coleslaw and Cucumber Salad, Tomato Salsa', salad: '', dessert: 'Apple Cake and Custard' },
+            thursday: { main: 'Welsh Beef Chilli', vegetarian: 'Vegetarian Chilli', alternative: PASTA, sides: 'Mixed Rice, Tortilla Triangles, Sweetcorn and Diced Cucumber', salad: '', dessert: 'Yoghurt and Peaches' },
+            friday: { main: 'Fish Bites', vegetarian: 'Quorn Nuggets', alternative: JACKET, sides: 'Jacket Potato, Peas and Baked Beans', salad: '', dessert: 'Chocolate Flapjack and Fruit Wedges' },
         },
         '3': {
-            monday: { main: 'Honey and Soy Chicken', vegetarian: 'Honey and Soy Quorn', alternative: PASTA, sides: 'Vegetable Noodles or Mixed Rice, Peas and Sweetcorn', salad: 'Mixed Salad', dessert: 'Chocolate Cookie, Orange Wedges and Glass of Welsh Milk' },
-            tuesday: { main: 'Pork and Carrot Meatball Sub Sandwich', vegetarian: 'Vege Meatball Sub Sandwich', alternative: JACKET, sides: 'Potato Wedges, Coleslaw and Mixed Salad', salad: 'Sweetcorn', dessert: 'Banana Split' },
-            wednesday: { main: 'Roast Turkey', vegetarian: 'Vegetable Sausage', alternative: PASTA, sides: 'Stuffing, Mashed Potato, Carrots, Green Beans and Gravy', salad: 'Mixed Salad', dessert: 'Yogurt and Summer Chopped Fruit' },
-            thursday: { main: 'Welsh Beef Bolognaise', vegetarian: 'Lentil Bolognaise', alternative: JACKET, sides: 'Pasta, Garlic Bread, Broccoli and Cauliflower', salad: 'Mixed Salad', dessert: 'Carrot and Apple Muffin, Fruit Wedges' },
-            friday: { main: 'Breaded Salmon Fillet', vegetarian: 'Haloumi Burger', alternative: PASTA, sides: 'Chips or Mashed Potato, Baked Beans and Peas', salad: 'Mixed Salad', dessert: 'Apple Crumble & Ice Cream' },
+            monday: { main: 'Honey and Soy Chicken', vegetarian: 'Honey and Soy Quorn', alternative: PASTA, sides: 'Vegetable Noodles or Mixed Rice, Peas and Sweetcorn', salad: '', dessert: 'Chocolate Cookie, Orange Wedges and Glass of Welsh Milk' },
+            tuesday: { main: 'Pork and Carrot Meatball Sub Sandwich', vegetarian: 'Vege Meatball Sub Sandwich', alternative: JACKET, sides: 'Diced Potatoes, Coleslaw and Mixed Salad', salad: '', dessert: 'Banana Split' },
+            wednesday: { main: 'Roast Turkey', vegetarian: 'Vegetable Sausage', alternative: PASTA, sides: 'Stuffing, Mashed Potato, Carrots, Green Beans and Gravy', salad: '', dessert: 'Yogurt and Summer Chopped Fruit' },
+            thursday: { main: 'Welsh Beef Bolognaise', vegetarian: 'Lentil Bolognaise', alternative: JACKET, sides: 'Pasta, Garlic Bread, Broccoli and Cauliflower', salad: '', dessert: 'Carrot and Apple Muffin and Fruit Wedges' },
+            friday: { main: 'Breaded Salmon Fillet', vegetarian: 'Haloumi Burger', alternative: PASTA, sides: 'Chips or Mashed Potato, Baked Beans and Peas', salad: '', dessert: 'Apple Crumble & Ice Cream' },
         },
     },
 };

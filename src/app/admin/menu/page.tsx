@@ -312,7 +312,7 @@ export default function LunchMenuAdminPage() {
               <div className="rounded-lg border border-dashed p-4">
                 <p className="font-semibold">{BUILT_IN_MENU.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {showDay(BUILT_IN_MENU.startsOn)} to {showDay(BUILT_IN_MENU.endsOn)}. Built into the website before this page existed, so it
+                  {showDay(BUILT_IN_MENU.startsOn)} to {showDay(BUILT_IN_MENU.endsOn)}. Built into the website, so it
                   cannot be edited here. &quot;Add the new menu&quot; copies it as a starting point.
                 </p>
               </div>
